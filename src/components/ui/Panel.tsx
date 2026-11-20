@@ -1,0 +1,136 @@
+import React from 'react';
+import { CORNER_CUTS } from './tokens';
+import { ScenicBannerLayer, type ScenicSceneId } from './ScenicBackdrop';
+import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
+
+export type PanelVariant = 'default' | 'raised' | 'dark' | 'glass';
+
+export interface PanelProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  readonly title?: React.ReactNode;
+  readonly codeName?: string;
+  readonly actions?: React.ReactNode;
+  readonly variant?: PanelVariant;
+  readonly cornerCut?: boolean | 'sm' | 'md' | 'lg';
+  readonly scanlines?: boolean;
+  readonly grid?: boolean;
+  readonly headerScene?: ScenicSceneId;
+}
+
+export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
+  (
+    {
+      title,
+      codeName,
+      actions,
+      variant = 'default',
+      cornerCut = false,
+      scanlines = false,
+      grid = false,
+      headerScene,
+      children,
+      className = '',
+      style,
+      ...props
+    },
+    ref,
+  ) => {
+    const variantClasses: Record<PanelVariant, string> = {
+      default: 'bg-[#20262b] border-[#4a555b]/70 text-[#e8e9e6]',
+      raised: 'bg-[#293137] border-[#5a666e]/80 text-[#e8e9e6] shadow-xl',
+      dark: 'bg-[#171a1d] border-[#363f45] text-[#e8e9e6]',
+      glass: 'bg-[#1c2227]/90 backdrop-blur-md border-[#4a555b]/60 text-[#e8e9e6]',
+    };
+
+    let clipPathStyle: string | undefined;
+    if (cornerCut === true || cornerCut === 'md') {
+      clipPathStyle = CORNER_CUTS.md;
+    } else if (cornerCut === 'sm') {
+      clipPathStyle = CORNER_CUTS.sm;
+    } else if (cornerCut === 'lg') {
+      clipPathStyle = CORNER_CUTS.lg;
+    }
+
+    const combinedStyle = clipPathStyle
+      ? {
+          clipPath: clipPathStyle,
+          ...style,
+        }
+      : style;
+
+    return (
+      <div
+        ref={ref}
+        className={`holo-panel relative flex flex-col border rounded-sm overflow-hidden ${variantClasses[variant]} ${className}`}
+        style={combinedStyle}
+        {...props}
+      >
+        {/* 顶部全息投影棱镜光脊 */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400/20 via-cyan-300/75 to-amber-400/55 z-20"
+        />
+        {/* 四角全息投影定位光标 */}
+        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] left-[3px] w-2.5 h-2.5 border-t-2 border-l-2 border-cyan-300/80 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] right-[3px] w-2.5 h-2.5 border-t-2 border-r-2 border-amber-400/70 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] left-[3px] w-2.5 h-2.5 border-b-2 border-l-2 border-cyan-400/65 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] right-[3px] w-2.5 h-2.5 border-b-2 border-r-2 border-amber-400/65 z-20" />
+        {/* 商业级拉丝钛金装甲底纹（替代纯色 CSS 容器底面） */}
+        <img
+          src={titaniumHudSurface}
+          alt=""
+          aria-hidden="true"
+          referrerPolicy="no-referrer"
+          className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.22] z-0"
+        />
+
+        {/* Subtle Scanlines Texture */}
+        {scanlines && (
+          <div
+            className="prts-scanlines absolute inset-0 opacity-5 pointer-events-none z-0"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)',
+            }}
+          />
+        )}
+
+        {/* Subtle Grid Pattern */}
+        {grid && (
+          <div
+            className="prts-grid absolute inset-0 opacity-5 pointer-events-none z-0"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '24px 24px',
+            }}
+          />
+        )}
+
+        {/* Optional Tactical Header */}
+        {(title || codeName || actions) && (
+          <div className="relative z-10 flex items-center justify-between px-3.5 py-2 border-b border-[#363f45] bg-[#1a1f23]/80 select-none overflow-hidden">
+            {headerScene && (
+              <ScenicBannerLayer scene={headerScene} fade="right" opacityClassName="opacity-36" />
+            )}
+            <div className="relative z-10 flex items-center gap-2 overflow-hidden">
+              <span className="w-1.5 h-3.5 bg-[#e5a52b] rounded-none shrink-0" />
+              {title && <span className="font-bold text-xs tracking-wider text-slate-100 uppercase truncate">{title}</span>}
+              {codeName && (
+                <span className="text-[10px] font-mono text-slate-400 tracking-widest uppercase shrink-0">
+                  · {codeName}
+                </span>
+              )}
+            </div>
+            {actions && <div className="relative z-10 flex items-center gap-1.5 shrink-0">{actions}</div>}
+          </div>
+        )}
+
+        {/* Content Body */}
+        <div className="relative z-10 flex-1">{children}</div>
+      </div>
+    );
+  },
+);
+
+Panel.displayName = 'Panel';

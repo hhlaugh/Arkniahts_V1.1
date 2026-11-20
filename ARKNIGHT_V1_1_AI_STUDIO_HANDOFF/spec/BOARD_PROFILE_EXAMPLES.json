@@ -1,0 +1,64 @@
+{
+  "classic3Lane": {
+    "profileId": "classic-3x2",
+    "mode": "classic",
+    "laneCount": 3,
+    "lanes": [
+      {
+        "laneId": "L1",
+        "laneOrder": 0,
+        "frontSlots": 1,
+        "rearSlots": 1
+      },
+      {
+        "laneId": "L2",
+        "laneOrder": 1,
+        "frontSlots": 1,
+        "rearSlots": 1
+      },
+      {
+        "laneId": "L3",
+        "laneOrder": 2,
+        "frontSlots": 1,
+        "rearSlots": 1
+      }
+    ]
+  },
+  "custom5LaneExample": {
+    "profileId": "custom-5-example",
+    "mode": "custom",
+    "laneCount": 5,
+    "lanes": [
+      {
+        "laneId": "L1",
+        "laneOrder": 0,
+        "frontSlots": 2,
+        "rearSlots": 1
+      },
+      {
+        "laneId": "L2",
+        "laneOrder": 1,
+        "frontSlots": 3,
+        "rearSlots": 2
+      },
+      {
+        "laneId": "L3",
+        "laneOrder": 2,
+        "frontSlots": 1,
+        "rearSlots": 3
+      },
+      {
+        "laneId": "L4",
+        "laneOrder": 3,
+        "frontSlots": 2,
+        "rearSlots": 2
+      },
+      {
+        "laneId": "L5",
+        "laneOrder": 4,
+        "frontSlots": 1,
+        "rearSlots": 1
+      }
+    ]
+  }
+}

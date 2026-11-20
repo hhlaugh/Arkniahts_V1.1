@@ -1,0 +1,337 @@
+import { loadDemoData } from '../data/load-card-data';
+import {
+  getAccountCustomDecks,
+  getActiveCollection,
+  saveAccountCustomDecks,
+} from '../data/player-collection';
+import type { DeckMode } from '../data/player-collection';
+import { CLASSIC_BOARD_PROFILE, formatLaneLabelZh } from '../game/board';
+import type { BoardProfile, CardDefinition, CardId, DeckDefinition, LaneId, PlayerId } from '../game/types';
+
+/** UI 侧使用的卡牌定义视图：在引擎类型上补充数据里实际存在、但引擎类型未声明的展示字段。 */
+export type UiCardDefinition = CardDefinition & {
+  readonly rules_text_zh?: string;
+  readonly active_skill_text_zh?: string;
+  readonly synergy_tags?: string;
+};
+
+const loaded = loadDemoData();
+const errors = loaded.issues.filter((issue) => issue.severity === 'error');
+if (errors.length > 0) throw new Error(`Demo 数据校验失败：${errors.map((issue) => `${issue.code} ${issue.message}`).join('；')}`);
+
+export const DEMO_CARDS: readonly CardDefinition[] = loaded.validCards;
+export const DEMO_DECKS: readonly DeckDefinition[] = loaded.decks;
+
+export const PRESET_DECKS: readonly DeckDefinition[] = [
+  ...DEMO_DECKS,
+  {
+    deck_id: 'DECK-V11-TACTICAL',
+    deck_name_zh: 'V1.1 战术突击组（含战术/设施/装备）',
+    cards: [
+      { card_id: 'OP-VAN-001' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-003' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-006' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-008' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-003' as CardId, quantity: 2 },
+      { card_id: 'DEMO-TAC-V2-002' as CardId, quantity: 2 },
+      { card_id: 'DEMO-TAC-V2-005' as CardId, quantity: 2 },
+      { card_id: 'DEMO-SUP-V2-001' as CardId, quantity: 2 },
+      { card_id: 'DEMO-SUP-V2-008' as CardId, quantity: 2 },
+    ],
+  },
+  {
+    deck_id: 'DECK-V11-SUPPORT',
+    deck_name_zh: 'V1.1 防线支援组（含设施/装备/控场）',
+    cards: [
+      { card_id: 'OP-DEF-001' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-008' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-009' as CardId, quantity: 2 },
+      { card_id: 'OP-SUP-005' as CardId, quantity: 2 },
+      { card_id: 'OP-SUP-006' as CardId, quantity: 2 },
+      { card_id: 'DEMO-TAC-V2-011' as CardId, quantity: 2 },
+      { card_id: 'DEMO-TAC-V2-013' as CardId, quantity: 2 },
+      { card_id: 'DEMO-SUP-V2-004' as CardId, quantity: 2 },
+      { card_id: 'DEMO-SUP-V2-007' as CardId, quantity: 2 },
+    ],
+  },
+  {
+    deck_id: 'DECK-ASSAULT',
+    deck_name_zh: '突击先锋组（德克萨斯/风笛/银灰）',
+    cards: [
+      { card_id: 'OP-VAN-006' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-005' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-009' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-005' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-007' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-008' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-008' as CardId, quantity: 2 },
+      { card_id: 'OP-SPE-006' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-004' as CardId, quantity: 2 },
+    ],
+  },
+  {
+    deck_id: 'DECK-CONTROL',
+    deck_name_zh: '天灾信使控场组（艾雅法拉/伊芙利特/初雪）',
+    cards: [
+      { card_id: 'OP-VAN-007' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-008' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-009' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-006' as CardId, quantity: 2 },
+      { card_id: 'OP-SUP-005' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-003' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
+      { card_id: 'OP-SUP-007' as CardId, quantity: 2 },
+      { card_id: 'OP-SPE-009' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-001' as CardId, quantity: 2 },
+    ],
+  },
+  {
+    deck_id: 'DECK-DEFENSE',
+    deck_name_zh: '重装磐石防卫组（塞雷娅/星熊/夜莺）',
+    cards: [
+      { card_id: 'OP-VAN-003' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-006' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-008' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-009' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-009' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-007' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-009' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-006' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-005' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-009' as CardId, quantity: 2 },
+    ],
+  },
+];
+
+/**
+ * 低星 starter 预设（GACHA_PLAN_v0.3 §5）：全部由 3★ 干员组成；每个新账户都拥有这些干员 ×2，
+ * 因此在收录模式下始终可选；自由构筑模式下不额外展示（自由模式保持原有可选列表不变）。
+ */
+export const STARTER_PRESETS: readonly DeckDefinition[] = [
+  {
+    deck_id: 'DECK-STARTER-A',
+    deck_name_zh: '新兵突击编制（低星 starter）',
+    cards: [
+      { card_id: 'OP-VAN-001' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-002' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-001' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-002' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-001' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-002' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-001' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-002' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
+    ],
+  },
+  {
+    deck_id: 'DECK-STARTER-B',
+    deck_name_zh: '新兵防守编制（低星 starter）',
+    cards: [
+      { card_id: 'OP-DEF-001' as CardId, quantity: 2 },
+      { card_id: 'OP-DEF-002' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
+      { card_id: 'OP-MED-002' as CardId, quantity: 2 },
+      { card_id: 'OP-SUP-001' as CardId, quantity: 2 },
+      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
+      { card_id: 'OP-CAS-001' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-001' as CardId, quantity: 2 },
+      { card_id: 'OP-VAN-002' as CardId, quantity: 2 },
+      { card_id: 'OP-GUA-001' as CardId, quantity: 2 },
+    ],
+  },
+];
+
+export const CARD_BY_ID: ReadonlyMap<CardId, UiCardDefinition> = new Map(
+  DEMO_CARDS.map((card) => [card.card_id, card as UiCardDefinition]),
+);
+
+export const PLAYER_LABEL: Readonly<Record<PlayerId, string>> = { player_a: '玩家 A', player_b: '玩家 B' };
+export const LANE_LABEL: Readonly<Record<LaneId, string>> = {
+  left: '左路',
+  center: '中路',
+  right: '右路',
+  L1: '路线 L1',
+  L2: '路线 L2',
+  L3: '路线 L3',
+  L4: '路线 L4',
+  L5: '路线 L5',
+};
+
+export function formatLaneLabel(laneId: LaneId | null, boardProfile: BoardProfile = CLASSIC_BOARD_PROFILE): string {
+  return formatLaneLabelZh(boardProfile, laneId);
+}
+
+export const STATUS_LABEL: Readonly<Record<string, string>> = {
+  stun: '眩晕',
+  freeze: '冻结',
+  grounded: '落地',
+  slow: '减速',
+  taunt: '嘲讽',
+  silence: '沉默',
+  suppressed: '压制',
+  chilled: '寒冷',
+  vulnerable: '脆弱',
+  cover: '掩护',
+  poisoned: '中毒',
+};
+
+export const CLASS_LABEL: Readonly<Record<string, string>> = {
+  vanguard: '先锋',
+  guard: '近卫',
+  defender: '重装',
+  sniper: '狙击',
+  caster: '术师',
+  medic: '医疗',
+  supporter: '辅助',
+  specialist: '特种',
+  tactic: '战术',
+  support: '支援',
+};
+
+export const CLASS_COLOR: Readonly<Record<string, string>> = {
+  vanguard: '#10b981', // emerald
+  guard: '#f97316',    // orange
+  defender: '#3b82f6', // blue
+  sniper: '#06b6d4',   // cyan
+  caster: '#8b5cf6',   // violet
+  medic: '#14b8a6',    // teal
+  supporter: '#eab308',// yellow/gold
+  specialist: '#ec4899',// pink
+  tactic: '#a855f7',   // purple
+  support: '#64748b',  // slate
+};
+
+export function getCustomDecks(): DeckDefinition[] {
+  const stored = getAccountCustomDecks();
+  let mutated = false;
+  const sanitized: DeckDefinition[] = [];
+  for (const item of stored) {
+    if (!item || typeof item !== 'object' || typeof item.deck_id !== 'string' || !Array.isArray(item.cards)) {
+      mutated = true;
+      continue;
+    }
+    const originalCards = item.cards as { card_id?: unknown; quantity?: unknown }[];
+    const validCards = originalCards.filter(
+      (entry): entry is { card_id: CardId; quantity: number } =>
+        typeof entry?.card_id === 'string' &&
+        CARD_BY_ID.has(entry.card_id as CardId) &&
+        Number.isInteger(entry.quantity) &&
+        (entry.quantity as number) > 0,
+    );
+    if (validCards.length !== originalCards.length) {
+      mutated = true;
+      if (originalCards.length > 0 && validCards.length === 0) {
+        continue;
+      }
+    }
+    sanitized.push({
+      deck_id: item.deck_id,
+      deck_name_zh: typeof item.deck_name_zh === 'string' && item.deck_name_zh.trim() ? item.deck_name_zh : '自定义卡组',
+      cards: validCards,
+    });
+  }
+  if (mutated) {
+    saveAccountCustomDecks(sanitized);
+  }
+  return sanitized;
+}
+
+export function saveCustomDeck(deck: DeckDefinition): void {
+  const current = getCustomDecks();
+  const existingIndex = current.findIndex((d) => d.deck_id === deck.deck_id);
+  const updated: DeckDefinition[] =
+    existingIndex >= 0
+      ? current.map((d, index) => (index === existingIndex ? deck : d))
+      : [deck, ...current];
+  saveAccountCustomDecks(updated);
+}
+
+export function deleteCustomDeck(deckId: string): void {
+  saveAccountCustomDecks(getCustomDecks().filter((d) => d.deck_id !== deckId));
+}
+
+export function getAllAvailableDecks(mode: DeckMode = 'free'): readonly DeckDefinition[] {
+  const custom = getCustomDecks().filter((deck) => validateDeck(deck, DEMO_CARDS).valid);
+  if (mode === 'free') return [...custom, ...PRESET_DECKS];
+  const owned = getActiveCollection().owned;
+  const ownedValid = (deck: DeckDefinition) => validateDeckWithOwnership(deck, DEMO_CARDS, owned).valid;
+  const presets = [...STARTER_PRESETS, ...PRESET_DECKS].filter(ownedValid);
+  return [...custom.filter(ownedValid), ...presets];
+}
+
+export function validateDeckWithOwnership(
+  deck: DeckDefinition,
+  cardPool: readonly CardDefinition[],
+  owned: Readonly<Record<string, number>>,
+): DeckValidationResult {
+  const base = validateDeck(deck, cardPool);
+  const errors: string[] = [];
+  const poolMap = new Map(cardPool.map((c) => [c.card_id, c]));
+  for (const item of deck.cards) {
+    const def = poolMap.get(item.card_id);
+    if (!def) continue;
+    const have = owned[item.card_id] ?? 0;
+    if (have <= 0) {
+      errors.push(`未持有「${def.card_name_zh}」，收录模式下无法使用。`);
+    } else if (item.quantity > have) {
+      errors.push(`「${def.card_name_zh}」持有 ${have} 张，卡组需要 ${item.quantity} 张。`);
+    }
+  }
+  return {
+    valid: base.valid && errors.length === 0,
+    totalCards: base.totalCards,
+    uniqueCards: base.uniqueCards,
+    errors: [...base.errors, ...errors],
+    warnings: base.warnings,
+  };
+}
+
+export interface DeckValidationResult {
+  readonly valid: boolean;
+  readonly totalCards: number;
+  readonly uniqueCards: number;
+  readonly errors: string[];
+  readonly warnings: string[];
+}
+
+export function validateDeck(deck: DeckDefinition, cardPool: readonly CardDefinition[] = DEMO_CARDS): DeckValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const poolMap = new Map(cardPool.map((c) => [c.card_id, c]));
+
+  let totalCards = 0;
+  const nameCounts = new Map<string, number>();
+
+  for (const item of deck.cards) {
+    totalCards += item.quantity;
+    const def = poolMap.get(item.card_id);
+    if (!def) {
+      errors.push(`卡牌 ${item.card_id} 不在当前可用卡池中。`);
+      continue;
+    }
+    if (item.quantity > 2) {
+      errors.push(`卡牌「${def.card_name_zh}」超出单卡上限（最多 2 张，当前 ${item.quantity} 张）。`);
+    }
+    const currentNameCount = (nameCounts.get(def.card_name_zh) ?? 0) + item.quantity;
+    nameCounts.set(def.card_name_zh, currentNameCount);
+    if (currentNameCount > 2) {
+      errors.push(`同名卡牌「${def.card_name_zh}」总数超出上限（最多 2 张，当前 ${currentNameCount} 张）。`);
+    }
+  }
+
+  if (totalCards !== 20) {
+    errors.push(`卡组必须恰好包含 20 张卡牌（当前 ${totalCards}/20）。`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    totalCards,
+    uniqueCards: deck.cards.length,
+    errors,
+    warnings,
+  };
+}

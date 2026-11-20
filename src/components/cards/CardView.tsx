@@ -1,0 +1,139 @@
+import type React from 'react';
+import type { CardInstanceId, GameState } from '../../game/types';
+import type { UiCardDefinition } from '../../client/gameData';
+import { useLongPress } from '../../hooks/useLongPress';
+import { CardFrame } from './CardFrame';
+
+export function cardDefinitionOf(state: GameState, instanceId: CardInstanceId): UiCardDefinition | undefined {
+  const instance = state.card_instances[instanceId];
+  return instance ? (state.card_definitions[instance.card_id] as UiCardDefinition) : undefined;
+}
+
+/** 展示用的效果摘要：优先使用数据中的规则文字，缺失时按白名单效果类型兜底生成。 */
+export function effectSummary(definition: UiCardDefinition): string {
+  if (definition.rules_text_zh) return definition.rules_text_zh;
+  const actions = definition.effect_json?.actions ?? [];
+  if (actions.length === 0) return '无效果';
+  return actions
+    .map((action) => {
+      switch (action.type) {
+        case 'damage':
+          return `造成 ${String(action.value)} 点伤害`;
+        case 'heal':
+          return `治疗 ${String(action.value)} 点 HP`;
+        case 'apply_status':
+          return `施加 ${String(action.status)} 状态`;
+        case 'gain_cost':
+          return `获得 ${String(action.value)} 费用`;
+        case 'gain_shield':
+          return `获得 ${String(action.value)} 点护盾`;
+        case 'withdraw_operator':
+          return '撤离一名干员';
+        case 'attach_equipment':
+          return '附着装备';
+        case 'choose_friendly_operator_gain_sp':
+          return `选择友方干员获得 ${String(action.value)} SP`;
+        case 'reduce_incoming_damage':
+          return `受击减伤（SP ${String(action.sp_cost ?? 0)}）`;
+        default:
+          return String(action.type);
+      }
+    })
+    .join('；');
+}
+
+interface CardViewProps {
+  readonly state: GameState;
+  readonly instanceId: CardInstanceId;
+  readonly variant?: 'hand' | 'compact';
+  readonly selected?: boolean;
+  readonly interactive?: boolean;
+  readonly selectable?: boolean;
+  readonly checked?: boolean;
+  readonly draggable?: boolean;
+  readonly touchActionMode?: 'pan-x' | 'pan-y';
+  readonly isTouchDragging?: boolean;
+  readonly onClick?: () => void;
+  readonly onDoubleTap?: () => void;
+  readonly onLongPress?: () => void;
+  readonly onHoverStart?: (rect: DOMRect) => void;
+  readonly onHoverEnd?: () => void;
+  readonly onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  readonly onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
+  readonly onTouchPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
+}
+
+export function CardView({
+  state,
+  instanceId,
+  variant = 'hand',
+  selected = false,
+  interactive = false,
+  selectable = false,
+  checked = false,
+  draggable = false,
+  touchActionMode = 'pan-x',
+  isTouchDragging = false,
+  onClick,
+  onDoubleTap,
+  onLongPress,
+  onHoverStart,
+  onHoverEnd,
+  onDragStart,
+  onDragEnd,
+  onTouchPointerDown,
+}: CardViewProps) {
+  const instance = state.card_instances[instanceId];
+  const definition = cardDefinitionOf(state, instanceId);
+  const longPressHandlers = useLongPress({
+    onLongPress,
+    onClick,
+    onDoubleTap,
+    disabled: !onClick && !onLongPress && !onDoubleTap,
+  });
+
+  if (!instance || !definition) return null;
+  const cd = instance.operator_lifecycle?.redeploy_cd_remaining ?? 0;
+  const ownerCost = state.players[instance.owner_id]?.cost ?? 0;
+  const affordable = ownerCost >= definition.cost;
+  const isUnplayable = instance.zone === 'hand' && !selectable && interactive && !affordable && cd === 0;
+  const touchPanClass = isTouchDragging ? 'touch-none' : touchActionMode === 'pan-y' ? 'touch-pan-y' : 'touch-pan-x';
+
+  return (
+    <CardFrame
+      cardId={instance.card_id}
+      definition={definition}
+      variant={variant}
+      selected={selected}
+      holding={longPressHandlers.isHolding}
+      interactive={interactive}
+      unplayable={isUnplayable}
+      checked={checked}
+      redeployCd={cd}
+      draggable={draggable}
+      onDragStart={(e) => {
+        onHoverEnd?.();
+        onDragStart?.(e);
+      }}
+      onDragEnd={onDragEnd}
+      onMouseEnter={(e) => onHoverStart?.(e.currentTarget.getBoundingClientRect())}
+      onMouseLeave={() => onHoverEnd?.()}
+      onPointerDown={(e) => {
+        longPressHandlers.onPointerDown(e);
+        if (e.pointerType !== 'mouse') {
+          onTouchPointerDown?.(e);
+        }
+      }}
+      onPointerMove={longPressHandlers.onPointerMove}
+      onPointerUp={longPressHandlers.onPointerUp}
+      onPointerCancel={longPressHandlers.onPointerCancel}
+      onContextMenu={longPressHandlers.onContextMenu}
+      onClick={(e) => {
+        e?.stopPropagation();
+        longPressHandlers.onClick(e as React.MouseEvent);
+      }}
+      className={`${touchPanClass} card card-${definition.card_type}${selected ? ' selected' : ''}${interactive ? ' interactive' : ''}${checked ? ' checked' : ''}${cd > 0 ? ' card-dimmed' : ''}${isTouchDragging ? ' opacity-35 scale-95 border-dashed ring-1 ring-amber-400/60' : ''}`}
+    />
+  );
+}
+

@@ -1,0 +1,790 @@
+:root {
+  color-scheme: dark;
+  --combat-anim-scale: 2;
+
+  /* PRTS Tactical Terminal 背景层级 */
+  --color-bg-base: #171a1d;       /* 终端底色 (深灰黑，非纯黑) */
+  --color-bg-sub: #20262b;        /* 二级容器、侧栏、卡组抽屉 */
+  --color-bg-panel: #293137;      /* 信息面板、卡牌浮层 */
+  --color-bg-raised: #343d43;     /* 高亮弹出层、悬浮选中 */
+
+  /* PRTS 文字层级 */
+  --color-text-primary: #e8e9e6;   /* 主要高对比文本 */
+  --color-text-secondary: #aab2b5; /* 辅助文字、技能说明、参数 */
+  --color-text-muted: #778187;     /* 非重点编号、修饰标注 */
+
+  /* 功能与强调色 (Arknights 战术黄) */
+  --color-accent: #e5a52b;         /* 明日方舟战术黄 / 关键操作 */
+  --color-accent-hover: #f59e0b;
+  --color-accent-soft: rgba(229, 165, 43, 0.22);
+  --color-ally: #38bdf8;           /* 友方蓝 (Sky Blue / 玩家 A) */
+  --color-enemy: #fb7185;          /* 敌方红 (Rose / 玩家 B) */
+  --color-success: #34d399;        /* 成功 / 就绪 / 治疗 */
+  --color-warning: #fbbf24;        /* 警告 / 费用不足 */
+  --color-danger: #f87171;         /* 危险 / 受击 / 阵亡 */
+
+  /* 结构分割与线条 */
+  --color-border: #4a555b;         /* 面板线框 */
+  --color-border-subtle: #2d353b;  /* 次级细分隔线 */
+
+  /* 稀有度主题色 */
+  --rarity-3: #94a3b8;            /* 3星: 灰蓝/标准干员 */
+  --rarity-4: #a855f7;            /* 4星: 紫色/精英干员 */
+  --rarity-5: #eab308;            /* 5星: 金黄/资深干员 */
+  --rarity-6: #f97316;            /* 6星: 橙红/高级资深干员 */
+
+  /* 战术切角剪裁路径 */
+  --clip-cut-sm: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  --clip-cut-md: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  --clip-cut-lg: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+
+  /* 既有变量向后兼容映射 */
+  --bg: var(--color-bg-base);
+  --panel: var(--color-bg-sub);
+  --panel-2: var(--color-bg-panel);
+  --line: var(--color-border);
+  --text: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --accent: var(--color-accent);
+  --accent-soft: var(--color-accent-soft);
+  --good: var(--color-success);
+  --warn: var(--color-warning);
+  --bad: var(--color-danger);
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1 { font-size: 22px; margin: 0 0 8px; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+b { color: #fff; }
+
+
+/* ---------- Phase 4: CardFrame CSS 变量系统 (Rarity & State Tokens) ---------- */
+.card-frame {
+  --card-accent: var(--rarity-3);
+  --card-border: #3c4752;
+  --card-glow: transparent;
+  --card-corner-cut: 10px;
+  --card-surface: #171c22;
+  --card-tint: rgba(148, 163, 184, 0.08);
+  background-color: var(--card-surface);
+  border-color: var(--card-border);
+  box-shadow: var(--card-glow);
+}
+
+.card-frame[data-rarity="3"] {
+  --card-accent: var(--rarity-3);
+  --card-border: rgba(148, 163, 184, 0.45);
+  --card-tint: rgba(148, 163, 184, 0.08);
+}
+
+.card-frame[data-rarity="4"] {
+  --card-accent: var(--rarity-4);
+  --card-border: rgba(168, 85, 247, 0.5);
+  --card-tint: rgba(168, 85, 247, 0.12);
+}
+
+.card-frame[data-rarity="5"] {
+  --card-accent: var(--rarity-5);
+  --card-border: rgba(234, 179, 8, 0.58);
+  --card-tint: rgba(234, 179, 8, 0.14);
+}
+
+.card-frame[data-rarity="6"] {
+  --card-accent: var(--rarity-6);
+  --card-border: rgba(249, 115, 22, 0.68);
+  --card-tint: rgba(249, 115, 22, 0.16);
+}
+
+.card-frame[data-interactive="true"]:hover {
+  border-color: var(--card-accent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45), 0 0 12px color-mix(in srgb, var(--card-accent) 28%, transparent);
+}
+
+.card-frame[data-state="selected"] {
+  --card-border: #e5a52b;
+  border-color: #e5a52b;
+  box-shadow: 0 0 0 2px rgba(229, 165, 43, 0.45), 0 10px 24px rgba(229, 165, 43, 0.25);
+}
+
+.card-frame[data-state="in-deck"] {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.card-frame[data-state="unplayable"] {
+  opacity: 0.72;
+}
+
+.card-frame[data-state="disabled"] {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+
+.card-frame:focus-visible {
+  outline: 2px solid #e5a52b;
+  outline-offset: 2px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.14s ease-out both;
+}
+
+/* ---------- Phase 6: 轻量战斗与视觉反馈动效（仅合成属性 transform / opacity） ---------- */
+@keyframes deployLand {
+  0% { opacity: 0.45; transform: translateY(-8px) scale(1.07); }
+  65% { opacity: 1; transform: translateY(1px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slotPulseFlash {
+  0% { opacity: 0.9; transform: scale(0.96); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+@keyframes hitShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  45% { transform: translateX(5px); }
+  70% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes hitFlashOverlay {
+  0% { opacity: 0.85; filter: brightness(2.2) saturate(0.6); }
+  45% { opacity: 0.55; filter: brightness(1.3); }
+  100% { opacity: 0; filter: brightness(1); }
+}
+
+@keyframes meleeLungeUp {
+  0% { transform: translateY(0) scale(1); }
+  38% { transform: translateY(-15px) scale(1.07); }
+  72% { transform: translateY(-3px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes meleeLungeDown {
+  0% { transform: translateY(0) scale(1); }
+  38% { transform: translateY(15px) scale(1.07); }
+  72% { transform: translateY(3px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes rangedBoltUp {
+  0% { opacity: 0; transform: translateY(20px) scaleY(0.5); }
+  25% { opacity: 1; transform: translateY(4px) scaleY(1.1); }
+  100% { opacity: 0; transform: translateY(-28px) scaleY(0.8); }
+}
+
+@keyframes rangedBoltDown {
+  0% { opacity: 0; transform: translateY(-20px) scaleY(0.5); }
+  25% { opacity: 1; transform: translateY(-4px) scaleY(1.1); }
+  100% { opacity: 0; transform: translateY(28px) scaleY(0.8); }
+}
+
+@keyframes floatNumberUp {
+  0% { opacity: 0; transform: translateY(6px) scale(0.88); }
+  20% { opacity: 1; transform: translateY(-2px) scale(1.06); }
+  78% { opacity: 1; transform: translateY(-16px) scale(1); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.96); }
+}
+
+@keyframes ghostFadeOut {
+  0% { opacity: 0.95; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9) translateY(-6px); }
+}
+
+@keyframes skillBurstRing {
+  0% { opacity: 0.9; transform: scale(0.92); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+@keyframes cellHitShake {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  18% { transform: translate3d(-3px, 1px, 0) scale(0.985); }
+  42% { transform: translate3d(3px, -1px, 0) scale(1.01); }
+  68% { transform: translate3d(-1.5px, 0.5px, 0) scale(0.995); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes skillWaveRing {
+  0% { opacity: 0.95; transform: scale(0.78); }
+  55% { opacity: 0.68; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.22); }
+}
+
+@keyframes skillEnergySweep {
+  0% { opacity: 0; transform: translateX(-110%) skewX(-18deg); }
+  35% { opacity: 0.92; }
+  100% { opacity: 0; transform: translateX(130%) skewX(-18deg); }
+}
+
+@keyframes turnBannerSlide {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  18% { opacity: 1; transform: translateY(0) scale(1); }
+  82% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.98); }
+}
+
+@keyframes baseHitPulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pathDraw {
+  0% { stroke-dashoffset: 1000; opacity: 0.25; }
+  35% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.95; }
+}
+
+@keyframes pathFlow {
+  0% { stroke-dashoffset: 36; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes reticleLock {
+  0% { opacity: 0; transform: scale(1.38); }
+  45% { opacity: 1; transform: scale(0.96); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+@keyframes impactBurst {
+  0% { opacity: 0.95; transform: scale(0.45); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+.anim-deploy-land { animation: deployLand calc(0.32s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slot-flash { animation: slotPulseFlash calc(0.38s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-hit-shake { animation: hitShake calc(0.34s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-hit-flash { animation: hitFlashOverlay calc(0.36s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-melee-lunge-up { animation: meleeLungeUp calc(0.42s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-melee-lunge-down { animation: meleeLungeDown calc(0.42s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-ranged-bolt-up { animation: rangedBoltUp calc(0.46s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-ranged-bolt-down { animation: rangedBoltDown calc(0.46s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-float-number { animation: floatNumberUp calc(0.84s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-ghost-fade { animation: ghostFadeOut calc(0.45s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-skill-burst { animation: skillBurstRing calc(0.42s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-cell-hit-shake { animation: cellHitShake 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-skill-wave { animation: skillWaveRing calc(0.46s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-skill-sweep { animation: skillEnergySweep calc(0.44s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-turn-banner { animation: turnBannerSlide calc(0.52s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-base-hit { animation: baseHitPulse calc(0.40s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-path-draw {
+  stroke-dasharray: 1000;
+  animation: pathDraw calc(0.44s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-path-flow {
+  stroke-dasharray: 10 8;
+  animation: pathFlow calc(0.42s * var(--combat-anim-scale, 2)) linear infinite;
+}
+.anim-reticle-lock {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reticleLock calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-impact-burst {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: impactBurst calc(0.42s * var(--combat-anim-scale, 2)) ease-out both;
+}
+
+/* ---------- 攻击瞬间金色高光（攻击者叠加层） ---------- */
+@keyframes attackGlow {
+  0% { opacity: 0; box-shadow: 0 0 0 rgba(229, 165, 43, 0); }
+  40% { opacity: 1; box-shadow: 0 0 18px rgba(229, 165, 43, 0.85), inset 0 0 12px rgba(255, 224, 130, 0.6); }
+  100% { opacity: 0; box-shadow: 0 0 0 rgba(229, 165, 43, 0); }
+}
+.anim-attack-glow { animation: attackGlow calc(0.42s * var(--combat-anim-scale, 2)) ease-out both; }
+
+/* ---------- 移动端手势与触控精准反馈 ---------- */
+.touch-gesture-surface {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes holdCharge {
+  from { transform: scaleX(0); opacity: 0.7; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes reticleSnap {
+  0% { transform: scale(1.28); opacity: 0.5; }
+  65% { transform: scale(0.94); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.anim-hold-charge {
+  transform-origin: left center;
+  animation: holdCharge 0.34s linear both;
+}
+
+.anim-reticle-snap {
+  animation: reticleSnap 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- 5★/6★ 部署入场光柱 ---------- */
+@keyframes deployRarityBeam {
+  0% { opacity: 0; transform: translateY(-60%) scaleY(0.6); }
+  35% { opacity: 1; transform: translateY(0) scaleY(1); }
+  100% { opacity: 0; transform: translateY(10%) scaleY(1.15); }
+}
+@keyframes deployRarityRing {
+  0% { opacity: 0.85; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+.anim-deploy-rarity-5 { animation: deployRarityBeam calc(0.42s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-deploy-rarity-6 { animation: deployRarityBeam calc(0.5s * var(--combat-anim-scale, 2)) ease-out both, deployRarityRing calc(0.5s * var(--combat-anim-scale, 2)) ease-out both; }
+
+/* ---------- 寻访揭示特效（4★ 快翻 / 5★ 金紫脉冲 / 6★ 爆发光柱） ---------- */
+@keyframes gachaRevealPop {
+  0% { opacity: 0; transform: translateY(10px) scale(0.92); }
+  60% { opacity: 1; transform: translateY(-3px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes gachaRevealGold {
+  0% { opacity: 0; transform: scale(0.78) translateY(8px); filter: brightness(2.4); }
+  30% { opacity: 1; transform: scale(1.07) translateY(-2px); filter: brightness(1.5); }
+  55% { transform: scale(1.01) translateY(0); filter: brightness(1.15); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
+}
+@keyframes gachaGoldBurst {
+  0% { opacity: 0; transform: scale(0.5); }
+  25% { opacity: 0.95; transform: scale(1.12); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes gachaGoldBeam {
+  0% { opacity: 0; transform: translateY(-70%) scaleY(0.7); }
+  30% { opacity: 1; transform: translateY(0) scaleY(1); }
+  100% { opacity: 0; transform: translateY(35%) scaleY(1.2); }
+}
+@keyframes gachaScreenShake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(2px, -1px); }
+}
+@keyframes gachaLightSweep {
+  0% { opacity: 0; transform: translateX(-130%) skewX(-18deg); }
+  35% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateX(150%) skewX(-18deg); }
+}
+@keyframes progressShine {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(340%); }
+}
+.gacha-reveal-4 { animation: gachaRevealPop 0.26s ease-out both; }
+.gacha-reveal-5 { animation: gachaRevealGold 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gacha-reveal-6 { animation: gachaRevealGold 0.68s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gacha-burst-5 { animation: gachaGoldBurst 0.55s ease-out both; }
+.gacha-burst-6 { animation: gachaGoldBurst 0.75s ease-out both; }
+.gacha-beam-6 { animation: gachaGoldBeam 0.65s ease-out both; }
+.gacha-shake { animation: gachaScreenShake 0.42s ease-out both; }
+.gacha-sweep { animation: gachaLightSweep 0.95s ease-out 0.18s both; }
+.gacha-progress-shine { animation: progressShine 2.4s linear infinite; }
+
+/* ---------- 动态 Arknights 战场背景轻微漂移动效（仅合成属性 transform / opacity） ---------- */
+@keyframes arenaBackdropDrift {
+  0% { transform: translate3d(-1.4%, -0.9%, 0) scale(1.07); }
+  50% { transform: translate3d(1.3%, 0.7%, 0) scale(1.105); }
+  100% { transform: translate3d(-0.7%, 1.1%, 0) scale(1.08); }
+}
+
+@keyframes emblemCounterDrift {
+  0% { transform: translate3d(1.2%, 0.6%, 0) scale(1); }
+  50% { transform: translate3d(-1.1%, -0.8%, 0) scale(1.025); }
+  100% { transform: translate3d(0.6%, -0.4%, 0) scale(1.01); }
+}
+
+@keyframes arenaAtmosphereGlow {
+  0% { opacity: 0.28; transform: scale(1); }
+  50% { opacity: 0.52; transform: scale(1.03); }
+  100% { opacity: 0.34; transform: scale(1.01); }
+}
+
+.anim-arena-drift {
+  animation: arenaBackdropDrift 28s ease-in-out infinite alternate;
+}
+
+.anim-emblem-drift {
+  animation: emblemCounterDrift 36s ease-in-out infinite alternate;
+}
+
+.anim-arena-glow {
+  animation: arenaAtmosphereGlow 14s ease-in-out infinite alternate;
+}
+
+@keyframes spotlightPrimaryDrift {
+  0% {
+    opacity: 0.78;
+    transform: translate3d(-9%, -6%, 0) scale(1);
+  }
+  33% {
+    opacity: 0.94;
+    transform: translate3d(7%, -3%, 0) scale(1.06);
+  }
+  66% {
+    opacity: 0.85;
+    transform: translate3d(5%, 7%, 0) scale(0.98);
+  }
+  100% {
+    opacity: 0.92;
+    transform: translate3d(-6%, 5%, 0) scale(1.04);
+  }
+}
+
+@keyframes spotlightSecondaryDrift {
+  0% {
+    opacity: 0.55;
+    transform: translate3d(8%, 6%, 0) scale(1.02);
+  }
+  50% {
+    opacity: 0.82;
+    transform: translate3d(-8%, -4%, 0) scale(1.08);
+  }
+  100% {
+    opacity: 0.62;
+    transform: translate3d(4%, -7%, 0) scale(0.97);
+  }
+}
+
+.anim-spotlight-drift {
+  animation: spotlightPrimaryDrift 18s ease-in-out infinite alternate;
+}
+
+.anim-spotlight-secondary {
+  animation: spotlightSecondaryDrift 24s ease-in-out infinite alternate;
+}
+
+/* ---------- 动态战场天气遮罩层（细微烟雾 / 热浪模糊摆动，仅作用于背景层） ---------- */
+@keyframes weatherSmokeHaze {
+  0% {
+    opacity: 0.36;
+    filter: blur(12px);
+    transform: translate3d(-3.5%, 1.5%, 0) scale(1.04) skewX(-1.5deg);
+  }
+  50% {
+    opacity: 0.62;
+    filter: blur(20px);
+    transform: translate3d(3%, -2%, 0) scale(1.09) skewX(1.5deg);
+  }
+  100% {
+    opacity: 0.44;
+    filter: blur(14px);
+    transform: translate3d(-1.5%, -1%, 0) scale(1.06) skewX(-0.8deg);
+  }
+}
+
+@keyframes weatherHeatShimmer {
+  0% {
+    opacity: 0.24;
+    filter: blur(8px);
+    transform: translate3d(2%, 2.5%, 0) scale(1.02, 1.05);
+  }
+  50% {
+    opacity: 0.46;
+    filter: blur(15px);
+    transform: translate3d(-2.5%, -2%, 0) scale(1.06, 0.99);
+  }
+  100% {
+    opacity: 0.28;
+    filter: blur(10px);
+    transform: translate3d(1%, -1.5%, 0) scale(1.04, 1.03);
+  }
+}
+
+.anim-weather-haze {
+  animation: weatherSmokeHaze 16s ease-in-out infinite alternate;
+}
+
+.anim-weather-shimmer {
+  animation: weatherHeatShimmer 11s ease-in-out infinite alternate;
+}
+
+/* ---------- 全息投影科技感：3D 立体按键与发光全息边框系统 ---------- */
+@keyframes holoRimBreath {
+  0%, 100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.holo-btn {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
+}
+
+.holo-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(125, 211, 252, 0.16) 54%,
+    transparent 76%
+  );
+  transform: translateX(-125%);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.holo-btn:not(:disabled):hover::before {
+  transform: translateX(125%);
+}
+
+.holo-btn:not(:disabled):hover {
+  transform: translate3d(0, -1px, 0);
+}
+
+.holo-btn:not(:disabled):active {
+  transform: translate3d(0, 1.5px, 0);
+}
+
+.holo-btn-primary {
+  background: linear-gradient(180deg, #f8c64e 0%, #e5a52b 52%, #b9770e 100%);
+  border: 1px solid #fde047;
+  color: #0b0f14;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 0 rgba(120, 53, 15, 0.55),
+    0 3px 0 #713f12,
+    0 6px 18px rgba(229, 165, 43, 0.38);
+}
+
+.holo-btn-primary:not(:disabled):hover {
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -2px 0 rgba(120, 53, 15, 0.55),
+    0 4px 0 #713f12,
+    0 10px 24px rgba(245, 158, 11, 0.52);
+}
+
+.holo-btn-primary:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 1px 0 #713f12,
+    0 3px 10px rgba(229, 165, 43, 0.35);
+}
+
+.holo-btn-secondary {
+  background: linear-gradient(180deg, rgba(42, 56, 74, 0.92) 0%, rgba(23, 31, 42, 0.96) 55%, rgba(15, 21, 29, 0.98) 100%);
+  border: 1px solid rgba(94, 154, 198, 0.68);
+  color: #e2e8f0;
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.36),
+    inset 0 0 12px rgba(56, 189, 248, 0.14),
+    0 3px 0 #090d14,
+    0 6px 16px rgba(14, 165, 233, 0.18);
+}
+
+.holo-btn-secondary:not(:disabled):hover {
+  border-color: rgba(56, 189, 248, 0.92);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(224, 242, 254, 0.52),
+    inset 0 0 16px rgba(56, 189, 248, 0.24),
+    0 4px 0 #090d14,
+    0 8px 22px rgba(56, 189, 248, 0.32);
+}
+
+.holo-btn-secondary:not(:disabled):active {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    0 1px 0 #090d14,
+    0 2px 8px rgba(56, 189, 248, 0.2);
+}
+
+.holo-btn-danger {
+  background: linear-gradient(180deg, rgba(114, 28, 47, 0.92) 0%, rgba(64, 17, 29, 0.96) 60%, rgba(42, 11, 19, 0.98) 100%);
+  border: 1px solid rgba(251, 113, 133, 0.72);
+  color: #ffe4e6;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 205, 211, 0.4),
+    inset 0 0 12px rgba(244, 63, 94, 0.18),
+    0 3px 0 #260911,
+    0 6px 16px rgba(244, 63, 94, 0.22);
+}
+
+.holo-btn-danger:not(:disabled):hover {
+  border-color: rgba(253, 164, 175, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(254, 205, 211, 0.58),
+    inset 0 0 16px rgba(244, 63, 94, 0.3),
+    0 4px 0 #260911,
+    0 8px 20px rgba(244, 63, 94, 0.36);
+}
+
+.holo-btn-outline {
+  background: linear-gradient(180deg, rgba(229, 165, 43, 0.14) 0%, rgba(17, 24, 34, 0.88) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.78);
+  color: #fcd34d;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 240, 138, 0.35),
+    inset 0 0 14px rgba(229, 165, 43, 0.15),
+    0 3px 0 rgba(10, 14, 20, 0.95),
+    0 0 16px rgba(229, 165, 43, 0.2);
+}
+
+.holo-btn-outline:not(:disabled):hover {
+  background: linear-gradient(180deg, rgba(229, 165, 43, 0.24) 0%, rgba(24, 33, 46, 0.92) 100%);
+  border-color: #fbbf24;
+  color: #fef08a;
+  box-shadow:
+    inset 0 1px 0 rgba(254, 240, 138, 0.52),
+    inset 0 0 18px rgba(245, 158, 11, 0.24),
+    0 4px 0 rgba(10, 14, 20, 0.95),
+    0 6px 20px rgba(245, 158, 11, 0.34);
+}
+
+.holo-btn-ghost {
+  background: rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  color: #cbd5e1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.holo-btn-ghost:not(:disabled):hover {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.55) 100%);
+  border-color: rgba(56, 189, 248, 0.58);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.28),
+    0 0 14px rgba(56, 189, 248, 0.22);
+}
+
+.holo-panel {
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.28),
+    inset 0 -1px 0 rgba(229, 165, 43, 0.2),
+    inset 0 0 24px rgba(56, 189, 248, 0.08),
+    0 0 1px rgba(125, 211, 252, 0.45),
+    0 18px 42px rgba(0, 0, 0, 0.78);
+}
+
+.holo-frame {
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.32),
+    inset 0 0 16px rgba(56, 189, 248, 0.1),
+    0 6px 20px rgba(0, 0, 0, 0.65),
+    0 0 14px rgba(56, 189, 248, 0.14);
+}
+
+.pb-safe {
+  padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card-frame,
+  .card.interactive:hover,
+  .animate-fade-in,
+  .animate-pulse,
+  .animate-ping,
+  .animate-spin,
+  .anim-deploy-land,
+  .anim-slot-flash,
+  .anim-hit-shake,
+  .anim-hit-flash,
+  .anim-melee-lunge-up,
+  .anim-melee-lunge-down,
+  .anim-ranged-bolt-up,
+  .anim-ranged-bolt-down,
+  .anim-float-number,
+  .anim-ghost-fade,
+  .anim-skill-burst,
+  .anim-cell-hit-shake,
+  .anim-skill-wave,
+  .anim-skill-sweep,
+  .anim-turn-banner,
+  .anim-base-hit,
+  .anim-attack-glow,
+  .anim-path-draw,
+  .anim-path-flow,
+  .anim-reticle-lock,
+  .anim-impact-burst,
+  .anim-deploy-rarity-5,
+  .anim-deploy-rarity-6,
+  .gacha-reveal-4,
+  .gacha-reveal-5,
+  .gacha-reveal-6,
+  .gacha-burst-5,
+  .gacha-burst-6,
+  .gacha-beam-6,
+  .gacha-shake,
+  .gacha-sweep,
+  .gacha-progress-shine,
+  .anim-hold-charge,
+  .anim-reticle-snap,
+  .anim-arena-drift,
+  .anim-emblem-drift,
+  .anim-arena-glow,
+  .anim-spotlight-drift,
+  .anim-spotlight-secondary,
+  .anim-weather-haze,
+  .anim-weather-shimmer,
+  .holo-btn,
+  .holo-btn::before {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* ---------- 全局设置：扫描线与战斗冲击特效开关 ---------- */
+[data-scanline-fx="off"] .prts-scanlines,
+[data-scanline-fx="off"] .prts-grid {
+  display: none !important;
+}
+
+[data-combat-vfx="off"] .anim-hit-flash,
+[data-combat-vfx="off"] .anim-slot-flash,
+[data-combat-vfx="off"] .anim-attack-glow,
+[data-combat-vfx="off"] .anim-skill-burst,
+[data-combat-vfx="off"] .anim-skill-wave,
+[data-combat-vfx="off"] .anim-skill-sweep,
+[data-combat-vfx="off"] .anim-deploy-rarity-5,
+[data-combat-vfx="off"] .anim-deploy-rarity-6,
+[data-combat-vfx="off"] .gacha-burst-5,
+[data-combat-vfx="off"] .gacha-burst-6,
+[data-combat-vfx="off"] .gacha-beam-6,
+[data-combat-vfx="off"] .gacha-sweep {
+  display: none !important;
+  animation: none !important;
+}
+
+/* ---------- 日志滚动区 ---------- */
+.log-view { max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.log-omitted { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.log-empty { color: var(--muted); }
+
+@media (max-width: 900px) {
+  .log-view { max-height: 40vh; }
+}
