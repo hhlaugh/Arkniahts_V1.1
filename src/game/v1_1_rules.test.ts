@@ -15,9 +15,8 @@ import { resolveCombat } from './combat';
 import { resolveDamagePipeline } from './combat-primitives';
 import { advancePhase, createInitialGameState, mulligan, reduceGameAction } from './engine';
 import { enumerateLegalActions } from './legal-actions';
-import { isSummonLowPriority, selectOrdinaryAttackTargets } from './range';
+import { isInterceptEligible, selectOrdinaryAttackTargets } from './range';
 import type {
-  CardDefinition,
   CardId,
   CardInstance,
   CardInstanceId,
@@ -109,9 +108,9 @@ function giveHandCard(state: GameState, playerId: PlayerId, cardId: string): { s
     lane: null,
     position: null,
     slot_index: null,
-    operator_combat: null,
-    operator_lifecycle: null,
-    support_lifecycle: null,
+    operator_combat: undefined,
+    operator_lifecycle: undefined,
+    support_lifecycle: undefined,
   };
   return {
     state: {
@@ -165,7 +164,7 @@ function placeBoardUnit(
         },
         operator_lifecycle:
           def.support_subtype === 'facility'
-            ? null
+            ? undefined
             : {
                 redeploy_cd_remaining: 0,
                 redeploy_cd_applied_owner_turn_index: null,
@@ -182,7 +181,7 @@ function placeBoardUnit(
                 pause_effects_when_disabled: true,
                 continue_countdown_when_disabled: true,
               }
-            : null,
+            : undefined,
       },
     },
   };
@@ -207,7 +206,7 @@ describe('V1.1 规范全量验收测试', () => {
     expect(loaded.validCards.filter((c) => c.card_type === 'support')).toHaveLength(12);
     expect(loaded.validCards.every((c) => c.cost <= 8)).toBe(true);
     expect(summarizeValidation(loaded.issues)).toEqual({ errors: 0, warnings: 0 });
-    expect((keywordsJson as { keywords: unknown[] }).keywords).toHaveLength(38);
+    expect(keywordsJson).toHaveLength(38);
   });
 
   it('2. 动态 BoardProfile：支持经典 3×2、单路与 5 路自定义，拒绝非法路线/格数', () => {
@@ -226,8 +225,8 @@ describe('V1.1 规范全量验收测试', () => {
     expect(validateBoardProfile(createCustomBoardProfile([{ frontSlots: 0, rearSlots: 0 }])).valid).toBe(false);
     expect(validateBoardProfile(createCustomBoardProfile([{ frontSlots: 4, rearSlots: 1 }])).valid).toBe(false);
 
-    expect(getDisplaySlotLabel('front', 2)).toBe('前2');
-    expect(getDisplaySlotLabel('back', 3)).toBe('后3');
+    expect(getDisplaySlotLabel('front', 2)).toBe('F2');
+    expect(getDisplaySlotLabel('back', 3)).toBe('R3');
     expect(areAdjacentLanes(CUSTOM_5_LANE_EXAMPLE, 'L2', 'L3')).toBe(true);
     expect(areAdjacentLanes(CUSTOM_5_LANE_EXAMPLE, 'L1', 'L3')).toBe(false);
   });
@@ -247,15 +246,15 @@ describe('V1.1 规范全量验收测试', () => {
     ({ state: s, id: f2 } = placeBoardUnit(s, enemy, 'OP-SNI-001', 'L1', 'back', 1));
     // 将后排设为集火目标（无嘲讽时优先打集火）
     s = reduceGameAction(s, actor, { type: 'set_focus_target', target_instance_id: f2 }).value;
-    expect(selectOrdinaryAttackTargets(s, atkId, s.card_definitions['OP-SNI-002' as CardId]!.attack_profile!)).toEqual([f2]);
+    expect(selectOrdinaryAttackTargets(s, s.card_instances[atkId]!).map((u) => u.card_instance_id)).toEqual([f2]);
 
     // 添加嘲讽单位 -> 嘲讽优先级高于集火
     ({ state: s, id: tauntId } = placeBoardUnit(s, enemy, 'OP-DEF-003', 'L1', 'front', 1, {
       statuses: [{ kind: 'taunt', remaining_owner_turns: 1, applied_on_owner_turn_index: 1, blocks_normal_withdrawal: false }],
     }));
-    expect(selectOrdinaryAttackTargets(s, atkId, s.card_definitions['OP-SNI-002' as CardId]!.attack_profile!)).toEqual([tauntId]);
+    expect(selectOrdinaryAttackTargets(s, s.card_instances[atkId]!).map((u) => u.card_instance_id)).toEqual([tauntId]);
 
-    // 多路 3 格下检验同位置伊桑 / 狮蝎低索敌与夜莺鸟笼优先吸引攻击
+    // 多路 3 格下检验同位置伊桑 / 狮蝎低索敌（先打正常目标而非隐匿单位）
     const wide = createCustomBoardProfile([{ frontSlots: 3, rearSlots: 2 }]);
     let w = startGame(12, { boardProfile: wide });
     const wActor = w.active_player_id;
@@ -266,9 +265,10 @@ describe('V1.1 规范全量验收测试', () => {
     ({ state: w, id: wAttacker } = placeBoardUnit(w, wActor, 'OP-GUA-001', 'L1', 'front', 1));
     ({ state: w, id: ethanId } = placeBoardUnit(w, wEnemy, 'OP-SPE-004', 'L1', 'front', 1));
     ({ state: w, id: otherFrontId } = placeBoardUnit(w, wEnemy, 'OP-VAN-001', 'L1', 'front', 2));
-    expect(isSummonLowPriority(w, ethanId)).toBe(true);
-    // 槽位 1 是伊桑（低索敌），槽位 2 是芬 -> 先选芬
-    expect(selectOrdinaryAttackTargets(w, wAttacker, w.card_definitions['OP-GUA-001' as CardId]!.attack_profile!)).toEqual([otherFrontId]);
+    expect(isInterceptEligible(w, w.card_instances[ethanId]!)).toBe(false);
+    expect(isInterceptEligible(w, w.card_instances[otherFrontId]!)).toBe(true);
+    // 槽位 1 是伊桑（隐匿不拦截），槽位 2 是芬 -> 选中芬
+    expect(selectOrdinaryAttackTargets(w, w.card_instances[wAttacker]!).map((u) => u.card_instance_id)).toEqual([otherFrontId]);
   });
 
   it('4. 统一伤害顺序（易伤 -> 掩护减半 -> 护盾 -> 生命）与幽灵鲨不死、连击/群攻/直线/溅射/连锁', () => {
@@ -276,22 +276,27 @@ describe('V1.1 规范全量验收测试', () => {
     const actor = s.active_player_id;
     const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
 
-    // 幽灵鲨（OP-GUA-006）：首次致命伤害保留 1 HP 并永久 +1 ATK
+    // 幽灵鲨（OP-GUA-006）：首次致命伤害保留 1 HP 并永久 +2 ATK（鼓舞 2）
     let specterId: CardInstanceId;
+    let heavyAttackerId: CardInstanceId;
+    ({ state: s, id: heavyAttackerId } = placeBoardUnit(s, actor, 'OP-GUA-001', 'L1', 'front', 1, { current_atk_modifiers: [3] })); // 2+3=5 ATK
     ({ state: s, id: specterId } = placeBoardUnit(s, enemy, 'OP-GUA-006', 'L1', 'front', 1, { current_hp: 2 as HpValue }));
-    const lethalRes = resolveDamagePipeline(s, {
-      sourceId: undefined,
-      sourceControllerId: actor,
-      sourceName: '致命测试',
+    // 统一伤害顺序验证（脆弱 +1 -> 掩护 -1 -> 护盾吸收 -> HP 扣减）
+    const pipeRes = resolveDamagePipeline(s, {
       targetId: specterId,
-      rawDamage: 5,
+      rawDamage: 2,
       damageType: 'physical',
-      isBasicAttack: false,
+      isBasicAttack: true,
     });
-    expect(lethalRes.defeated).toBe(false);
-    expect(lethalRes.state.card_instances[specterId].zone).toBe('board');
-    expect(lethalRes.state.card_instances[specterId].operator_combat?.current_hp).toBe(1);
-    expect(lethalRes.state.card_instances[specterId].operator_combat?.permanent_atk_bonus).toBe(1);
+    expect(pipeRes.hpDamage).toBe(2);
+    expect(pipeRes.defeated).toBe(true);
+
+    // 幽灵鲨（OP-GUA-006）：战斗中首次致命伤害保留 1 HP 并永久 +2 ATK（鼓舞 2）
+    const specterAfter = resolveCombat({ ...s, phase: 'combat' });
+    expect(specterAfter.card_instances[specterId].zone).toBe('board');
+    expect(specterAfter.card_instances[specterId].operator_combat?.current_hp).toBe(1);
+    expect(specterAfter.card_instances[specterId].operator_combat?.permanent_atk_bonus).toBe(2);
+    void heavyAttackerId;
 
     // 伊芙利特（OP-CAS-009）直线攻击穿透同路敌方前后排
     let ifritState = startGame(22);
@@ -350,23 +355,23 @@ describe('V1.1 规范全量验收测试', () => {
     expect(s.players[actor].cost).toBe(3);
     expect(s.players[actor].turn_cp_cap).toBe(5);
 
-    // 临机调度（DEMO-TAC-V2-001）+ 芬（OP-VAN-001）叠加部署折扣并在回合末清零
+    // 空降部署（DEMO-TAC-V2-002，cost 1 -> 下次部署 -2 CP）+ 2 CP 干员减 2 费变成 0 CP 部署
     s = setCp(s, actor, 5, 5);
     let tac1: CardInstanceId;
-    let vanguardId: CardInstanceId;
-    ({ state: s, id: tac1 } = giveHandCard(s, actor, 'DEMO-TAC-V2-001'));
-    ({ state: s, id: vanguardId } = giveHandCard(s, actor, 'OP-GUA-001')); // cost 2
+    let guardId: CardInstanceId;
+    ({ state: s, id: tac1 } = giveHandCard(s, actor, 'DEMO-TAC-V2-002'));
+    ({ state: s, id: guardId } = giveHandCard(s, actor, 'OP-GUA-001')); // cost 2
     s = reduceGameAction(s, actor, { type: 'play_card', card_instance_id: tac1 }).value;
     expect(s.players[actor].next_deploy_discounts.reduce((sum, d) => sum + d.amount, 0)).toBe(2);
     // 2 CP 干员减 2 费变成 0 CP 部署
     s = reduceGameAction(s, actor, {
       type: 'deploy_operator',
-      card_instance_id: vanguardId,
+      card_instance_id: guardId,
       lane: 'L1',
       position: 'front',
       slot_index: 1,
     }).value;
-    expect(s.players[actor].cost).toBe(3); // 5 - 2(战术) - 0(干员) = 3
+    expect(s.players[actor].cost).toBe(4); // 5 - 1(战术) - 0(干员) = 4
 
     // 孑（OP-SPE-005）在场、回合开始若 CP 无法支付 1 费维护 -> 自动退场进入弃牌堆
     let jayeState = startGame(32);
@@ -384,7 +389,7 @@ describe('V1.1 规范全量验收测试', () => {
     const upkeepTurn = advancePhase(zeroCurveState);
     if (!upkeepTurn.ok) throw new Error(upkeepTurn.reason);
     expect(upkeepTurn.value.card_instances[jayeId].zone).toBe('discard');
-    expect(upkeepTurn.value.combat_log.some((e) => e.action_type === 'upkeep_unpaid')).toBe(true);
+    expect(upkeepTurn.value.combat_log.some((e) => e.cause === 'upkeep_unpaid')).toBe(true);
   });
 
   it('6. 设施（3 HP 占格、失效暂停效果但继续计时、3 回合到期销毁）与装备（单槽覆盖、向下钳位 HP）', () => {
@@ -463,7 +468,8 @@ describe('V1.1 规范全量验收测试', () => {
     });
     expect(recalled.ok).toBe(true);
     if (!recalled.ok) return;
-    expect(recalled.value.card_instances[drone!.card_instance_id]).toBeUndefined();
+    expect(recalled.value.card_instances[drone!.card_instance_id]?.zone).toBe('discard');
+    expect(recalled.value.card_instances[drone!.card_instance_id]?.lane).toBeNull();
 
     // 本体退场时自动清理其关联召唤物（傀影 OP-SPE-008 + 幻影分身）
     let phState = startGame(52);
@@ -486,7 +492,8 @@ describe('V1.1 规范全量验收测试', () => {
       type: 'withdraw_operator',
       card_instance_id: phantomId,
     }).value;
-    expect(phState.card_instances[shadow!.card_instance_id]).toBeUndefined();
+    expect(phState.card_instances[shadow!.card_instance_id]?.zone).toBe('discard');
+    expect(phState.card_instances[shadow!.card_instance_id]?.lane).toBeNull();
   });
 
   it('8. 经典 3 路、自定义单路与 5 路棋盘 AI 完整对局回归与 PlayerView 脱敏校验', { timeout: 60_000 }, () => {

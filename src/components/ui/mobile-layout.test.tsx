@@ -154,6 +154,8 @@ describe('Phase 3: 移动端独立布局、抽屉组件与多比例响应式适�
           rarity: 3,
           atk: 3,
           hp: 12 as HpValue,
+          effect_trigger: 'none',
+          effect_json: { trigger: 'none', actions: [] },
         }}
         variant="compact"
       />,

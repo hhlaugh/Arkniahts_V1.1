@@ -254,10 +254,10 @@ describe('deployment validation and atomicity', () => {
     const actor = state.active_player_id;
     const first = giveCard(state, actor, cardIds['OP-VAN-001']);
     const second = giveCard(first.state, actor, cardIds['OP-VAN-001']);
-    const withFunds = setCost(second.state, actor, 8);
-    // OP-VAN-001 cost 1, on_deploy grant_supply +1 => net 0 per deploy within cap
+    const withFunds = setCost(second.state, actor, 5);
+    // OP-VAN-001 cost 1, on_deploy grant_supply +1 => net 0 per deploy within cap (5)
     const deployed = deploy(withFunds, actor, first.cardInstanceId, 'L1', 'front');
-    expect(deployed.players[actor].cost).toBe(8);
+    expect(deployed.players[actor].cost).toBe(5);
     const deployedAgain = deploy(deployed, actor, second.cardInstanceId, 'L3', 'front');
     const firstState = deployedAgain.card_instances[first.cardInstanceId].operator_lifecycle;
     const secondState = deployedAgain.card_instances[second.cardInstanceId].operator_lifecycle;
@@ -265,7 +265,7 @@ describe('deployment validation and atomicity', () => {
     expect(firstState?.paid_deploy_cost).toBe(1);
     expect(secondState?.has_deployed_before).toBe(true);
     expect(secondState?.paid_deploy_cost).toBe(1);
-    expect(deployedAgain.players[actor].cost).toBe(8);
+    expect(deployedAgain.players[actor].cost).toBe(5);
   });
 });
 

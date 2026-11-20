@@ -23,7 +23,7 @@ import {
 import { UnitView } from './UnitView';
 import { DynamicBattlefieldBackdrop } from './DynamicBattlefieldBackdrop';
 import { DEMO_CARDS, PRESET_DECKS } from '../../client/gameData';
-import { isOperatorDeployPositionAllowed } from '../../game/board';
+import { isOperatorDeployPositionAllowed } from '../../game/effects';
 import { advancePhase, createInitialGameState, mulligan, reduceGameAction } from '../../game/engine';
 import type { CardId, CardInstanceId, Cost, GameState } from '../../game/types';
 

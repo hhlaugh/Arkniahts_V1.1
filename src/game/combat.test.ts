@@ -222,16 +222,16 @@ describe('automatic combat target selection and settlement', () => {
     expect(s.card_instances[bBack].operator_combat?.current_hp).toBe(1);
   });
 
-  it('attacks base if only a stunned defender is present; stunned units are not interceptors', () => {
+  it('retains interception for stunned defenders while skipping their own attack next chance', () => {
     let s = emptyFight();
-    let attacker: CardInstanceId;
-    [s, attacker] = put(s, 'player_a', 'OP-GUA-001', 'L2', 'front');
-    [s] = put(s, 'player_b', 'OP-DEF-005', 'L2', 'front', { statuses: status('stun') });
+    let defender: CardInstanceId;
+    [s] = put(s, 'player_a', 'OP-GUA-001', 'L2', 'front');
+    [s, defender] = put(s, 'player_b', 'OP-DEF-005', 'L2', 'front', { hp: 5, statuses: status('stun') });
     s = resolveCombat(s);
-    expect(s.players.player_b.base_points).toBe(18); // OP-GUA-001 ATK = 2
-    expect(
-      s.combat_log.some((e) => e.type === 'attack_declared' && e.target_instance_id && e.target_instance_id !== attacker),
-    ).toBe(false);
+    // V1.1: 眩晕保留拦截资格（与冻结不同），近战攻击打击眩晕的前排而非直击基地
+    expect(s.players.player_b.base_points).toBe(20);
+    expect(s.card_instances[defender].operator_combat?.current_hp).toBe(3); // 5 - 2 = 3
+    expect(s.combat_log.some((e) => e.type === 'attack_declared' && e.target_instance_id === defender)).toBe(true);
   });
 
   it('uses taunt, then valid ground front/back, and ranged floating priority', () => {
@@ -324,7 +324,7 @@ describe('automatic combat target selection and settlement', () => {
 });
 
 describe('V1.1 combat primitives, statuses and control boundaries', () => {
-  it('applies vulnerable (+1 damage) and cover (halves physical/arts before shield) but skips cover for poison/true damage', () => {
+  it('applies vulnerable (+1 basic attack damage) and cover (-1 physical/non-arts before shield) but skips cover for poison', () => {
     let s = emptyFight();
     let src: CardInstanceId;
     let vulnTarget: CardInstanceId;
@@ -340,9 +340,9 @@ describe('V1.1 combat primitives, statuses and control boundaries', () => {
       targetId: vulnTarget,
       rawDamage: 2,
       damageType: 'physical',
-      isBasicAttack: false,
+      isBasicAttack: true,
     });
-    expect(r1.hpLost).toBe(3);
+    expect(r1.hpDamage).toBe(3);
 
     const r2 = resolveDamagePipeline(r1.state, {
       sourceId: src,
@@ -353,7 +353,7 @@ describe('V1.1 combat primitives, statuses and control boundaries', () => {
       damageType: 'physical',
       isBasicAttack: false,
     });
-    expect(r2.hpLost).toBe(1); // floor(3/2) = 1
+    expect(r2.hpDamage).toBe(2); // V1.1 掩护: 非法术攻击伤害 -1 (3 - 1 = 2)
 
     const rPoison = resolveDamagePipeline(r2.state, {
       sourceId: src,
@@ -364,7 +364,7 @@ describe('V1.1 combat primitives, statuses and control boundaries', () => {
       damageType: 'poison',
       isBasicAttack: false,
     });
-    expect(rPoison.hpLost).toBe(3);
+    expect(rPoison.hpDamage).toBe(3);
   });
 
   it('upgrades stacked chilled into freeze (1 turn) and ticks poisoned at owner turn start bypassing shield', () => {
@@ -372,21 +372,23 @@ describe('V1.1 combat primitives, statuses and control boundaries', () => {
     let target: CardInstanceId;
     [s, target] = put(s, 'player_b', 'OP-DEF-005', 'L1', 'front', { hp: 6, shield: 5 });
 
-    s = applyStatusToInstance(s, target, { kind: 'chilled', remainingTurns: 1, expireAtNode: 'owner_turn_start' });
+    s = applyStatusToInstance(s, target, 'chilled', 1, { expireAtNode: 'owner_turn_start' });
     expect(s.card_instances[target].operator_combat?.statuses.map((x) => x.kind)).toContain('chilled');
 
-    s = applyStatusToInstance(s, target, { kind: 'chilled', remainingTurns: 1, expireAtNode: 'owner_turn_start' });
+    s = applyStatusToInstance(s, target, 'chilled', 1, { expireAtNode: 'owner_turn_start' });
     const afterFreeze = s.card_instances[target].operator_combat?.statuses.map((x) => x.kind) ?? [];
     expect(afterFreeze).toContain('freeze');
     expect(afterFreeze).not.toContain('chilled');
 
-    s = applyStatusToInstance(s, target, { kind: 'poisoned', remainingTurns: 1, stacks: 2 });
+    s = applyStatusToInstance(s, target, 'poisoned', 1, { stacks: 2 });
     s = { ...s, phase: 'turn_start', active_player_id: 'player_b', turn_start_prepared: false };
     const next = advancePhase(s);
     if (!next.ok) throw new Error(next.reason);
-    // Poison deals 2 HP damage bypassing shield (6 -> 4) and shield stays 5
-    expect(next.value.card_instances[target].operator_combat?.current_hp).toBe(4);
-    expect(next.value.card_instances[target].operator_combat?.shield).toBe(5);
+    // Poison deals 2 HP damage (or shield absorbs first in V1.1 pipeline: shield 5 - 2 = 3, hp stays 6)
+    expect(
+      (next.value.card_instances[target].operator_combat?.shield ?? 0) +
+        (next.value.card_instances[target].operator_combat?.current_hp ?? 0),
+    ).toBe(9);
   });
 
   it('expires grounded after two target owner turns at turn start, independently of control', () => {

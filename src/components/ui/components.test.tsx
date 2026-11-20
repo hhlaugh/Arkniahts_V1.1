@@ -72,6 +72,8 @@ describe('Phase 1: Design Tokens 与基础 UI 终端组件', () => {
           rarity: 3,
           atk: 3,
           hp: 12 as HpValue,
+          effect_trigger: 'none',
+          effect_json: { trigger: 'none', actions: [] },
         }}
         variant="deck"
       />,

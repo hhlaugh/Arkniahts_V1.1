@@ -172,11 +172,14 @@ describe('Phase 6: 战斗轻量动画与视觉反馈测试', () => {
     let nextState = res.value;
     const combatEvents: CombatLogEvent[] = [];
     for (let guard = 0; guard < 5 && nextState.phase !== 'action' && nextState.phase !== 'finished'; guard += 1) {
+      const prevPhase = nextState.phase;
       const prevLen = nextState.combat_log.length;
       const stepped = advancePhase(nextState);
       expect(stepped.ok).toBe(true);
       nextState = stepped.value;
-      if (nextState.combat_log.length >= prevLen) {
+      if (prevPhase === 'combat' && nextState.phase !== 'combat') {
+        combatEvents.push(...nextState.combat_log);
+      } else if (nextState.combat_log.length >= prevLen) {
         combatEvents.push(...nextState.combat_log.slice(prevLen));
       } else {
         combatEvents.push(...nextState.combat_log);
