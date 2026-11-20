@@ -146,172 +146,173 @@ b { color: #fff; }
   animation: fadeIn 0.14s ease-out both;
 }
 
-/* ---------- Phase 6: 轻量战斗与视觉反馈动效（仅合成属性 transform / opacity） ---------- */
+/* ---------- Phase 6: 近未来极简工业风战斗动效（仅合成属性 transform / opacity） ---------- */
 @keyframes deployLand {
-  0% { opacity: 0.45; transform: translateY(-8px) scale(1.07); }
-  65% { opacity: 1; transform: translateY(1px) scale(0.99); }
+  0% { opacity: 0.3; transform: translateY(-10px) scale(1.02); }
+  70% { opacity: 1; transform: translateY(0.5px) scale(0.996); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes slotPulseFlash {
-  0% { opacity: 0.9; transform: scale(0.96); }
-  100% { opacity: 0; transform: scale(1.03); }
+  0% { opacity: 0.78; transform: scale(0.985); }
+  100% { opacity: 0; transform: scale(1.015); }
 }
 
 @keyframes hitShake {
-  0% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  45% { transform: translateX(5px); }
-  70% { transform: translateX(-2px); }
-  100% { transform: translateX(0); }
+  0% { transform: translate3d(0, 0, 0); }
+  18% { transform: translate3d(-4px, 0, 0); }
+  40% { transform: translate3d(3.5px, 0, 0); }
+  64% { transform: translate3d(-2px, 0, 0); }
+  84% { transform: translate3d(1px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes hitFlashOverlay {
-  0% { opacity: 0.85; filter: brightness(2.2) saturate(0.6); }
-  45% { opacity: 0.55; filter: brightness(1.3); }
-  100% { opacity: 0; filter: brightness(1); }
+  0% { opacity: 0.72; }
+  38% { opacity: 0.36; }
+  100% { opacity: 0; }
 }
 
 @keyframes meleeLungeUp {
-  0% { transform: translateY(0) scale(1); }
-  38% { transform: translateY(-15px) scale(1.07); }
-  72% { transform: translateY(-3px) scale(1.02); }
-  100% { transform: translateY(0) scale(1); }
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  34% { transform: translate3d(0, -12px, 0) scale(1.025); }
+  68% { transform: translate3d(0, -2px, 0) scale(1.005); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes meleeLungeDown {
-  0% { transform: translateY(0) scale(1); }
-  38% { transform: translateY(15px) scale(1.07); }
-  72% { transform: translateY(3px) scale(1.02); }
-  100% { transform: translateY(0) scale(1); }
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  34% { transform: translate3d(0, 12px, 0) scale(1.025); }
+  68% { transform: translate3d(0, 2px, 0) scale(1.005); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes rangedBoltUp {
-  0% { opacity: 0; transform: translateY(20px) scaleY(0.5); }
-  25% { opacity: 1; transform: translateY(4px) scaleY(1.1); }
-  100% { opacity: 0; transform: translateY(-28px) scaleY(0.8); }
+  0% { opacity: 0; transform: translateY(16px) scaleY(0.65); }
+  22% { opacity: 0.95; transform: translateY(2px) scaleY(1); }
+  100% { opacity: 0; transform: translateY(-24px) scaleY(0.85); }
 }
 
 @keyframes rangedBoltDown {
-  0% { opacity: 0; transform: translateY(-20px) scaleY(0.5); }
-  25% { opacity: 1; transform: translateY(-4px) scaleY(1.1); }
-  100% { opacity: 0; transform: translateY(28px) scaleY(0.8); }
+  0% { opacity: 0; transform: translateY(-16px) scaleY(0.65); }
+  22% { opacity: 0.95; transform: translateY(-2px) scaleY(1); }
+  100% { opacity: 0; transform: translateY(24px) scaleY(0.85); }
 }
 
 @keyframes floatNumberUp {
-  0% { opacity: 0; transform: translateY(6px) scale(0.88); }
-  20% { opacity: 1; transform: translateY(-2px) scale(1.06); }
-  78% { opacity: 1; transform: translateY(-16px) scale(1); }
-  100% { opacity: 0; transform: translateY(-24px) scale(0.96); }
+  0% { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.94); }
+  18% { opacity: 1; transform: translate3d(0, -3px, 0) scale(1); }
+  78% { opacity: 1; transform: translate3d(0, -14px, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(0, -21px, 0) scale(0.97); }
 }
 
 @keyframes ghostFadeOut {
-  0% { opacity: 0.95; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.9) translateY(-6px); }
+  0% { opacity: 0.9; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-5px) scale(0.96); }
 }
 
 @keyframes skillBurstRing {
-  0% { opacity: 0.9; transform: scale(0.92); }
-  100% { opacity: 0; transform: scale(1.06); }
+  0% { opacity: 0.88; transform: scale(0.96); }
+  100% { opacity: 0; transform: scale(1.035); }
 }
 
 @keyframes cellHitShake {
   0% { transform: translate3d(0, 0, 0) scale(1); }
-  18% { transform: translate3d(-3px, 1px, 0) scale(0.985); }
-  42% { transform: translate3d(3px, -1px, 0) scale(1.01); }
-  68% { transform: translate3d(-1.5px, 0.5px, 0) scale(0.995); }
+  22% { transform: translate3d(-2.5px, 0.5px, 0) scale(0.992); }
+  50% { transform: translate3d(2.5px, -0.5px, 0) scale(1.005); }
+  76% { transform: translate3d(-1px, 0, 0) scale(0.998); }
   100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes skillWaveRing {
-  0% { opacity: 0.95; transform: scale(0.78); }
-  55% { opacity: 0.68; transform: scale(1.08); }
-  100% { opacity: 0; transform: scale(1.22); }
+  0% { opacity: 0.88; transform: scale(0.94); }
+  55% { opacity: 0.52; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.12); }
 }
 
 @keyframes skillEnergySweep {
-  0% { opacity: 0; transform: translateX(-110%) skewX(-18deg); }
-  35% { opacity: 0.92; }
-  100% { opacity: 0; transform: translateX(130%) skewX(-18deg); }
+  0% { opacity: 0; transform: translateX(-115%) skewX(-14deg); }
+  38% { opacity: 0.78; }
+  100% { opacity: 0; transform: translateX(135%) skewX(-14deg); }
 }
 
 @keyframes turnBannerSlide {
-  0% { opacity: 0; transform: translateY(-10px) scale(0.96); }
-  18% { opacity: 1; transform: translateY(0) scale(1); }
-  82% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  0% { opacity: 0; transform: translate3d(0, -8px, 0); }
+  18% { opacity: 1; transform: translate3d(0, 0, 0); }
+  84% { opacity: 1; transform: translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: translate3d(0, -4px, 0); }
 }
 
 @keyframes baseHitPulse {
   0% { transform: scale(1); }
-  30% { transform: scale(1.04); }
+  28% { transform: scale(1.025); }
   100% { transform: scale(1); }
 }
 
 @keyframes pathDraw {
-  0% { stroke-dashoffset: 1000; opacity: 0.25; }
-  35% { opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0.95; }
+  0% { stroke-dashoffset: 1000; opacity: 0.35; }
+  30% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.96; }
 }
 
 @keyframes pathFlow {
-  0% { stroke-dashoffset: 36; }
+  0% { stroke-dashoffset: 24; }
   100% { stroke-dashoffset: 0; }
 }
 
 @keyframes reticleLock {
-  0% { opacity: 0; transform: scale(1.38); }
-  45% { opacity: 1; transform: scale(0.96); }
-  100% { opacity: 0.9; transform: scale(1); }
+  0% { opacity: 0; transform: scale(1.26) rotate(45deg); }
+  55% { opacity: 1; transform: scale(0.97) rotate(0deg); }
+  100% { opacity: 0.94; transform: scale(1) rotate(0deg); }
 }
 
 @keyframes impactBurst {
-  0% { opacity: 0.95; transform: scale(0.45); }
-  100% { opacity: 0; transform: scale(1.45); }
+  0% { opacity: 0.92; transform: scale(0.65); }
+  100% { opacity: 0; transform: scale(1.32); }
 }
 
-.anim-deploy-land { animation: deployLand calc(0.32s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-slot-flash { animation: slotPulseFlash calc(0.38s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-hit-shake { animation: hitShake calc(0.34s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-hit-flash { animation: hitFlashOverlay calc(0.36s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-melee-lunge-up { animation: meleeLungeUp calc(0.42s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-melee-lunge-down { animation: meleeLungeDown calc(0.42s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-ranged-bolt-up { animation: rangedBoltUp calc(0.46s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-ranged-bolt-down { animation: rangedBoltDown calc(0.46s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-float-number { animation: floatNumberUp calc(0.84s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
-.anim-ghost-fade { animation: ghostFadeOut calc(0.45s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-skill-burst { animation: skillBurstRing calc(0.42s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-cell-hit-shake { animation: cellHitShake 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-skill-wave { animation: skillWaveRing calc(0.46s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
-.anim-skill-sweep { animation: skillEnergySweep calc(0.44s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-turn-banner { animation: turnBannerSlide calc(0.52s * var(--combat-anim-scale, 2)) ease-out both; }
-.anim-base-hit { animation: baseHitPulse calc(0.40s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-deploy-land { animation: deployLand calc(0.28s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-slot-flash { animation: slotPulseFlash calc(0.32s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-hit-shake { animation: hitShake calc(0.30s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-hit-flash { animation: hitFlashOverlay calc(0.28s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-melee-lunge-up { animation: meleeLungeUp calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-melee-lunge-down { animation: meleeLungeDown calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-ranged-bolt-up { animation: rangedBoltUp calc(0.40s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-ranged-bolt-down { animation: rangedBoltDown calc(0.40s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-float-number { animation: floatNumberUp calc(0.82s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-ghost-fade { animation: ghostFadeOut calc(0.38s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-skill-burst { animation: skillBurstRing calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-cell-hit-shake { animation: cellHitShake 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-skill-wave { animation: skillWaveRing calc(0.40s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-skill-sweep { animation: skillEnergySweep calc(0.38s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-turn-banner { animation: turnBannerSlide calc(0.50s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-base-hit { animation: baseHitPulse calc(0.34s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-path-draw {
   stroke-dasharray: 1000;
-  animation: pathDraw calc(0.44s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pathDraw calc(0.38s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .anim-path-flow {
-  stroke-dasharray: 10 8;
-  animation: pathFlow calc(0.42s * var(--combat-anim-scale, 2)) linear infinite;
+  stroke-dasharray: 6 6;
+  animation: pathFlow calc(0.36s * var(--combat-anim-scale, 2)) linear infinite;
 }
 .anim-reticle-lock {
   transform-box: fill-box;
   transform-origin: center;
-  animation: reticleLock calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: reticleLock calc(0.32s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .anim-impact-burst {
   transform-box: fill-box;
   transform-origin: center;
-  animation: impactBurst calc(0.42s * var(--combat-anim-scale, 2)) ease-out both;
+  animation: impactBurst calc(0.36s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* ---------- 攻击瞬间金色高光（攻击者叠加层） ---------- */
+/* ---------- 攻击瞬间精密指示边框（攻击者叠加层） ---------- */
 @keyframes attackGlow {
-  0% { opacity: 0; box-shadow: 0 0 0 rgba(229, 165, 43, 0); }
-  40% { opacity: 1; box-shadow: 0 0 18px rgba(229, 165, 43, 0.85), inset 0 0 12px rgba(255, 224, 130, 0.6); }
-  100% { opacity: 0; box-shadow: 0 0 0 rgba(229, 165, 43, 0); }
+  0% { opacity: 0; box-shadow: 0 0 0 0 rgba(229, 165, 43, 0); }
+  35% { opacity: 1; box-shadow: 0 0 0 1px rgba(229, 165, 43, 0.9), inset 0 0 10px rgba(229, 165, 43, 0.18); }
+  100% { opacity: 0; box-shadow: 0 0 0 0 rgba(229, 165, 43, 0); }
 }
-.anim-attack-glow { animation: attackGlow calc(0.42s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-attack-glow { animation: attackGlow calc(0.36s * var(--combat-anim-scale, 2)) ease-out both; }
 
 /* ---------- 移动端手势与触控精准反馈 ---------- */
 .touch-gesture-surface {
@@ -475,58 +476,58 @@ b { color: #fff; }
   animation: spotlightSecondaryDrift 24s ease-in-out infinite alternate;
 }
 
-/* ---------- 动态战场天气遮罩层（细微烟雾 / 热浪模糊摆动，仅作用于背景层） ---------- */
+/* ---------- 近未来极简工业风：战场氛围低扰动光影层（仅作用于背景层） ---------- */
 @keyframes weatherSmokeHaze {
   0% {
-    opacity: 0.36;
-    filter: blur(12px);
-    transform: translate3d(-3.5%, 1.5%, 0) scale(1.04) skewX(-1.5deg);
+    opacity: 0.16;
+    filter: blur(5px);
+    transform: translate3d(-2%, 1%, 0) scale(1.02);
   }
   50% {
-    opacity: 0.62;
-    filter: blur(20px);
-    transform: translate3d(3%, -2%, 0) scale(1.09) skewX(1.5deg);
+    opacity: 0.28;
+    filter: blur(8px);
+    transform: translate3d(2%, -1%, 0) scale(1.04);
   }
   100% {
-    opacity: 0.44;
-    filter: blur(14px);
-    transform: translate3d(-1.5%, -1%, 0) scale(1.06) skewX(-0.8deg);
+    opacity: 0.18;
+    filter: blur(6px);
+    transform: translate3d(-1%, -0.5%, 0) scale(1.03);
   }
 }
 
 @keyframes weatherHeatShimmer {
   0% {
-    opacity: 0.24;
-    filter: blur(8px);
-    transform: translate3d(2%, 2.5%, 0) scale(1.02, 1.05);
+    opacity: 0.12;
+    filter: blur(4px);
+    transform: translate3d(1.5%, 1.5%, 0) scale(1.01, 1.02);
   }
   50% {
-    opacity: 0.46;
-    filter: blur(15px);
-    transform: translate3d(-2.5%, -2%, 0) scale(1.06, 0.99);
+    opacity: 0.24;
+    filter: blur(7px);
+    transform: translate3d(-1.5%, -1%, 0) scale(1.03, 0.99);
   }
   100% {
-    opacity: 0.28;
-    filter: blur(10px);
-    transform: translate3d(1%, -1.5%, 0) scale(1.04, 1.03);
+    opacity: 0.14;
+    filter: blur(5px);
+    transform: translate3d(0.5%, -1%, 0) scale(1.02, 1.01);
   }
 }
 
 .anim-weather-haze {
-  animation: weatherSmokeHaze 16s ease-in-out infinite alternate;
+  animation: weatherSmokeHaze 18s ease-in-out infinite alternate;
 }
 
 .anim-weather-shimmer {
-  animation: weatherHeatShimmer 11s ease-in-out infinite alternate;
+  animation: weatherHeatShimmer 13s ease-in-out infinite alternate;
 }
 
-/* ---------- 全息投影科技感：3D 立体按键与发光全息边框系统 ---------- */
+/* ---------- 近未来极简工业风：精密微斜面按键与哑光架构面板 ---------- */
 @keyframes holoRimBreath {
   0%, 100% {
     opacity: 0.72;
   }
   50% {
-    opacity: 1;
+    opacity: 0.96;
   }
 }
 
@@ -534,7 +535,12 @@ b { color: #fff; }
   position: relative;
   overflow: hidden;
   transform: translate3d(0, 0, 0);
-  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
+  transition:
+    transform 130ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .holo-btn::before {
@@ -542,14 +548,14 @@ b { color: #fff; }
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    115deg,
-    transparent 18%,
-    rgba(255, 255, 255, 0.22) 45%,
-    rgba(125, 211, 252, 0.16) 54%,
-    transparent 76%
+    112deg,
+    transparent 26%,
+    rgba(255, 255, 255, 0.08) 48%,
+    rgba(255, 255, 255, 0.03) 54%,
+    transparent 74%
   );
   transform: translateX(-125%);
-  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
   z-index: 1;
 }
@@ -558,142 +564,112 @@ b { color: #fff; }
   transform: translateX(125%);
 }
 
-.holo-btn:not(:disabled):hover {
-  transform: translate3d(0, -1px, 0);
-}
-
 .holo-btn:not(:disabled):active {
-  transform: translate3d(0, 1.5px, 0);
+  transform: translate3d(0, 0.5px, 0) scale(0.99);
 }
 
 .holo-btn-primary {
-  background: linear-gradient(180deg, #f8c64e 0%, #e5a52b 52%, #b9770e 100%);
-  border: 1px solid #fde047;
-  color: #0b0f14;
+  background: linear-gradient(180deg, #e5a52b 0%, #cf901d 100%);
+  border: 1px solid rgba(251, 191, 36, 0.72);
+  color: #0b0e13;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -2px 0 rgba(120, 53, 15, 0.55),
-    0 3px 0 #713f12,
-    0 6px 18px rgba(229, 165, 43, 0.38);
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .holo-btn-primary:not(:disabled):hover {
-  filter: brightness(1.06);
+  background: linear-gradient(180deg, #edb038 0%, #da9a22 100%);
+  border-color: #fcd34d;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -2px 0 rgba(120, 53, 15, 0.55),
-    0 4px 0 #713f12,
-    0 10px 24px rgba(245, 158, 11, 0.52);
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .holo-btn-primary:not(:disabled):active {
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.35),
-    0 1px 0 #713f12,
-    0 3px 10px rgba(229, 165, 43, 0.35);
+  background: #c78818;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.32);
 }
 
 .holo-btn-secondary {
-  background: linear-gradient(180deg, rgba(42, 56, 74, 0.92) 0%, rgba(23, 31, 42, 0.96) 55%, rgba(15, 21, 29, 0.98) 100%);
-  border: 1px solid rgba(94, 154, 198, 0.68);
-  color: #e2e8f0;
+  background: #171c22;
+  border: 1px solid rgba(100, 116, 139, 0.46);
+  color: #dde3ea;
   box-shadow:
-    inset 0 1px 0 rgba(186, 230, 253, 0.36),
-    inset 0 0 12px rgba(56, 189, 248, 0.14),
-    0 3px 0 #090d14,
-    0 6px 16px rgba(14, 165, 233, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.42);
 }
 
 .holo-btn-secondary:not(:disabled):hover {
-  border-color: rgba(56, 189, 248, 0.92);
-  color: #ffffff;
+  background: #1d242c;
+  border-color: rgba(148, 163, 184, 0.78);
+  color: #f8fafc;
   box-shadow:
-    inset 0 1px 0 rgba(224, 242, 254, 0.52),
-    inset 0 0 16px rgba(56, 189, 248, 0.24),
-    0 4px 0 #090d14,
-    0 8px 22px rgba(56, 189, 248, 0.32);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.48);
 }
 
 .holo-btn-secondary:not(:disabled):active {
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.55),
-    0 1px 0 #090d14,
-    0 2px 8px rgba(56, 189, 248, 0.2);
+  background: #12171d;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .holo-btn-danger {
-  background: linear-gradient(180deg, rgba(114, 28, 47, 0.92) 0%, rgba(64, 17, 29, 0.96) 60%, rgba(42, 11, 19, 0.98) 100%);
-  border: 1px solid rgba(251, 113, 133, 0.72);
-  color: #ffe4e6;
+  background: #241318;
+  border: 1px solid rgba(244, 63, 94, 0.52);
+  color: #fecdd3;
   box-shadow:
-    inset 0 1px 0 rgba(254, 205, 211, 0.4),
-    inset 0 0 12px rgba(244, 63, 94, 0.18),
-    0 3px 0 #260911,
-    0 6px 16px rgba(244, 63, 94, 0.22);
+    inset 0 1px 0 rgba(254, 205, 211, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.42);
 }
 
 .holo-btn-danger:not(:disabled):hover {
-  border-color: rgba(253, 164, 175, 0.95);
+  background: #30171f;
+  border-color: rgba(251, 113, 133, 0.84);
+  color: #ffe4e6;
   box-shadow:
-    inset 0 1px 0 rgba(254, 205, 211, 0.58),
-    inset 0 0 16px rgba(244, 63, 94, 0.3),
-    0 4px 0 #260911,
-    0 8px 20px rgba(244, 63, 94, 0.36);
+    inset 0 1px 0 rgba(254, 205, 211, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.48);
 }
 
 .holo-btn-outline {
-  background: linear-gradient(180deg, rgba(229, 165, 43, 0.14) 0%, rgba(17, 24, 34, 0.88) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.78);
-  color: #fcd34d;
+  background: rgba(17, 21, 26, 0.88);
+  border: 1px solid rgba(229, 165, 43, 0.58);
+  color: #f3c15a;
   box-shadow:
-    inset 0 1px 0 rgba(254, 240, 138, 0.35),
-    inset 0 0 14px rgba(229, 165, 43, 0.15),
-    0 3px 0 rgba(10, 14, 20, 0.95),
-    0 0 16px rgba(229, 165, 43, 0.2);
+    inset 0 1px 0 rgba(254, 240, 138, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.38);
 }
 
 .holo-btn-outline:not(:disabled):hover {
-  background: linear-gradient(180deg, rgba(229, 165, 43, 0.24) 0%, rgba(24, 33, 46, 0.92) 100%);
-  border-color: #fbbf24;
-  color: #fef08a;
-  box-shadow:
-    inset 0 1px 0 rgba(254, 240, 138, 0.52),
-    inset 0 0 18px rgba(245, 158, 11, 0.24),
-    0 4px 0 rgba(10, 14, 20, 0.95),
-    0 6px 20px rgba(245, 158, 11, 0.34);
+  background: rgba(229, 165, 43, 0.12);
+  border-color: #f5b436;
+  color: #fde68a;
+  box-shadow: inset 0 1px 0 rgba(254, 240, 138, 0.14);
 }
 
 .holo-btn-ghost {
-  background: rgba(15, 23, 42, 0.28);
-  border: 1px solid rgba(100, 116, 139, 0.32);
+  background: rgba(18, 23, 29, 0.42);
+  border: 1px solid rgba(71, 85, 105, 0.34);
   color: #cbd5e1;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .holo-btn-ghost:not(:disabled):hover {
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.55) 100%);
-  border-color: rgba(56, 189, 248, 0.58);
-  color: #ffffff;
-  box-shadow:
-    inset 0 1px 0 rgba(186, 230, 253, 0.28),
-    0 0 14px rgba(56, 189, 248, 0.22);
+  background: rgba(30, 38, 48, 0.68);
+  border-color: rgba(148, 163, 184, 0.56);
+  color: #f8fafc;
 }
 
 .holo-panel {
   box-shadow:
-    inset 0 1px 0 rgba(186, 230, 253, 0.28),
-    inset 0 -1px 0 rgba(229, 165, 43, 0.2),
-    inset 0 0 24px rgba(56, 189, 248, 0.08),
-    0 0 1px rgba(125, 211, 252, 0.45),
-    0 18px 42px rgba(0, 0, 0, 0.78);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 14px 36px rgba(0, 0, 0, 0.68);
 }
 
 .holo-frame {
   box-shadow:
-    inset 0 1px 0 rgba(186, 230, 253, 0.32),
-    inset 0 0 16px rgba(56, 189, 248, 0.1),
-    0 6px 20px rgba(0, 0, 0, 0.65),
-    0 0 14px rgba(56, 189, 248, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.48);
 }
 
 .pb-safe {

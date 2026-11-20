@@ -60,13 +60,13 @@ import { getEntityKind } from '../game/range';
 import type { CardInstance, CardInstanceId, GameAction, LaneId, PlayerId, Position } from '../game/types';
 
 const SLOT_POPUP_STYLE: Record<FloatingPopupKind, string> = {
-  damage: 'bg-rose-950/95 text-rose-200 border-rose-400',
-  shield: 'bg-sky-950/95 text-sky-200 border-sky-400',
-  heal: 'bg-emerald-950/95 text-emerald-200 border-emerald-400',
-  sp: 'bg-cyan-950/95 text-cyan-200 border-cyan-400',
-  skill: 'bg-amber-950/95 text-amber-200 border-amber-400',
-  deploy: 'bg-amber-950/90 text-amber-300 border-amber-500/80',
-  status: 'bg-purple-950/95 text-purple-200 border-purple-400',
+  damage: 'bg-[#0e1116]/95 text-rose-300 border-rose-500/85 border-l-2',
+  shield: 'bg-[#0e1116]/95 text-sky-300 border-sky-400/85 border-l-2',
+  heal: 'bg-[#0e1116]/95 text-emerald-300 border-emerald-400/85 border-l-2',
+  sp: 'bg-[#0e1116]/95 text-cyan-300 border-cyan-400/85 border-l-2',
+  skill: 'bg-[#0e1116]/95 text-amber-300 border-[#e5a52b] border-l-2',
+  deploy: 'bg-[#0e1116]/92 text-amber-200 border-[#e5a52b]/80 border-l-2',
+  status: 'bg-[#0e1116]/95 text-purple-300 border-purple-400/85 border-l-2',
 };
 
 const SUMMON_OPTION_LABELS: Readonly<Record<string, string>> = {
@@ -1392,68 +1392,68 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           }}
           className={`group relative overflow-hidden flex items-center justify-center min-w-0 ${
             useCompactBoard ? 'h-[54px]' : 'h-[58px] sm:h-[70px] lg:h-[82px]'
-          } border transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+          } border transition-colors duration-150 select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#e5a52b] ${
             isSlotTapped ? 'anim-cell-hit-shake' : ''
           } ${
             isDeployTarget
               ? isTouchLockedSlot
-                ? 'border-[#f59e0b] bg-amber-500/35 ring-2 ring-[#f59e0b] scale-[1.03] shadow-[0_0_20px_rgba(245,158,11,0.7)] cursor-pointer z-20'
+                ? 'border-[#e5a52b] bg-[#e5a52b]/22 ring-1 ring-[#e5a52b] cursor-pointer z-20'
                 : isSlotHovered
-                  ? 'border-[#f59e0b] bg-amber-500/30 ring-2 ring-[#f59e0b] shadow-[0_0_16px_rgba(245,158,11,0.55)] cursor-pointer'
-                  : 'border-[#e5a52b] bg-amber-500/18 ring-2 ring-[#e5a52b]/60 shadow-[0_0_12px_rgba(229,165,43,0.4)] cursor-pointer animate-pulse'
+                  ? 'border-[#e5a52b] bg-[#e5a52b]/18 ring-1 ring-[#e5a52b]/80 cursor-pointer'
+                  : 'border-[#e5a52b]/85 bg-[#e5a52b]/10 ring-1 ring-[#e5a52b]/35 cursor-pointer'
               : slotInvalidReason
-                ? 'border-rose-500/70 bg-rose-950/35 cursor-not-allowed'
+                ? 'border-rose-500/65 bg-rose-950/25 cursor-not-allowed'
                 : isAttackLaneCell
-                  ? 'border-rose-500/60 bg-rose-950/25 ring-1 ring-rose-500/40'
+                  ? 'border-rose-500/55 bg-rose-950/18'
                   : isEnemy
-                    ? 'border-rose-900/55 bg-[#140d11]/85 hover:border-rose-600/75'
-                    : 'border-sky-900/55 bg-[#0c131c]/85 hover:border-sky-500/75'
+                    ? 'border-[#2f252c] bg-[#100d11]/90 hover:border-rose-500/55'
+                    : 'border-[#242f3c] bg-[#0c1016]/90 hover:border-sky-400/55'
           }`}
           style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}
         >
-          {/* 商业级 AIGC 战术部署平台地板素材（取代普通虚线 CSS 框） */}
+          {/* 蚀刻工业部署平台底衬 */}
           <img
             src={isEnemy ? deployPadEnemyArt : deployPadAllyArt}
             alt=""
             aria-hidden="true"
             referrerPolicy="no-referrer"
             data-testid={`deploy-pad-${isEnemy ? 'enemy' : 'ally'}`}
-            className={`pointer-events-none select-none absolute inset-0 w-full h-full object-cover transition-opacity duration-150 ${
+            className={`pointer-events-none select-none absolute inset-0 w-full h-full object-cover grayscale-[35%] transition-opacity duration-150 ${
               isDeployTarget
-                ? 'opacity-[0.82]'
+                ? 'opacity-[0.42]'
                 : isAttackLaneCell
-                  ? 'opacity-[0.72]'
-                  : 'opacity-[0.58] group-hover:opacity-[0.76]'
+                  ? 'opacity-[0.34]'
+                  : 'opacity-[0.24] group-hover:opacity-[0.38]'
             }`}
           />
           <div
             aria-hidden="true"
             className={`pointer-events-none absolute inset-0 ${
               isDeployTarget
-                ? 'bg-amber-950/35 shadow-[inset_0_0_16px_rgba(245,158,11,0.35)]'
+                ? 'bg-amber-950/20 shadow-[inset_0_1px_0_rgba(229,165,43,0.3)]'
                 : isEnemy
-                  ? 'bg-[#120a0e]/45 shadow-[inset_0_1px_0_rgba(251,113,133,0.22),inset_0_0_12px_rgba(244,63,94,0.1)]'
-                  : 'bg-[#091119]/45 shadow-[inset_0_1px_0_rgba(125,211,252,0.26),inset_0_0_12px_rgba(56,189,248,0.1)]'
+                  ? 'bg-[#0d0a0e]/55 shadow-[inset_0_1px_0_rgba(251,113,133,0.12)]'
+                  : 'bg-[#090d13]/55 shadow-[inset_0_1px_0_rgba(125,211,252,0.14)]'
             }`}
           />
-          {/* 全息边角投射标 */}
+          {/* 精密工业边角测绘标 */}
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute top-[2px] left-[2px] w-2 h-2 border-t border-l z-10 ${
-              isDeployTarget ? 'border-amber-300' : isEnemy ? 'border-rose-400/65' : 'border-cyan-400/65'
+            className={`pointer-events-none absolute top-[2px] left-[2px] w-1.5 h-1.5 border-t border-l z-10 ${
+              isDeployTarget ? 'border-[#e5a52b]' : isEnemy ? 'border-rose-400/45' : 'border-sky-400/45'
             }`}
           />
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute bottom-[2px] right-[2px] w-2 h-2 border-b border-r z-10 ${
-              isDeployTarget ? 'border-amber-300' : isEnemy ? 'border-rose-400/65' : 'border-cyan-400/65'
+            className={`pointer-events-none absolute bottom-[2px] right-[2px] w-1.5 h-1.5 border-b border-r z-10 ${
+              isDeployTarget ? 'border-[#e5a52b]' : isEnemy ? 'border-rose-400/45' : 'border-sky-400/45'
             }`}
           />
           {isSlotTapped && (
             <div
               key={`slot-tap-${slotTapCue.seq}`}
               aria-hidden="true"
-              className="absolute inset-0 border border-amber-300/70 bg-amber-400/12 pointer-events-none z-25 anim-slot-flash"
+              className="absolute inset-0 border border-[#e5a52b]/70 bg-[#e5a52b]/10 pointer-events-none z-25 anim-slot-flash"
             />
           )}
           <div className="relative z-10 flex flex-col items-center justify-center w-full px-1">
@@ -1483,7 +1483,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               <span className="text-[8px] text-rose-400/75">{posName}</span>
             </div>
           ) : (
-            <span className={`px-1.5 py-0.2 bg-black/55 border border-white/10 text-[9px] sm:text-[10px] font-mono tracking-wider ${isEnemy ? 'text-rose-200/80' : 'text-sky-200/80'}`}>
+            <span className={`px-1.5 py-0.2 bg-[#0a0d12]/80 border border-[#26303c] text-[9px] sm:text-[10px] font-mono tracking-wider ${isEnemy ? 'text-rose-200/70' : 'text-sky-200/70'}`}>
               {posName}
             </span>
           )}
@@ -1610,14 +1610,14 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         {!combatAnim.effectiveDisabled && isDeployedSlot && (
           <div
             aria-hidden="true"
-            className="absolute inset-0 border-2 border-[#e5a52b] pointer-events-none z-30 anim-slot-flash"
+            className="absolute inset-0 border border-[#e5a52b] pointer-events-none z-30 anim-slot-flash"
           />
         )}
         {isSkillWaveActive && (
           <div
             key={`wave-${unitTapCue?.seq ?? activeBeat?.id ?? 'skill'}`}
             aria-hidden="true"
-            className="absolute -inset-1 border-2 border-cyan-300/85 shadow-[0_0_20px_rgba(34,211,238,0.6)] pointer-events-none z-30 anim-skill-wave"
+            className="absolute -inset-[2px] border border-cyan-300/85 pointer-events-none z-30 anim-skill-wave"
           />
         )}
       </div>
@@ -1971,11 +1971,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               <div
                 key={activeBeat.turnBanner.id}
                 aria-live="polite"
-                className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-40 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#121923]/95 border border-[#e5a52b] shadow-[0_6px_24px_rgba(0,0,0,0.65)] flex items-center gap-2 anim-turn-banner"
+                className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-40 px-3 sm:px-4 py-1 sm:py-1.5 bg-[#0e1218]/95 border border-[#e5a52b]/85 shadow-[0_8px_24px_rgba(0,0,0,0.72)] flex items-center gap-2 anim-turn-banner"
                 style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
               >
-                <span className="w-1.5 h-3.5 bg-[#e5a52b]" />
-                <span className="font-mono font-black text-xs sm:text-sm tracking-wider text-white whitespace-nowrap">
+                <span className="w-1 h-3.5 bg-[#e5a52b]" />
+                <span className="font-mono font-bold text-xs sm:text-sm tracking-[0.1em] text-slate-100 whitespace-nowrap">
                   T{String(activeBeat.turnBanner.turnNumber).padStart(2, '0')} ·{' '}
                   {isHotseat
                     ? activeBeat.turnBanner.actor === 'player_a'
@@ -1995,7 +1995,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                   e.stopPropagation();
                   combatAnim.skipAll();
                 }}
-                className="absolute top-2 right-2 sm:right-3 z-40 px-2 sm:px-2.5 py-1 bg-[#18202c]/95 hover:bg-[#222d3d] border border-amber-500/60 text-amber-300 font-mono font-bold text-[10px] sm:text-[11px] cursor-pointer shadow-md"
+                className="absolute top-2 right-2 sm:right-3 z-40 px-2 sm:px-2.5 py-1 bg-[#12171e]/95 hover:bg-[#1a212b] border border-[#e5a52b]/65 text-[#e5a52b] font-mono font-semibold text-[10px] sm:text-[11px] cursor-pointer transition-colors"
                 title="立即跳过余下战斗演出"
               >
                 ⏭ 跳过演出 ({combatAnim.remainingQueueCount})
@@ -2014,16 +2014,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
             >
               <div
                 ref={boardGridRef}
-                className={`relative w-full transition-all duration-150 ${
+                className={`relative w-full transition-colors duration-150 ${
                   touchDragState?.resolution.kind === 'direct_play'
-                    ? 'ring-2 ring-cyan-400/85 bg-cyan-950/15 shadow-[0_0_24px_rgba(34,211,238,0.25)]'
+                    ? 'ring-1 ring-cyan-400/80 bg-cyan-950/15'
                     : ''
                 }`}
               >
                 {touchDragState?.resolution.kind === 'direct_play' && (
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-40 px-3 py-1 bg-cyan-950/95 border border-cyan-400 text-cyan-200 font-mono font-bold text-[11px] shadow-lg whitespace-nowrap"
+                    className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-40 px-3 py-1 bg-[#0e1218]/95 border border-cyan-400 text-cyan-200 font-mono font-bold text-[11px] whitespace-nowrap"
                   >
                     ⚡ 松手直接释放战术指令
                   </div>
@@ -2040,14 +2040,14 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                     return (
                       <div
                         key={lane}
-                        className={`holo-frame relative flex flex-col bg-[#11161f]/92 backdrop-blur-[1px] border border-t-2 border-t-rose-400/80 border-b-2 border-b-cyan-400/80 overflow-hidden transition-colors duration-150 ${
+                        className={`holo-frame relative flex flex-col bg-[#0d1117]/94 backdrop-blur-[1px] border border-t border-t-rose-500/65 border-b border-b-sky-500/65 overflow-hidden transition-colors duration-150 ${
                           laneStrike
                             ? laneStrike.toBase
-                              ? 'border-rose-400 shadow-[0_0_24px_rgba(244,63,94,0.45)]'
+                              ? 'border-rose-400/90'
                               : laneStrike.kind === 'skill'
-                                ? 'border-cyan-300 shadow-[0_0_24px_rgba(34,211,238,0.45)]'
-                                : 'border-amber-400 shadow-[0_0_24px_rgba(245,158,11,0.4)]'
-                            : 'border-cyan-500/35'
+                                ? 'border-cyan-400/90'
+                                : 'border-[#e5a52b]/90'
+                            : 'border-[#27313d]'
                         }`}
                         style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}
                       >
@@ -2056,26 +2056,29 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                           alt=""
                           aria-hidden="true"
                           referrerPolicy="no-referrer"
-                          className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.28]"
+                          className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.10]"
                         />
                         {/* 航道路口标头 */}
-                        <div className="relative z-10 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#151b24]/90 border-b border-[#242f3d] flex items-center justify-between text-xs">
-                          <span className="font-bold text-white tracking-wide text-[10px] sm:text-xs truncate">{laneDisplayName}</span>
+                        <div className="relative z-10 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#10151c]/95 border-b border-[#222b36] flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-100 tracking-wider text-[10px] sm:text-xs truncate">{laneDisplayName}</span>
                           {isDirectBaseLane ? (
-                            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-rose-300 bg-rose-950/90 border border-rose-500/60 px-1 whitespace-nowrap">
+                            <span className="text-[8px] sm:text-[9px] font-mono font-bold text-rose-300 bg-rose-950/75 border border-rose-500/55 px-1 whitespace-nowrap">
                               ⚔ 直击
                             </span>
                           ) : (
-                            <span className="text-[8px] sm:text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0">
+                            <span className="text-[8px] sm:text-[10px] font-mono text-slate-500 uppercase tracking-wider shrink-0">
                               F{laneProfile.frontSlots}/R{laneProfile.rearSlots}
                             </span>
                           )}
                         </div>
 
                         {/* 敌方战区 (上方后排 + 前排)：按每路前/后排槽位数动态渲染 */}
-                        <div className={`relative z-10 ${useCompactBoard ? 'hidden' : 'hidden sm:flex'} px-1.5 py-0.5 bg-rose-950/45 border-b border-rose-900/40 items-center justify-between text-[9px] sm:text-[10px] font-mono font-bold text-rose-300`}>
-                          <span>{isHotseat ? (topPlayer === 'player_a' ? '🔴 玩家 A 防线' : '🔴 玩家 B 防线') : '🔴 敌方战区'}</span>
-                          <span className="text-[8px] sm:text-[9px] text-rose-400/80">
+                        <div className={`relative z-10 ${useCompactBoard ? 'hidden' : 'hidden sm:flex'} px-1.5 py-0.5 bg-[#120e12]/90 border-b border-[#2a1f25] items-center justify-between text-[9px] sm:text-[10px] font-mono font-semibold text-rose-300/90`}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-rose-400/85" />
+                            <span>{isHotseat ? (topPlayer === 'player_a' ? '玩家 A 防线' : '玩家 B 防线') : '敌方战区'}</span>
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] text-rose-300/60">
                             {laneProfile.rearSlots > 0 && laneProfile.frontSlots > 0
                               ? '后排/前锋'
                               : laneProfile.frontSlots > 0
@@ -2083,7 +2086,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                                 : '仅后排'}
                           </span>
                         </div>
-                        <div className={`relative z-10 p-0.5 sm:p-1.5 space-y-0.5 sm:space-y-1 bg-[#180e12]/60 border-b border-rose-900/30 ${actor === topPlayer ? 'bg-rose-950/20' : ''}`}>
+                        <div className={`relative z-10 p-0.5 sm:p-1.5 space-y-0.5 sm:space-y-1 bg-[#100c10]/70 border-b border-[#251d22] ${actor === topPlayer ? 'bg-rose-950/15' : ''}`}>
                           {laneProfile.rearSlots > 0 && (
                             <div
                               className="grid gap-0.5 sm:gap-1"
@@ -2106,18 +2109,18 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                           )}
                         </div>
 
-                        {/* 阻挡与交锋核心线 */}
-                        <div className="relative z-10 py-0.5 px-1 sm:px-2 bg-[#0f131a]/92 border-y border-[#2d3848] flex items-center justify-center gap-1 sm:gap-1.5 select-none">
-                          <div className="flex-1 h-[1px] sm:h-[1.5px] bg-gradient-to-r from-transparent via-[#45556d] to-transparent" />
-                          <span className="text-[8px] sm:text-[10px] font-mono font-bold text-[#e5a52b] tracking-wider flex items-center gap-0.5 sm:gap-1 whitespace-nowrap">
+                        {/* 阻挡与交锋基准线 */}
+                        <div className="relative z-10 py-0.5 px-1 sm:px-2 bg-[#0b0e13]/95 border-y border-[#242c36] flex items-center justify-center gap-1 sm:gap-1.5 select-none">
+                          <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#3b4756] to-transparent" />
+                          <span className="text-[8px] sm:text-[10px] font-mono font-bold text-[#e5a52b] tracking-widest flex items-center gap-0.5 sm:gap-1 whitespace-nowrap">
                             <span>⚔</span>
                             <span>{isDirectBaseLane ? '直击基地' : '交锋线'}</span>
                           </span>
-                          <div className="flex-1 h-[1px] sm:h-[1.5px] bg-gradient-to-r from-transparent via-[#45556d] to-transparent" />
+                          <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#3b4756] to-transparent" />
                         </div>
 
                         {/* 己方战区 (下方前排 + 后排) */}
-                        <div className={`relative z-10 p-0.5 sm:p-1.5 space-y-0.5 sm:space-y-1 bg-[#0b131d]/60 ${actor === bottomPlayer ? 'bg-sky-950/20' : ''}`}>
+                        <div className={`relative z-10 p-0.5 sm:p-1.5 space-y-0.5 sm:space-y-1 bg-[#0b1016]/70 ${actor === bottomPlayer ? 'bg-sky-950/15' : ''}`}>
                           {laneProfile.frontSlots > 0 && (
                             <div
                               className="grid gap-0.5 sm:gap-1"
@@ -2139,9 +2142,12 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                             </div>
                           )}
                         </div>
-                        <div className={`relative z-10 ${useCompactBoard ? 'hidden' : 'hidden sm:flex'} px-1.5 py-0.5 bg-sky-950/45 border-t border-sky-900/40 items-center justify-between text-[9px] sm:text-[10px] font-mono font-bold text-sky-300`}>
-                          <span>{isHotseat ? (bottomPlayer === 'player_a' ? '🔵 玩家 A 防线' : '🔵 玩家 B 防线') : '🔵 我方防线'}</span>
-                          <span className="text-[8px] sm:text-[9px] text-sky-400/80">
+                        <div className={`relative z-10 ${useCompactBoard ? 'hidden' : 'hidden sm:flex'} px-1.5 py-0.5 bg-[#0d131a]/90 border-t border-[#1e2a36] items-center justify-between text-[9px] sm:text-[10px] font-mono font-semibold text-sky-300/90`}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-sky-400/85" />
+                            <span>{isHotseat ? (bottomPlayer === 'player_a' ? '玩家 A 防线' : '玩家 B 防线') : '我方防线'}</span>
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] text-sky-300/60">
                             {laneProfile.frontSlots > 0 && laneProfile.rearSlots > 0
                               ? '前锋/后卫'
                               : laneProfile.frontSlots > 0

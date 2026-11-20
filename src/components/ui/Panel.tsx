@@ -64,23 +64,23 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         style={combinedStyle}
         {...props}
       >
-        {/* 顶部全息投影棱镜光脊 */}
+        {/* 顶部极简工业基准线 */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400/20 via-cyan-300/75 to-amber-400/55 z-20"
+          className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-[#e5a52b]/70 via-slate-400/25 to-transparent z-20"
         />
-        {/* 四角全息投影定位光标 */}
-        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] left-[3px] w-2.5 h-2.5 border-t-2 border-l-2 border-cyan-300/80 z-20" />
-        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] right-[3px] w-2.5 h-2.5 border-t-2 border-r-2 border-amber-400/70 z-20" />
-        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] left-[3px] w-2.5 h-2.5 border-b-2 border-l-2 border-cyan-400/65 z-20" />
-        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] right-[3px] w-2.5 h-2.5 border-b-2 border-r-2 border-amber-400/65 z-20" />
-        {/* 商业级拉丝钛金装甲底纹（替代纯色 CSS 容器底面） */}
+        {/* 四角精密极简定位线标 */}
+        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] left-[3px] w-1.5 h-1.5 border-t border-l border-slate-400/50 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute top-[3px] right-[3px] w-1.5 h-1.5 border-t border-r border-slate-500/40 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] left-[3px] w-1.5 h-1.5 border-b border-l border-slate-500/40 z-20" />
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-[3px] right-[3px] w-1.5 h-1.5 border-b border-r border-[#e5a52b]/55 z-20" />
+        {/* 哑光拉丝合金暗纹底衬 */}
         <img
           src={titaniumHudSurface}
           alt=""
           aria-hidden="true"
           referrerPolicy="no-referrer"
-          className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.22] z-0"
+          className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.12] z-0"
         />
 
         {/* Subtle Scanlines Texture */}

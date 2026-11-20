@@ -29,10 +29,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseClasses =
-      'holo-btn inline-flex items-center justify-center font-medium tracking-wide select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1318] disabled:cursor-not-allowed disabled:opacity-40';
+      'holo-btn inline-flex items-center justify-center font-medium tracking-wider select-none cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#e5a52b] focus-visible:ring-offset-1 focus-visible:ring-offset-[#0b0e12] disabled:cursor-not-allowed disabled:opacity-40';
 
     const sizeClasses: Record<ButtonSize, string> = {
-      sm: 'text-xs px-2.5 py-1 gap-1.5 min-h-[28px]',
+      sm: 'text-[11px] px-2.5 py-1 gap-1.5 min-h-[28px]',
       md: 'text-xs px-3.5 py-1.5 gap-2 min-h-[34px]',
       lg: 'text-sm px-5 py-2.5 gap-2.5 min-h-[42px] font-semibold',
     };
@@ -47,12 +47,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const tickColor =
       variant === 'primary'
-        ? 'border-slate-950/55'
+        ? 'border-slate-950/35'
         : variant === 'danger'
-          ? 'border-rose-300/80'
+          ? 'border-rose-300/45'
           : variant === 'outline'
-            ? 'border-amber-300/85'
-            : 'border-cyan-300/75';
+            ? 'border-amber-300/50'
+            : 'border-slate-400/45';
 
     const combinedStyle = cornerCut
       ? {
@@ -69,16 +69,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         style={combinedStyle}
         {...props}
       >
-        {/* 立体全息边角投射框标（pointer-events-none 绝不阻挡点击） */}
+        {/* 精密工业边角微刻度线（pointer-events-none 绝不阻挡点击） */}
         {variant !== 'ghost' && (
           <>
             <span
               aria-hidden="true"
-              className={`pointer-events-none absolute top-[2px] left-[2px] w-1.5 h-1.5 border-t border-l ${tickColor} z-[2]`}
+              className={`pointer-events-none absolute top-[3px] left-[3px] w-1 h-1 border-t border-l ${tickColor} z-[2]`}
             />
             <span
               aria-hidden="true"
-              className={`pointer-events-none absolute bottom-[2px] right-[2px] w-1.5 h-1.5 border-b border-r ${tickColor} z-[2]`}
+              className={`pointer-events-none absolute bottom-[3px] right-[3px] w-1 h-1 border-b border-r ${tickColor} z-[2]`}
             />
           </>
         )}
@@ -94,7 +94,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {!loading && icon && <span className="relative z-[3] shrink-0">{icon}</span>}
-        <span className="relative z-[3] inline-flex items-center justify-center gap-1.5">{children}</span>
+        <span className="relative z-[3] inline-flex items-center justify-center gap-1.5 tracking-[0.06em]">{children}</span>
       </button>
     );
   },

@@ -207,7 +207,7 @@ export function StartView({
               size="lg"
               cornerCut
               onClick={onRecruitment}
-              className="w-full md:w-60 font-bold tracking-wide shadow-[0_6px_18px_rgba(229,165,43,0.22)]"
+              className="w-full md:w-60 font-bold tracking-wider"
             >
               <span className="inline-flex items-center justify-center gap-1.5">
                 <OrundumIcon size="md" />
@@ -245,29 +245,32 @@ export function StartView({
           {/* Mode 1: VS Bot */}
           <div
             onClick={onVsBot}
-            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#181e25] hover:bg-[#1f2730] border border-[#3a4552] border-t-2 border-t-amber-400/85 hover:border-[#e5a52b] transition-all cursor-pointer select-none overflow-hidden"
+            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#12161b] hover:bg-[#171c23] border border-[#2c3540] hover:border-[#e5a52b]/80 transition-colors duration-150 cursor-pointer select-none overflow-hidden"
             style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)' }}
           >
             <ScenicBannerLayer
               scene="rhodes-command"
               fade="right"
-              opacityClassName="opacity-35"
-              tint="radial-gradient(circle at 80% 45%, rgba(229,165,43,0.14) 0%, transparent 62%)"
+              opacityClassName="opacity-22"
+              tint="radial-gradient(circle at 80% 45%, rgba(229,165,43,0.09) 0%, transparent 62%)"
             />
-            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-amber-300/85 via-amber-400/35 to-transparent z-10" />
+            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-[#e5a52b]/85 via-[#e5a52b]/25 to-transparent z-10" />
             <div className="relative z-10 space-y-1.5 mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-[#e5a52b] font-bold">MODE 01</span>
-                <span className="text-[9px] font-mono text-slate-300 bg-slate-800/90 border border-slate-700 px-1.5 py-0.2">AI SIM</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#e5a52b] font-semibold tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-[#e5a52b]" />
+                  MODE 01
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">AI SIM</span>
               </div>
-              <h3 className="text-sm font-bold text-white group-hover:text-[#e5a52b] transition-colors m-0">
+              <h3 className="text-sm font-bold text-slate-100 group-hover:text-[#e5a52b] transition-colors m-0">
                 单人对战（vs 机器人）
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 执玩家 A 对阵规则引擎本地 AI。AI 严格遵守全部卡牌部署与攻防规则。
               </p>
             </div>
-            <Button variant="primary" size="sm" cornerCut className="relative z-10 w-full">
+            <Button variant="primary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em]">
               进入作战
             </Button>
           </div>
@@ -275,29 +278,32 @@ export function StartView({
           {/* Mode 2: Hotseat */}
           <div
             onClick={onHotseat}
-            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#181e25] hover:bg-[#1f2730] border border-[#3a4552] border-t-2 border-t-sky-400/85 hover:border-sky-400 transition-all cursor-pointer select-none overflow-hidden"
+            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#12161b] hover:bg-[#171c23] border border-[#2c3540] hover:border-sky-400/75 transition-colors duration-150 cursor-pointer select-none overflow-hidden"
             style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)' }}
           >
             <ScenicBannerLayer
               scene="snowfield"
               fade="right"
-              opacityClassName="opacity-35"
-              tint="radial-gradient(circle at 80% 45%, rgba(56,189,248,0.16) 0%, transparent 62%)"
+              opacityClassName="opacity-22"
+              tint="radial-gradient(circle at 80% 45%, rgba(56,189,248,0.09) 0%, transparent 62%)"
             />
-            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-300/85 via-sky-400/35 to-transparent z-10" />
+            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-sky-400/80 via-sky-400/20 to-transparent z-10" />
             <div className="relative z-10 space-y-1.5 mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-sky-400 font-bold">MODE 02</span>
-                <span className="text-[9px] font-mono text-slate-300 bg-slate-800/90 border border-slate-700 px-1.5 py-0.2">LOCAL</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-sky-400 font-semibold tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-sky-400" />
+                  MODE 02
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">LOCAL</span>
               </div>
-              <h3 className="text-sm font-bold text-white group-hover:text-sky-400 transition-colors m-0">
+              <h3 className="text-sm font-bold text-slate-100 group-hover:text-sky-300 transition-colors m-0">
                 本地热座（双人同屏）
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 双人同屏轮流出牌与攻防推演，完整经历选牌、调度与三路对推。
               </p>
             </div>
-            <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full hover:border-sky-400">
+            <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em] hover:border-sky-400/75">
               同屏对战
             </Button>
           </div>
@@ -305,29 +311,32 @@ export function StartView({
           {/* Mode 3: Online Room */}
           <div
             onClick={onOnline}
-            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#181e25] hover:bg-[#1f2730] border border-[#3a4552] border-t-2 border-t-rose-400/85 hover:border-rose-400 transition-all cursor-pointer select-none overflow-hidden"
+            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#12161b] hover:bg-[#171c23] border border-[#2c3540] hover:border-rose-400/75 transition-colors duration-150 cursor-pointer select-none overflow-hidden"
             style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)' }}
           >
             <ScenicBannerLayer
               scene="lungmen-night"
               fade="right"
-              opacityClassName="opacity-35"
-              tint="radial-gradient(circle at 80% 45%, rgba(244,63,94,0.14) 0%, transparent 62%)"
+              opacityClassName="opacity-22"
+              tint="radial-gradient(circle at 80% 45%, rgba(244,63,94,0.09) 0%, transparent 62%)"
             />
-            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-rose-300/85 via-rose-400/35 to-transparent z-10" />
+            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-rose-400/80 via-rose-400/20 to-transparent z-10" />
             <div className="relative z-10 space-y-1.5 mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-rose-400 font-bold">MODE 03</span>
-                <span className="text-[9px] font-mono text-slate-300 bg-slate-800/90 border border-slate-700 px-1.5 py-0.2">P2P RTC</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-rose-400 font-semibold tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-rose-400" />
+                  MODE 03
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">P2P RTC</span>
               </div>
-              <h3 className="text-sm font-bold text-white group-hover:text-rose-400 transition-colors m-0">
+              <h3 className="text-sm font-bold text-slate-100 group-hover:text-rose-300 transition-colors m-0">
                 好友对战（P2P 联机）
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 基于 WebRTC 直连，生成房间码即可跨设备实时联机对决，无需第三方中继。
               </p>
             </div>
-            <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full hover:border-rose-400">
+            <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em] hover:border-rose-400/75">
               联机大厅
             </Button>
           </div>

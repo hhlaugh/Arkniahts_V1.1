@@ -313,7 +313,7 @@ export function TacticalBoardViewport({
         data-board-camera-control="true"
         data-testid="board-camera-controls"
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-3 z-30 flex items-center gap-0.5 bg-[#121720]/92 backdrop-blur-xs border border-[#3a4859] shadow-[0_6px_20px_rgba(0,0,0,0.65)] p-0.5 font-mono text-[10px] sm:text-[11px] text-slate-200 tabular-nums"
+        className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-3 z-30 flex items-center gap-0.5 bg-[#0e1218]/94 backdrop-blur-xs border border-[#2c3643] shadow-[0_4px_16px_rgba(0,0,0,0.6)] p-0.5 font-mono text-[10px] sm:text-[11px] text-slate-200 tabular-nums"
         style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}
       >
         <button
@@ -322,7 +322,7 @@ export function TacticalBoardViewport({
           disabled={transform.scale <= BOARD_MIN_SCALE + 0.01}
           aria-label="缩小棋盘视野"
           title="缩小视野"
-          className="min-w-[28px] min-h-[28px] sm:min-w-[26px] sm:min-h-[26px] flex items-center justify-center bg-[#18202c] hover:bg-[#232e3e] disabled:opacity-35 text-slate-100 font-bold cursor-pointer transition-colors"
+          className="min-w-[28px] min-h-[28px] sm:min-w-[26px] sm:min-h-[26px] flex items-center justify-center bg-[#141a22] hover:bg-[#1c2430] disabled:opacity-35 text-slate-200 font-bold cursor-pointer transition-colors"
         >
           －
         </button>
@@ -331,9 +331,9 @@ export function TacticalBoardViewport({
           onClick={resetViewport}
           aria-label="重置棋盘视野缩放"
           title={isMobile ? '点击一键恢复适配视野（支持双指缩放/拖动）' : '点击恢复默认视野（支持滚轮缩放/拖拽平移）'}
-          className="px-1.5 sm:px-2 min-h-[28px] sm:min-h-[26px] flex items-center justify-center hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
+          className="px-1.5 sm:px-2 min-h-[28px] sm:min-h-[26px] flex items-center justify-center hover:text-[#e5a52b] transition-colors cursor-pointer whitespace-nowrap"
         >
-          <span className={isModified ? 'text-amber-300 font-bold' : 'text-slate-300'}>
+          <span className={isModified ? 'text-[#e5a52b] font-bold' : 'text-slate-300'}>
             {scalePercent}%
           </span>
         </button>
@@ -343,7 +343,7 @@ export function TacticalBoardViewport({
           disabled={transform.scale >= BOARD_MAX_SCALE - 0.01}
           aria-label="放大棋盘视野"
           title="放大视野"
-          className="min-w-[28px] min-h-[28px] sm:min-w-[26px] sm:min-h-[26px] flex items-center justify-center bg-[#18202c] hover:bg-[#232e3e] disabled:opacity-35 text-slate-100 font-bold cursor-pointer transition-colors"
+          className="min-w-[28px] min-h-[28px] sm:min-w-[26px] sm:min-h-[26px] flex items-center justify-center bg-[#141a22] hover:bg-[#1c2430] disabled:opacity-35 text-slate-200 font-bold cursor-pointer transition-colors"
         >
           ＋
         </button>
@@ -353,7 +353,7 @@ export function TacticalBoardViewport({
             onClick={resetViewport}
             aria-label="重置棋盘位置"
             title="复位棋盘位置与缩放"
-            className="px-1.5 min-h-[28px] sm:min-h-[26px] flex items-center justify-center bg-amber-500/15 hover:bg-amber-500/25 border-l border-[#3a4859] text-amber-300 font-bold cursor-pointer transition-colors whitespace-nowrap"
+            className="px-1.5 min-h-[28px] sm:min-h-[26px] flex items-center justify-center bg-[#e5a52b]/12 hover:bg-[#e5a52b]/22 border-l border-[#2c3643] text-[#e5a52b] font-bold cursor-pointer transition-colors whitespace-nowrap"
           >
             复位
           </button>

@@ -203,11 +203,27 @@ export function DynamicBattlefieldBackdrop({
     const drawFrame = (elapsedSec: number, dtSec: number) => {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. 缓慢移动的 PRTS 战术坐标网格与微弱扫描光带
-      const gridShiftX = motionOff ? 0 : (elapsedSec * 9) % 96;
-      const gridShiftY = motionOff ? 0 : (elapsedSec * 5) % 96;
+      // 1. 精密工业 CAD 基准坐标网格（主格 96px + 次格 24px + 十字准星刻度 + 细微扫描基准线）
+      const gridShiftX = motionOff ? 0 : (elapsedSec * 6) % 96;
+      const gridShiftY = motionOff ? 0 : (elapsedSec * 3.5) % 96;
       ctx.save();
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.042)';
+
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.02)';
+      ctx.lineWidth = 1;
+      for (let sx = -24 + (gridShiftX % 24); sx < width + 24; sx += 24) {
+        ctx.beginPath();
+        ctx.moveTo(sx, 0);
+        ctx.lineTo(sx, height);
+        ctx.stroke();
+      }
+      for (let sy = -24 + (gridShiftY % 24); sy < height + 24; sy += 24) {
+        ctx.beginPath();
+        ctx.moveTo(0, sy);
+        ctx.lineTo(width, sy);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.055)';
       ctx.lineWidth = 1;
       for (let gx = -96 + gridShiftX; gx < width + 96; gx += 96) {
         ctx.beginPath();
@@ -222,26 +238,44 @@ export function DynamicBattlefieldBackdrop({
         ctx.stroke();
       }
 
+      // 网格交点精密 '+' 测绘刻度
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.lineWidth = 1;
+      for (let gx = -96 + gridShiftX; gx < width + 96; gx += 96) {
+        for (let gy = -96 + gridShiftY; gy < height + 96; gy += 96) {
+          ctx.beginPath();
+          ctx.moveTo(gx - 3.5, gy);
+          ctx.lineTo(gx + 3.5, gy);
+          ctx.moveTo(gx, gy - 3.5);
+          ctx.lineTo(gx, gy + 3.5);
+          ctx.stroke();
+        }
+      }
+
       if (!motionOff) {
-        const sweepY = ((elapsedSec * 28) % (height + 160)) - 80;
-        const grad = ctx.createLinearGradient(0, sweepY - 54, 0, sweepY + 54);
-        grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
-        grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.06)');
-        grad.addColorStop(1, 'rgba(229, 165, 43, 0)');
+        const sweepY = ((elapsedSec * 22) % (height + 120)) - 60;
+        const grad = ctx.createLinearGradient(0, sweepY - 36, 0, sweepY);
+        grad.addColorStop(0, 'rgba(148, 163, 184, 0)');
+        grad.addColorStop(1, 'rgba(148, 163, 184, 0.045)');
         ctx.fillStyle = grad;
-        ctx.fillRect(0, sweepY - 54, width, 108);
+        ctx.fillRect(0, sweepY - 36, width, 36);
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, sweepY);
+        ctx.lineTo(width, sweepY);
+        ctx.stroke();
       }
       ctx.restore();
 
-      // 2. 多样化战场粒子效果：漂浮雪花、掉落碎屑、源石余烬与光影颗粒
+      // 2. 极简低干扰工业微粒：几何雪晶、战损微屑、源石余烬菱晶与精密测绘光点
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]!;
         if (!motionOff && dtSec > 0) {
-          p.x += (p.vx + Math.sin(elapsedSec * 0.9 + p.phase) * p.swayAmp) * dtSec;
+          p.x += (p.vx + Math.sin(elapsedSec * 0.8 + p.phase) * p.swayAmp * 0.7) * dtSec;
           p.y += p.vy * dtSec;
           p.rotation += p.rotSpeed * dtSec;
 
-          // 按粒子重力方向平滑循环边界
           if (p.vy >= 0 && p.y > height + 18) {
             p.y = -14;
             p.x = (((p.x + width * 0.29) % width) + width) % width;
@@ -256,21 +290,17 @@ export function DynamicBattlefieldBackdrop({
         const yNorm = Math.max(0, Math.min(1, p.y / height));
         const edgeFade = Math.min(yNorm / 0.14, (1 - yNorm) / 0.14, 1);
         const pulse = motionOff
-          ? 0.9
+          ? 0.85
           : 0.65 + 0.35 * Math.sin(elapsedSec * p.twinkleSpeed + p.phase);
-        const alpha = p.alpha * pulse * edgeFade;
-        if (alpha <= 0.01) continue;
+        const alpha = p.alpha * 0.56 * pulse * edgeFade;
+        if (alpha <= 0.008) continue;
 
         const rgb = particleRgb(p.tone);
 
         if (p.hasHalo) {
-          const haloRadius = p.kind === 'light_mote' ? p.size * 3.8 : p.size * 4.2;
+          const haloRadius = p.size * 2.1;
           const haloGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloRadius);
-          haloGrad.addColorStop(
-            0,
-            `rgba(${rgb}, ${(alpha * (p.kind === 'light_mote' ? 0.55 : 0.4)).toFixed(3)})`,
-          );
-          haloGrad.addColorStop(0.55, `rgba(${rgb}, ${(alpha * 0.15).toFixed(3)})`);
+          haloGrad.addColorStop(0, `rgba(${rgb}, ${(alpha * 0.32).toFixed(3)})`);
           haloGrad.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = haloGrad;
           ctx.beginPath();
@@ -279,17 +309,15 @@ export function DynamicBattlefieldBackdrop({
         }
 
         if (p.kind === 'snowflake') {
-          // 六角雪花结晶（Arknights 切尔诺伯格寒夜风雪质感）
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
           ctx.strokeStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
-          ctx.lineWidth = Math.max(0.8, p.size * 0.28);
-          ctx.lineCap = 'round';
+          ctx.lineWidth = Math.max(0.75, p.size * 0.22);
           for (let arm = 0; arm < 3; arm++) {
             const ang = (arm * Math.PI) / 3;
-            const dx = Math.cos(ang) * p.size;
-            const dy = Math.sin(ang) * p.size;
+            const dx = Math.cos(ang) * p.size * 0.85;
+            const dy = Math.sin(ang) * p.size * 0.85;
             ctx.beginPath();
             ctx.moveTo(-dx, -dy);
             ctx.lineTo(dx, dy);
@@ -297,34 +325,25 @@ export function DynamicBattlefieldBackdrop({
           }
           ctx.restore();
         } else if (p.kind === 'debris') {
-          // 旋转掉落的战损不规则碎屑薄片
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
           ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
-          ctx.beginPath();
-          ctx.moveTo(-p.size * 0.9, -p.size * 0.45);
-          ctx.lineTo(p.size * 0.8, -p.size * 0.25);
-          ctx.lineTo(p.size * 0.5, p.size * 0.55);
-          ctx.lineTo(-p.size * 0.65, p.size * 0.35);
-          ctx.closePath();
-          ctx.fill();
+          ctx.fillRect(-p.size * 0.65, -p.size * 0.25, p.size * 1.3, p.size * 0.5);
           ctx.restore();
         } else if (p.kind === 'ember') {
-          // 源石菱形余烬火花
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
-          ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
-          const s = p.size * 1.45;
+          ctx.fillStyle = `rgba(${rgb}, ${(alpha * 1.15).toFixed(3)})`;
+          const s = p.size * 1.15;
           ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
           ctx.restore();
         } else {
-          // Arknights 光影散景颗粒
-          ctx.fillStyle = `rgba(${rgb}, ${(alpha * 0.72).toFixed(3)})`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.68, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.strokeStyle = `rgba(${rgb}, ${(alpha * 0.85).toFixed(3)})`;
+          ctx.lineWidth = 0.8;
+          const r = p.size * 0.55;
+          ctx.strokeRect(p.x - r, p.y - r, r * 2, r * 2);
         }
       }
     };
@@ -375,32 +394,32 @@ export function DynamicBattlefieldBackdrop({
       data-motion-disabled={disableMotion ? 'true' : 'false'}
       data-particle-kinds="snowflake,debris,ember,light_mote"
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden bg-[#0a0d12]"
+      className="pointer-events-none absolute inset-0 overflow-hidden bg-[#090c10]"
     >
-      {/* 1. Arknights 装甲战场底图 + 轻微呼吸平移 CSS 动效 */}
+      {/* 1. 近未来哑光建筑底图 + 轻微缓动 */}
       {backdropUrl && (
         <img
           src={backdropUrl}
           alt=""
           referrerPolicy="no-referrer"
-          className={`absolute inset-0 w-full h-full object-cover opacity-[0.44] will-change-transform ${
-            disableMotion ? 'scale-[1.06]' : 'anim-arena-drift'
+          className={`absolute inset-0 w-full h-full object-cover opacity-[0.18] grayscale-[45%] contrast-[1.08] will-change-transform ${
+            disableMotion ? 'scale-[1.04]' : 'anim-arena-drift'
           }`}
         />
       )}
 
-      {/* 1.5 半边淡出官方场景远景层：柔和透出罗德岛/极地雪原/龙门夜景，不干扰前景棋盘辨识 */}
+      {/* 1.5 半边淡出官方场景远景层：低饱和工业滤镜融入 */}
       <img
         data-testid="battlefield-scenic-layer"
         data-scenic-scene={scenicScene}
         src={scenicMeta.src}
         alt=""
         referrerPolicy="no-referrer"
-        className={`absolute inset-0 w-full h-full object-cover opacity-[0.36] will-change-transform ${
-          disableMotion ? 'scale-[1.04]' : 'anim-arena-drift'
+        className={`absolute inset-0 w-full h-full object-cover opacity-[0.20] will-change-transform ${
+          disableMotion ? 'scale-[1.03]' : 'anim-arena-drift'
         }`}
         style={{
-          filter: scenicMeta.defaultFilter,
+          filter: `${scenicMeta.defaultFilter ?? ''} saturate(0.72)`.trim(),
           maskImage: scenicMask,
           WebkitMaskImage: scenicMask,
         }}
@@ -416,79 +435,79 @@ export function DynamicBattlefieldBackdrop({
           src="./assets/arknights/logos/rhodes_island_dark.png"
           alt=""
           referrerPolicy="no-referrer"
-          className="w-[340px] h-[340px] sm:w-[460px] sm:h-[460px] object-contain opacity-[0.065] select-none"
+          className="w-[320px] h-[320px] sm:w-[440px] sm:h-[440px] object-contain opacity-[0.04] select-none"
         />
       </div>
 
-      {/* 3. 基础对比度压暗遮罩：稳固底层纹理对比，为聚光灯与前景卡牌留出明暗层次 */}
+      {/* 3. 极简工业暗角对比度基底 */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at center, rgba(10,13,18,0.44) 0%, rgba(10,13,18,0.8) 76%, rgba(7,9,13,0.94) 100%)',
+            'radial-gradient(ellipse at center, rgba(9,12,16,0.52) 0%, rgba(9,12,16,0.84) 74%, rgba(6,8,11,0.96) 100%)',
         }}
       />
 
-      {/* 4. 主战场径向渐变（Radial Gradient）聚光灯照明遮罩层：模拟战区顶光缓慢漂移 */}
+      {/* 4. 主战区冷冽钛钢顶光照明遮罩层 */}
       <div
         data-testid="battlefield-spotlight-mask"
         className={`absolute -inset-[28%] will-change-transform ${
-          disableMotion ? 'opacity-80' : 'anim-spotlight-drift'
+          disableMotion ? 'opacity-70' : 'anim-spotlight-drift'
         }`}
         style={{
           background:
-            'radial-gradient(circle at 50% 46%, rgba(255,224,154,0.22) 0%, rgba(229,165,43,0.12) 22%, rgba(56,189,248,0.06) 42%, rgba(9,12,17,0.45) 68%, rgba(6,8,12,0.78) 100%)',
+            'radial-gradient(circle at 50% 44%, rgba(203,213,225,0.085) 0%, rgba(148,163,184,0.04) 28%, rgba(15,23,42,0.12) 52%, rgba(6,8,11,0.75) 100%)',
           mixBlendMode: 'screen',
         }}
       />
 
-      {/* 5. 次级反向漂移 PRTS 青蓝探照聚光灯遮罩 */}
+      {/* 5. 次级反向漂移 PRTS 冷青探照微光遮罩 */}
       <div
         data-testid="battlefield-spotlight-secondary"
         className={`absolute -inset-[25%] will-change-transform ${
-          disableMotion ? 'opacity-55' : 'anim-spotlight-secondary'
+          disableMotion ? 'opacity-45' : 'anim-spotlight-secondary'
         }`}
         style={{
           background:
-            'radial-gradient(ellipse 46% 38% at 50% 50%, rgba(56,189,248,0.16) 0%, rgba(56,189,248,0.05) 45%, transparent 74%)',
+            'radial-gradient(ellipse 46% 36% at 50% 50%, rgba(56,189,248,0.055) 0%, rgba(56,189,248,0.02) 45%, transparent 72%)',
           mixBlendMode: 'screen',
         }}
       />
 
-      {/* 6. 天气烟雾与热浪模糊遮罩层：通过 CSS 动画微幅摆动模糊滤镜，营造硝烟与大气热流 */}
+      {/* 6. 极简低扰动环境氛围流场遮罩 */}
       <div
         data-testid="battlefield-weather-haze"
         className={`absolute -inset-12 will-change-transform ${
-          disableMotion ? 'opacity-30' : 'anim-weather-haze'
+          disableMotion ? 'opacity-20' : 'anim-weather-haze'
         }`}
         style={{
           background:
-            'radial-gradient(ellipse 68% 42% at 24% 34%, rgba(148,163,184,0.15) 0%, transparent 68%), radial-gradient(ellipse 64% 48% at 76% 68%, rgba(229,165,43,0.12) 0%, transparent 70%), linear-gradient(160deg, rgba(15,23,42,0) 20%, rgba(56,189,248,0.08) 50%, rgba(15,23,42,0) 80%)',
+            'radial-gradient(ellipse 68% 42% at 26% 36%, rgba(148,163,184,0.07) 0%, transparent 68%), radial-gradient(ellipse 64% 48% at 74% 66%, rgba(100,116,139,0.06) 0%, transparent 70%)',
         }}
       />
 
       <div
         data-testid="battlefield-weather-shimmer"
         className={`absolute -inset-10 will-change-transform ${
-          disableMotion ? 'opacity-20' : 'anim-weather-shimmer'
+          disableMotion ? 'opacity-15' : 'anim-weather-shimmer'
         }`}
         style={{
           background:
-            'radial-gradient(ellipse 52% 30% at 52% 58%, rgba(251,191,36,0.11) 0%, rgba(56,189,248,0.06) 45%, transparent 75%)',
+            'radial-gradient(ellipse 50% 28% at 52% 54%, rgba(148,163,184,0.055) 0%, rgba(56,189,248,0.025) 45%, transparent 74%)',
           mixBlendMode: 'screen',
         }}
       />
 
-      {/* 7. PRTS 扫描纹理层（受系统设置扫描线开关控制） */}
+      {/* 7. PRTS 精密光学扫描线纹理层 */}
       <div
-        className="prts-scanlines absolute inset-0 opacity-[0.14]"
+        className="prts-scanlines absolute inset-0 opacity-[0.09]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 3px)',
+            'repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 4px)',
         }}
       />
 
-      {/* 8. Canvas 实时多样化战场粒子层：雪花、战损碎屑、源石余烬与光影散景颗粒 */}
+      {/* 8. Canvas 实时精密坐标网格与微粒测绘层 */}
       <canvas
         ref={canvasRef}
         data-testid="battlefield-ambient-canvas"
@@ -496,12 +515,12 @@ export function DynamicBattlefieldBackdrop({
         className="pointer-events-none absolute inset-0 w-full h-full block"
       />
 
-      {/* 9. 边缘暗角聚光收敛框：强化战区中心视觉焦点并保证外围文字对比度 */}
+      {/* 9. 边缘暗角聚光收敛框 */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at center, transparent 48%, rgba(7,9,13,0.52) 86%, rgba(5,7,11,0.82) 100%)',
+            'radial-gradient(ellipse at center, transparent 52%, rgba(6,8,11,0.58) 88%, rgba(4,6,9,0.88) 100%)',
         }}
       />
     </div>

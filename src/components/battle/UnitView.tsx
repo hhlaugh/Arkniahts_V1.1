@@ -36,13 +36,13 @@ interface UnitViewProps {
 }
 
 const POPUP_COLORS: Record<FloatingPopupKind, string> = {
-  damage: 'bg-rose-950/95 text-rose-200 border-rose-400 shadow-[0_2px_8px_rgba(244,63,94,0.45)]',
-  shield: 'bg-sky-950/95 text-sky-200 border-sky-400 shadow-[0_2px_8px_rgba(56,189,248,0.4)]',
-  heal: 'bg-emerald-950/95 text-emerald-200 border-emerald-400 shadow-[0_2px_8px_rgba(52,211,153,0.4)]',
-  sp: 'bg-cyan-950/95 text-cyan-200 border-cyan-400 shadow-[0_2px_8px_rgba(34,211,238,0.35)]',
-  skill: 'bg-amber-950/95 text-amber-200 border-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.4)]',
-  deploy: 'bg-amber-950/90 text-amber-300 border-amber-500/80',
-  status: 'bg-purple-950/95 text-purple-200 border-purple-400',
+  damage: 'bg-[#0e1116]/95 text-rose-300 border-rose-500/85 border-l-2',
+  shield: 'bg-[#0e1116]/95 text-sky-300 border-sky-400/85 border-l-2',
+  heal: 'bg-[#0e1116]/95 text-emerald-300 border-emerald-400/85 border-l-2',
+  sp: 'bg-[#0e1116]/95 text-cyan-300 border-cyan-400/85 border-l-2',
+  skill: 'bg-[#0e1116]/95 text-amber-300 border-[#e5a52b] border-l-2',
+  deploy: 'bg-[#0e1116]/92 text-amber-200 border-[#e5a52b]/80 border-l-2',
+  status: 'bg-[#0e1116]/95 text-purple-300 border-purple-400/85 border-l-2',
 };
 
 const SUMMON_DISPLAY_NAMES: Readonly<Record<string, string>> = {
@@ -171,28 +171,28 @@ export function UnitView({
           onClick();
         }
       }}
-      className={`holo-frame touch-gesture-surface group relative rounded-sm bg-[#181d24] select-none transition-all duration-150 cursor-pointer border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+      className={`holo-frame touch-gesture-surface group relative rounded-sm bg-[#12161c] select-none transition-colors duration-150 cursor-pointer border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#e5a52b] ${
         isDragLocked
-          ? 'border-cyan-300 ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.7)] scale-[1.03] z-30'
+          ? 'border-cyan-300 ring-1 ring-cyan-300/85 scale-[1.02] z-30'
           : longPressHandlers.isHolding
-            ? 'border-amber-400 ring-2 ring-amber-400/80 z-25'
+            ? 'border-amber-400 ring-1 ring-amber-400/75 z-25'
             : isSelected
-              ? 'border-[#e5a52b] ring-2 ring-[#e5a52b]/55 shadow-[0_0_18px_rgba(229,165,43,0.48)] z-20 scale-[1.01]'
+              ? 'border-[#e5a52b] ring-1 ring-[#e5a52b]/70 z-20'
               : isTarget
-                ? 'border-cyan-400 ring-2 ring-cyan-400/65 shadow-[0_0_16px_rgba(56,189,248,0.5)] animate-pulse z-20'
+                ? 'border-cyan-400 ring-1 ring-cyan-400/75 z-20'
                 : isAttackTarget
-                  ? 'border-rose-500 ring-2 ring-rose-500/60 shadow-[0_0_16px_rgba(244,63,94,0.5)] z-20'
+                  ? 'border-rose-500 ring-1 ring-rose-500/70 z-20'
                   : isFocusTarget
-                    ? 'border-amber-400 ring-1 ring-amber-400/75 shadow-[0_0_12px_rgba(251,191,36,0.4)] z-15'
+                    ? 'border-amber-400/90 ring-1 ring-amber-400/50 z-15'
                     : animState?.hit
-                      ? 'border-rose-400 ring-1 ring-rose-400/75 z-20'
+                      ? 'border-rose-400 ring-1 ring-rose-400/80 z-20'
                       : showSkillFx
-                        ? 'border-cyan-300 ring-2 ring-cyan-400/85 shadow-[0_0_20px_rgba(34,211,238,0.65)] z-25'
+                        ? 'border-cyan-300 ring-1 ring-cyan-400/85 z-25'
                         : entityKind === 'facility'
-                          ? 'border-amber-500/45 hover:border-amber-300/75 hover:bg-[#1e252e]'
+                          ? 'border-amber-500/40 hover:border-amber-300/70 hover:bg-[#171c23]'
                           : entityKind === 'summon'
-                            ? 'border-emerald-500/45 hover:border-emerald-300/75 hover:bg-[#1e252e]'
-                            : 'border-cyan-500/35 hover:border-cyan-300/75 hover:bg-[#1e252e]'
+                            ? 'border-emerald-500/40 hover:border-emerald-300/70 hover:bg-[#171c23]'
+                            : 'border-[#333e4c] hover:border-slate-400/75 hover:bg-[#171c23]'
       } ${motionClass} w-full ${compact ? 'h-[54px]' : 'h-[58px] sm:h-[70px] lg:h-[82px]'}`}
     >
       {/* 内部裁切内容容器 */}
@@ -202,11 +202,11 @@ export function UnitView({
           alt=""
           aria-hidden="true"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.42] pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.15] pointer-events-none"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-cyan-300/40 via-white/45 to-amber-300/40 z-10"
+          className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-slate-400/25 via-slate-300/30 to-transparent z-10"
         />
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-10"
@@ -215,54 +215,54 @@ export function UnitView({
           aria-hidden="true"
         >
           <polyline
-            points="105 1.2, 118.8 1.2, 118.8 14"
-            fill="none"
-            stroke={rarityTheme.color}
-            strokeOpacity="0.92"
-            strokeWidth="2"
-          />
-          <polyline
-            points="1.2 66, 1.2 78.8, 15 78.8"
+            points="108 1.2, 118.8 1.2, 118.8 12"
             fill="none"
             stroke={rarityTheme.color}
             strokeOpacity="0.82"
-            strokeWidth="1.8"
+            strokeWidth="1.5"
           />
           <polyline
-            points="4 4, 14 4"
+            points="1.2 68, 1.2 78.8, 12 78.8"
             fill="none"
-            stroke="rgba(125,211,252,0.6)"
-            strokeWidth="1.2"
+            stroke={rarityTheme.color}
+            strokeOpacity="0.68"
+            strokeWidth="1.5"
+          />
+          <polyline
+            points="4 4, 12 4"
+            fill="none"
+            stroke="rgba(148,163,184,0.45)"
+            strokeWidth="1"
           />
         </svg>
 
         {longPressHandlers.isHolding && (
           <div
             aria-hidden="true"
-            className="absolute top-0 left-0 right-0 h-[3px] bg-amber-400 z-30 pointer-events-none anim-hold-charge"
+            className="absolute top-0 left-0 right-0 h-[2px] bg-[#e5a52b] z-30 pointer-events-none anim-hold-charge"
           />
         )}
         <div
-          className="absolute left-0 top-0 bottom-0 w-[3px] pointer-events-none"
+          className="absolute left-0 top-0 bottom-0 w-[2px] pointer-events-none"
           style={{
             background:
               entityKind === 'facility'
-                ? 'linear-gradient(180deg, #f59e0b 0%, rgba(255,255,255,0.4) 50%, #f59e0b 100%)'
+                ? '#f59e0b'
                 : entityKind === 'summon'
-                  ? 'linear-gradient(180deg, #34d399 0%, rgba(255,255,255,0.4) 50%, #34d399 100%)'
-                  : `linear-gradient(180deg, ${rarityTheme.color} 0%, rgba(255,255,255,0.4) 50%, ${rarityTheme.color} 100%)`,
+                  ? '#34d399'
+                  : rarityTheme.color,
           }}
         />
 
         {!motionOff && animState?.hit && (
-          <div className="absolute inset-0 pointer-events-none z-20 anim-hit-flash bg-gradient-to-b from-white/75 via-rose-500/55 to-rose-600/65" />
+          <div className="absolute inset-0 pointer-events-none z-20 anim-hit-flash border border-rose-300/80 bg-gradient-to-b from-rose-300/28 via-rose-500/18 to-transparent" />
         )}
 
         {!motionOff && tapCue && tapCue.kind === 'tap' && (
           <div
             key={`tap-pulse-${tapCue.seq}`}
             aria-hidden="true"
-            className="absolute inset-0 border border-amber-300/75 bg-amber-400/12 pointer-events-none z-20 anim-slot-flash"
+            className="absolute inset-0 border border-[#e5a52b]/75 bg-[#e5a52b]/10 pointer-events-none z-20 anim-slot-flash"
           />
         )}
 
@@ -271,12 +271,12 @@ export function UnitView({
             <div
               key={`skill-burst-${tapCue?.seq ?? 'anim'}`}
               aria-hidden="true"
-              className="absolute inset-0 border-2 border-cyan-300/90 bg-gradient-to-br from-cyan-400/25 via-transparent to-amber-400/20 pointer-events-none z-20 anim-skill-burst"
+              className="absolute inset-0 border border-cyan-300/90 bg-gradient-to-b from-cyan-400/18 via-transparent to-cyan-500/10 pointer-events-none z-20 anim-skill-burst"
             />
             <div
               key={`skill-sweep-${tapCue?.seq ?? 'anim'}`}
               aria-hidden="true"
-              className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent pointer-events-none z-20 anim-skill-sweep"
+              className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent pointer-events-none z-20 anim-skill-sweep"
             />
           </>
         )}
@@ -433,15 +433,15 @@ export function UnitView({
             const magnitude = Number.isFinite(numeric) ? Math.abs(numeric) : 0;
             const sizeCls =
               magnitude >= 3
-                ? 'text-[15px] px-2 py-0.5 shadow-[0_0_10px_rgba(244,63,94,0.65)]'
+                ? 'text-[14px] px-2 py-0.5'
                 : magnitude >= 2
-                  ? 'text-[13px] px-1.5 py-0.2'
+                  ? 'text-[12px] px-1.5 py-0.2'
                   : 'text-[11px] px-1.5 py-0.2';
             return (
             <span
               key={popup.id}
               style={{ marginTop: `${idx * -2}px` }}
-              className={`px-1.5 py-0.2 border font-mono font-black leading-tight whitespace-nowrap anim-float-number ${sizeCls} ${POPUP_COLORS[popup.kind]}`}
+              className={`px-1.5 py-0.2 border font-mono font-bold tracking-tight leading-tight whitespace-nowrap anim-float-number ${sizeCls} ${POPUP_COLORS[popup.kind]}`}
             >
               {popup.label}
             </span>
