@@ -16,6 +16,7 @@ import {
 } from './combatPresentation';
 import { playCombatAudioCues, playCombatSfx } from '../../audio/combatSfx';
 import { TacticalBattleHud } from './TacticalBattleHud';
+import { TurnTransitionBanner } from './TurnTransitionBanner';
 import { PlayerHandDock } from './PlayerHandDock';
 import { AttackPathOverlay } from './AttackPathOverlay';
 import { UnitView } from './UnitView';
@@ -541,5 +542,45 @@ describe('Phase 6: 战斗轻量动画与视觉反馈测试', () => {
     expect(overlayHtml).toContain('anim-path-draw');
     expect(overlayHtml).toContain('anim-reticle-lock');
     expect(overlayHtml).toContain('animateMotion');
+
+    // TurnTransitionBanner: 工业切角外壳 + 敌我方向滑入动画 + 禁用动效降级
+    const allyBannerHtml = renderToString(
+      <TurnTransitionBanner
+        banner={{ id: 'turn-2-a', actor, turnNumber: 2 }}
+        bottomPlayer={actor}
+      />,
+    );
+    expect(allyBannerHtml).toContain('data-testid="turn-transition-banner"');
+    expect(allyBannerHtml).toContain('data-incoming-side="ally"');
+    expect(allyBannerHtml).toContain('anim-turn-banner-ally');
+    expect(allyBannerHtml).toContain('anim-turn-banner-sweep');
+    expect(allyBannerHtml).toContain('anim-turn-banner-rail');
+    expect(allyBannerHtml).toContain('board-chamfer-sm');
+    expect(allyBannerHtml).toContain('T02');
+    expect(allyBannerHtml).toContain('我方行动阶段');
+
+    const enemyBannerHtml = renderToString(
+      <TurnTransitionBanner
+        banner={{ id: 'turn-3-b', actor: enemy, turnNumber: 3 }}
+        bottomPlayer={actor}
+      />,
+    );
+    expect(enemyBannerHtml).toContain('data-incoming-side="enemy"');
+    expect(enemyBannerHtml).toContain('anim-turn-banner-enemy');
+    expect(enemyBannerHtml).toContain('T03');
+    expect(enemyBannerHtml).toContain('敌方行动阶段');
+
+    const staticBannerHtml = renderToString(
+      <TurnTransitionBanner
+        banner={{ id: 'turn-4-a', actor, turnNumber: 4 }}
+        bottomPlayer={actor}
+        disableMotion
+      />,
+    );
+    expect(staticBannerHtml).not.toContain('anim-turn-banner');
+    expect(staticBannerHtml).not.toContain('anim-turn-banner-sweep');
+
+    // TacticalBattleHud 回合徽章亦带平滑滑入切换类
+    expect(hudHtml).toContain('anim-hud-turn-shift');
   });
 });

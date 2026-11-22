@@ -7,7 +7,10 @@ import {
   exceedsMoveThreshold,
   LONG_PRESS_DELAY_MS,
 } from '../../hooks/useLongPress';
-import { clampPopoverPosition } from './CardPreviewPopover';
+import { clampPopoverPosition, CardPreviewPopover } from './CardPreviewPopover';
+import { TacticalDetailPanel } from './TacticalDetailPanel';
+import { KeywordGlossary } from '../cards/KeywordGlossary';
+import { extractCardKeywords } from '../../data/keywords';
 import {
   computeTouchAimPoint,
   detectTouchDragIntent,
@@ -613,5 +616,105 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     expect(staticHtml).not.toContain('anim-weather-shimmer');
     expect(staticHtml).not.toContain('anim-arena-drift');
     expect(staticHtml).not.toContain('anim-emblem-drift');
+    expect(staticHtml).toContain('prts-grid');
+  });
+
+  it('卡牌详情与词条简要说明: 支持桌面悬停与移动端详情面板渲染详情卡面、在场状态及词条解析', () => {
+    const state = createActionPhaseState(101);
+    const unitId = 'inspect-unit' as CardInstanceId;
+    const silverAsh = DEMO_CARDS.find((c) => c.card_name_zh === '银灰') ?? DEMO_CARDS.find((c) => c.card_type === 'operator')!;
+    const unitState: GameState = {
+      ...state,
+      card_instances: {
+        ...state.card_instances,
+        [unitId]: {
+          card_instance_id: unitId,
+          card_id: silverAsh.card_id,
+          owner_id: 'player_a',
+          controller_id: 'player_a',
+          board_half: 'player_a',
+          lane: 'center',
+          position: 'front',
+          zone: 'board',
+          operator_combat: {
+            current_hp: Math.max(1, (silverAsh.hp ?? 6) - 1) as never,
+            current_atk_modifiers: [],
+            current_sp: 2 as never,
+            shield: 1,
+            statuses: [
+              {
+                status_id: 'st-1',
+                kind: 'poison',
+                stacks: 2,
+                remaining_owner_turns: 2,
+                applied_sequence: 1,
+              },
+            ],
+            equipment_ids: [],
+          },
+        },
+      },
+    };
+
+    const unitInstance = unitState.card_instances[unitId];
+    const keywords = extractCardKeywords(silverAsh, unitInstance);
+    expect(keywords.some((k) => k.keyword === '护盾')).toBe(true);
+    expect(keywords.some((k) => k.keyword === '中毒')).toBe(true);
+
+    // 1. KeywordGlossary 独立渲染
+    const glossaryHtml = renderToString(
+      <KeywordGlossary definition={silverAsh} instance={unitInstance} />,
+    );
+    expect(glossaryHtml).toContain('data-testid="keyword-glossary"');
+    expect(glossaryHtml).toContain('词条简要说明');
+    expect(glossaryHtml).toContain('【护盾】');
+    expect(glossaryHtml).toContain('【中毒】');
+
+    // 2. 桌面悬停浮层：含详情卡面 + 在场参数 + 词条简要说明
+    const popoverHtml = renderToString(
+      <CardPreviewPopover
+        state={unitState}
+        hovered={{
+          instanceId: unitId,
+          rect: { left: 480, top: 40, right: 610, bottom: 120, width: 130, height: 80 },
+        }}
+      />,
+    );
+    expect(popoverHtml).toContain('data-testid="card-preview-popover"');
+    expect(popoverHtml).toContain(silverAsh.card_name_zh);
+    expect(popoverHtml).toContain('(+1盾)');
+    expect(popoverHtml).toContain('词条简要说明');
+
+    // 3. 顶部敌方单位悬停时自动翻转至目标下方，不遮挡目标格子
+    const flippedPos = clampPopoverPosition(
+      { left: 500, top: 38, right: 630, bottom: 118, width: 130, height: 80 },
+      1280,
+      800,
+    );
+    expect(flippedPos.top).toBeGreaterThanOrEqual(118 + 10);
+
+    // 4. 移动端/侧栏战术详情面板（长按弹起后渲染）：含详情卡面 + 词条简要说明
+    const detailHtml = renderToString(
+      <TacticalDetailPanel
+        state={unitState}
+        selection={unitId}
+        onDeselect={() => {}}
+        canAct
+        isActionPhase
+        hasPending={false}
+        legalActions={[]}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(detailHtml).toContain(silverAsh.card_name_zh);
+    expect(detailHtml).toContain('词条简要说明');
+    expect(detailHtml).toContain('【中毒】');
+
+    // 5. UnitView 具备尖锐硬朗切角金属壳结构
+    const unitHtml = renderToString(
+      <UnitView state={unitState} instance={unitInstance} highlight="none" />,
+    );
+    expect(unitHtml).toContain('board-unit-shell');
+    expect(unitHtml).toContain('board-unit');
   });
 });

@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import type { ActionResult } from '../client/localGameController';
 import { PLAYER_LABEL } from '../client/gameData';
-import { CardView } from '../components/cards/CardView';
+import { CardView, cardDefinitionOf } from '../components/cards/CardView';
+import { CardFrame } from '../components/cards/CardFrame';
+import { KeywordGlossary } from '../components/cards/KeywordGlossary';
+import { CardPreviewPopover, type HoveredCardPreview } from '../components/battle/CardPreviewPopover';
 import type { CardInstanceId, GameState, PlayerId } from '../game/types';
 import { Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
+import { BottomSheet } from '../components/ui/BottomSheet';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
+import { useIsMobile } from '../hooks/useViewport';
 import { playTacticalSfx } from '../audio/bgmPlayer';
 import { playCombatSfx } from '../audio/combatSfx';
 
@@ -29,8 +34,11 @@ export function MulliganView({
   leaveLabel = '离开对局',
 }: MulliganViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<CardInstanceId>>(new Set());
+  const [hoveredCard, setHoveredCard] = useState<HoveredCardPreview | null>(null);
+  const [inspectId, setInspectId] = useState<CardInstanceId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isMobile = useIsMobile();
   const hand = state.players[playerId].hand;
 
   const toggle = (id: CardInstanceId) => {
@@ -136,7 +144,9 @@ export function MulliganView({
 
         {/* Instructions banner */}
         <div className="px-3 sm:px-5 py-2 bg-[#1a2026] border-b border-[#2e3740] text-[11px] sm:text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2">
-          <span>点击勾选想要换掉的卡牌（可全不选）。换出卡牌将洗回牌库并等量抽取新手牌。</span>
+          <span>
+            点击勾选想要换掉的卡牌（可全不选）。{isMobile ? '长按卡牌可查看详情与词条说明。' : '悬停卡牌可预览详情与词条说明。'}
+          </span>
           <span className="text-slate-400 text-[10px] font-mono hidden sm:inline">STEP: 01_DEPLOY_PREP</span>
         </div>
 
@@ -152,6 +162,18 @@ export function MulliganView({
                 checked={selected.has(id)}
                 interactive
                 onClick={() => toggle(id)}
+                onLongPress={() => {
+                  setHoveredCard(null);
+                  setInspectId(id);
+                }}
+                onHoverStart={(rect) => {
+                  if (!isMobile) {
+                    setHoveredCard({ instanceId: id, rect });
+                  }
+                }}
+                onHoverEnd={() => {
+                  setHoveredCard((prev) => (prev?.instanceId === id ? null : prev));
+                }}
               />
             ))}
           </div>
@@ -188,6 +210,51 @@ export function MulliganView({
           </div>
         </div>
       </Panel>
+
+      {!isMobile && (
+        <CardPreviewPopover state={state} hovered={hoveredCard} />
+      )}
+
+      {isMobile && (() => {
+        const inspectInst = inspectId ? state.card_instances[inspectId] : undefined;
+        const inspectDef = inspectId ? cardDefinitionOf(state, inspectId) : undefined;
+        return (
+          <BottomSheet
+            isOpen={Boolean(inspectInst && inspectDef)}
+            onClose={() => setInspectId(null)}
+            title={inspectDef?.card_name_zh ?? '卡牌详情'}
+            codeName={inspectInst?.card_id}
+            maxHeight="max-h-[86dvh]"
+          >
+            {inspectInst && inspectDef && (
+              <div className="p-4 space-y-3 text-xs">
+                <div className="flex justify-center">
+                  <CardFrame
+                    cardId={inspectInst.card_id}
+                    definition={inspectDef}
+                    variant="preview"
+                    interactive={false}
+                    className="w-[186px] min-h-[240px] shadow-md"
+                  />
+                </div>
+                {(inspectDef.rules_text_zh || inspectDef.active_skill_text_zh) && (
+                  <div className="bg-[#12161d] p-2.5 border border-[#263140] space-y-1.5">
+                    {inspectDef.rules_text_zh && (
+                      <p className="text-slate-200 leading-relaxed m-0">{inspectDef.rules_text_zh}</p>
+                    )}
+                    {inspectDef.active_skill_text_zh && (
+                      <p className="text-sky-300 leading-relaxed m-0">
+                        ⚡ 主动 ({inspectDef.active_skill_sp_cost ?? 0} SP): {inspectDef.active_skill_text_zh}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <KeywordGlossary definition={inspectDef} instance={inspectInst} />
+              </div>
+            )}
+          </BottomSheet>
+        );
+      })()}
     </div>
   );
 }

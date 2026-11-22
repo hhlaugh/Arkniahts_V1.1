@@ -9,7 +9,6 @@ import { cardDefinitionOf } from '../cards/CardView';
 import { OperatorPortrait } from '../cards/OperatorPortrait';
 import { HealthBar } from '../ui/HealthBar';
 import { RARITY_THEMES } from '../ui/tokens';
-import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
 
 export type UnitHighlight = 'none' | 'target' | 'selected' | 'attack_target';
 
@@ -31,7 +30,7 @@ interface UnitViewProps {
   readonly onClick?: () => void;
   readonly onDoubleTap?: () => void;
   readonly onLongPress?: () => void;
-  readonly onHoverStart?: () => void;
+  readonly onHoverStart?: (rect: DOMRect) => void;
   readonly onHoverEnd?: () => void;
 }
 
@@ -152,7 +151,7 @@ export function UnitView({
       data-entity-kind={entityKind}
       data-highlight={highlight}
       data-tap-cue={tapCue?.kind}
-      onMouseEnter={onHoverStart}
+      onMouseEnter={(e) => onHoverStart?.(e.currentTarget.getBoundingClientRect())}
       onMouseLeave={onHoverEnd}
       onPointerDown={longPressHandlers.onPointerDown}
       onPointerMove={longPressHandlers.onPointerMove}
@@ -171,70 +170,42 @@ export function UnitView({
           onClick();
         }
       }}
-      className={`holo-frame touch-gesture-surface group relative rounded-sm bg-[#12161c] select-none transition-colors duration-150 cursor-pointer border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#e5a52b] ${
-        isDragLocked
-          ? 'border-cyan-300 ring-1 ring-cyan-300/85 scale-[1.02] z-30'
-          : longPressHandlers.isHolding
-            ? 'border-amber-400 ring-1 ring-amber-400/75 z-25'
-            : isSelected
-              ? 'border-[#e5a52b] ring-1 ring-[#e5a52b]/70 z-20'
-              : isTarget
-                ? 'border-cyan-400 ring-1 ring-cyan-400/75 z-20'
-                : isAttackTarget
-                  ? 'border-rose-500 ring-1 ring-rose-500/70 z-20'
-                  : isFocusTarget
-                    ? 'border-amber-400/90 ring-1 ring-amber-400/50 z-15'
-                    : animState?.hit
-                      ? 'border-rose-400 ring-1 ring-rose-400/80 z-20'
-                      : showSkillFx
-                        ? 'border-cyan-300 ring-1 ring-cyan-400/85 z-25'
-                        : entityKind === 'facility'
-                          ? 'border-amber-500/40 hover:border-amber-300/70 hover:bg-[#171c23]'
-                          : entityKind === 'summon'
-                            ? 'border-emerald-500/40 hover:border-emerald-300/70 hover:bg-[#171c23]'
-                            : 'border-[#333e4c] hover:border-slate-400/75 hover:bg-[#171c23]'
+      className={`touch-gesture-surface group relative select-none cursor-pointer focus-visible:outline-none ${
+        isDragLocked ? 'scale-[1.02] z-30' : isSelected || isTarget || isAttackTarget || animState?.hit ? 'z-20' : showSkillFx || longPressHandlers.isHolding ? 'z-25' : isFocusTarget ? 'z-15' : ''
       } ${motionClass} w-full ${compact ? 'h-[54px]' : 'h-[58px] sm:h-[70px] lg:h-[82px]'}`}
     >
+      {/* 硬朗尖锐外切角金属边框壳 */}
+      <div
+        className={`holo-frame board-unit-shell w-full h-full transition-colors duration-150 ${
+          isDragLocked
+            ? 'bg-cyan-300'
+            : longPressHandlers.isHolding
+              ? 'bg-amber-400'
+              : isSelected
+                ? 'bg-[#e5a52b]'
+                : isTarget
+                  ? 'bg-cyan-400'
+                  : isAttackTarget
+                    ? 'bg-rose-500'
+                    : isFocusTarget
+                      ? 'bg-amber-400/90'
+                      : animState?.hit
+                        ? 'bg-rose-400'
+                        : showSkillFx
+                          ? 'bg-cyan-300'
+                          : entityKind === 'facility'
+                            ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
+                            : entityKind === 'summon'
+                              ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
+                              : 'bg-[#384556] group-hover:bg-[#7b8da6]'
+        }`}
+      >
       {/* 内部裁切内容容器 */}
-      <div className={`relative flex flex-col justify-between w-full h-full ${compact ? 'p-0.5 pl-1.5' : 'p-1 sm:p-1.5 pl-1.5 sm:pl-2'} overflow-hidden`}>
-        <img
-          src={titaniumHudSurface}
-          alt=""
-          aria-hidden="true"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.15] pointer-events-none"
-        />
+      <div className={`board-unit relative flex flex-col justify-between w-full h-full ${compact ? 'p-0.5 pl-1.5' : 'p-1 sm:p-1.5 pl-1.5 sm:pl-2'} overflow-hidden`}>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-slate-400/25 via-slate-300/30 to-transparent z-10"
+          className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-white/[0.08] z-10"
         />
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none z-10"
-          viewBox="0 0 120 80"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <polyline
-            points="108 1.2, 118.8 1.2, 118.8 12"
-            fill="none"
-            stroke={rarityTheme.color}
-            strokeOpacity="0.82"
-            strokeWidth="1.5"
-          />
-          <polyline
-            points="1.2 68, 1.2 78.8, 12 78.8"
-            fill="none"
-            stroke={rarityTheme.color}
-            strokeOpacity="0.68"
-            strokeWidth="1.5"
-          />
-          <polyline
-            points="4 4, 12 4"
-            fill="none"
-            stroke="rgba(148,163,184,0.45)"
-            strokeWidth="1"
-          />
-        </svg>
 
         {longPressHandlers.isHolding && (
           <div
@@ -420,6 +391,7 @@ export function UnitView({
             ⚡ 就绪
           </div>
         )}
+      </div>
       </div>
 
       {/* 浮动战斗反馈跳字 */}

@@ -66,29 +66,35 @@ export function TacticalBattleHud({
   const isAllyTurn = actor === bottomPlayer;
   const isEnemyTurn = actor === topPlayer;
 
+  const hudShiftCls = disableMotion
+    ? ''
+    : isEnemyTurn
+      ? 'anim-hud-turn-shift anim-hud-turn-shift-enemy'
+      : 'anim-hud-turn-shift anim-hud-turn-shift-ally';
+
   const phaseBadge = hasPending ? (
-    <span className="px-1.5 sm:px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/60 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
+    <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-amber-500/18 text-amber-300 border border-amber-500/60 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
       待选支援
     </span>
   ) : state.phase === 'action' ? (
     isHotseat ? (
-      <span className="px-1.5 sm:px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
-        <span className="w-1.5 h-1.5 bg-emerald-400" />
+      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-emerald-500/18 text-emerald-300 border border-emerald-500/60 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
+        <span className="w-1 h-2.5 bg-emerald-400" />
         <span>{actor === 'player_a' ? '玩家 A 行动' : '玩家 B 行动'}</span>
       </span>
     ) : isAllyTurn ? (
-      <span className="px-1.5 sm:px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
-        <span className="w-1.5 h-1.5 bg-emerald-400" />
+      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-sky-500/18 text-sky-200 border border-sky-400/65 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
+        <span className="w-1 h-2.5 bg-sky-400" />
         <span>我方回合</span>
       </span>
     ) : (
-      <span className="px-1.5 sm:px-2 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/60 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1 whitespace-nowrap">
-        <span className="w-1.5 h-1.5 bg-rose-400" />
+      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-rose-500/18 text-rose-200 border border-rose-500/65 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
+        <span className="w-1 h-2.5 bg-rose-400" />
         <span>敌方回合</span>
       </span>
     )
   ) : (
-    <span className="px-1.5 sm:px-2 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
+    <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-slate-800/90 text-slate-300 border border-slate-600/80 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
       结算中
     </span>
   );
@@ -131,7 +137,11 @@ export function TacticalBattleHud({
           </span>
         </div>
 
-        <div className="shrink-0">{phaseBadge}</div>
+        <div className="shrink-0 overflow-hidden">
+          <div key={`${actor}-${state.phase}-${hasPending}`} className={hudShiftCls}>
+            {phaseBadge}
+          </div>
+        </div>
 
         {networkStatus?.isOnline ? (
           <div className="hidden lg:flex items-center gap-1.5 text-[11px] font-mono text-slate-400 whitespace-nowrap">

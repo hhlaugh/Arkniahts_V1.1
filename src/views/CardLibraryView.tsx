@@ -12,6 +12,7 @@ import { Badge } from '../components/ui/Badge';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
 import { CardFrame } from '../components/cards/CardFrame';
+import { KeywordGlossary } from '../components/cards/KeywordGlossary';
 import { OperatorPortrait } from '../components/cards/OperatorPortrait';
 
 interface CardLibraryViewProps {
@@ -262,6 +263,8 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
             </p>
           </div>
         )}
+
+        <KeywordGlossary definition={inspectCard} />
 
         {/* Synergy Tags & Lore Notes */}
         {(inspectCard.synergy_tags || inspectPresentation.source.notes) && (

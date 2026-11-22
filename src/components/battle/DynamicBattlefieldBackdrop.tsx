@@ -203,27 +203,42 @@ export function DynamicBattlefieldBackdrop({
     const drawFrame = (elapsedSec: number, dtSec: number) => {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. 精密工业 CAD 基准坐标网格（主格 96px + 次格 24px + 十字准星刻度 + 细微扫描基准线）
+      // 1. 超精细多尺度工业 CAD 基准坐标网格（12px 微格 + 48px 中格 + 96px 主基准格 + 十字准星刻度）
       const gridShiftX = motionOff ? 0 : (elapsedSec * 6) % 96;
       const gridShiftY = motionOff ? 0 : (elapsedSec * 3.5) % 96;
       ctx.save();
 
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.02)';
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.022)';
       ctx.lineWidth = 1;
-      for (let sx = -24 + (gridShiftX % 24); sx < width + 24; sx += 24) {
+      for (let fx = -12 + (gridShiftX % 12); fx < width + 12; fx += 12) {
+        ctx.beginPath();
+        ctx.moveTo(fx, 0);
+        ctx.lineTo(fx, height);
+        ctx.stroke();
+      }
+      for (let fy = -12 + (gridShiftY % 12); fy < height + 12; fy += 12) {
+        ctx.beginPath();
+        ctx.moveTo(0, fy);
+        ctx.lineTo(width, fy);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.048)';
+      ctx.lineWidth = 1;
+      for (let sx = -48 + (gridShiftX % 48); sx < width + 48; sx += 48) {
         ctx.beginPath();
         ctx.moveTo(sx, 0);
         ctx.lineTo(sx, height);
         ctx.stroke();
       }
-      for (let sy = -24 + (gridShiftY % 24); sy < height + 24; sy += 24) {
+      for (let sy = -48 + (gridShiftY % 48); sy < height + 48; sy += 48) {
         ctx.beginPath();
         ctx.moveTo(0, sy);
         ctx.lineTo(width, sy);
         ctx.stroke();
       }
 
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.055)';
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.095)';
       ctx.lineWidth = 1;
       for (let gx = -96 + gridShiftX; gx < width + 96; gx += 96) {
         ctx.beginPath();
@@ -239,15 +254,15 @@ export function DynamicBattlefieldBackdrop({
       }
 
       // 网格交点精密 '+' 测绘刻度
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.22)';
       ctx.lineWidth = 1;
       for (let gx = -96 + gridShiftX; gx < width + 96; gx += 96) {
         for (let gy = -96 + gridShiftY; gy < height + 96; gy += 96) {
           ctx.beginPath();
-          ctx.moveTo(gx - 3.5, gy);
-          ctx.lineTo(gx + 3.5, gy);
-          ctx.moveTo(gx, gy - 3.5);
-          ctx.lineTo(gx, gy + 3.5);
+          ctx.moveTo(gx - 4, gy);
+          ctx.lineTo(gx + 4, gy);
+          ctx.moveTo(gx, gy - 4);
+          ctx.lineTo(gx, gy + 4);
           ctx.stroke();
         }
       }
@@ -402,7 +417,7 @@ export function DynamicBattlefieldBackdrop({
           src={backdropUrl}
           alt=""
           referrerPolicy="no-referrer"
-          className={`absolute inset-0 w-full h-full object-cover opacity-[0.18] grayscale-[45%] contrast-[1.08] will-change-transform ${
+          className={`absolute inset-0 w-full h-full object-cover opacity-[0.10] grayscale-[58%] contrast-[1.12] will-change-transform ${
             disableMotion ? 'scale-[1.04]' : 'anim-arena-drift'
           }`}
         />
@@ -415,13 +430,24 @@ export function DynamicBattlefieldBackdrop({
         src={scenicMeta.src}
         alt=""
         referrerPolicy="no-referrer"
-        className={`absolute inset-0 w-full h-full object-cover opacity-[0.20] will-change-transform ${
+        className={`absolute inset-0 w-full h-full object-cover opacity-[0.12] will-change-transform ${
           disableMotion ? 'scale-[1.03]' : 'anim-arena-drift'
         }`}
         style={{
-          filter: `${scenicMeta.defaultFilter ?? ''} saturate(0.72)`.trim(),
+          filter: `${scenicMeta.defaultFilter ?? ''} saturate(0.58)`.trim(),
           maskImage: scenicMask,
           WebkitMaskImage: scenicMask,
+        }}
+      />
+
+      {/* 1.8 深色拉丝金属与精细静态网格底衬（SSR 及无动效时同样保持精密纹理） */}
+      <div
+        aria-hidden="true"
+        className="prts-grid absolute inset-0 opacity-75"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(148,163,184,0.042) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.042) 1px, transparent 1px), linear-gradient(to right, rgba(148,163,184,0.014) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.014) 1px, transparent 1px)',
+          backgroundSize: '48px 48px, 48px 48px, 12px 12px, 12px 12px',
         }}
       />
 

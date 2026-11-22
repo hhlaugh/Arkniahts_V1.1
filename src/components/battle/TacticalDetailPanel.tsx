@@ -18,6 +18,7 @@ import { HealthBar } from '../ui/HealthBar';
 import { ResourceIndicator } from '../ui/ResourceIndicator';
 import { STATUS_LABEL, PLAYER_LABEL } from '../../client/gameData';
 import { getInvalidCardReason, getInvalidUnitActionReason } from './tacticalSelectors';
+import { KeywordGlossary } from '../cards/KeywordGlossary';
 
 interface TacticalDetailPanelProps {
   readonly state: GameState;
@@ -179,7 +180,7 @@ export function TacticalDetailPanel({
                 variant="preview"
                 interactive={false}
                 redeployCd={selectedInstance.operator_lifecycle?.redeploy_cd_remaining ?? 0}
-                className="max-w-[156px] min-h-[196px] sm:max-w-[210px] sm:min-h-[260px] shadow-lg"
+                className="w-[172px] min-h-[222px] sm:w-[214px] sm:min-h-[268px] shadow-md"
               />
             </div>
 
@@ -283,6 +284,8 @@ export function TacticalDetailPanel({
                   </p>
                 </div>
               )}
+
+              <KeywordGlossary definition={selectedDefinition} instance={selectedInstance} />
             </div>
 
             <div className="pt-2 border-t border-[#283442] space-y-2">

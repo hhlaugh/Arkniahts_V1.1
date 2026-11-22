@@ -861,7 +861,7 @@ export function buildPresentationBeats(params: {
     (prevState.active_player_id !== nextState.active_player_id || prevState.turn_number !== nextState.turn_number);
 
   if (turnSwitched) {
-    const bannerBeat = createMutableBeat(`beat-turn-${nextState.state_version}`, 450, 'turn');
+    const bannerBeat = createMutableBeat(`beat-turn-${nextState.state_version}`, 520, 'turn');
     bannerBeat.visualState = nextState;
     bannerBeat.turnBanner = {
       id: `turn-${nextState.turn_number}-${nextState.active_player_id}-${nextState.state_version}`,

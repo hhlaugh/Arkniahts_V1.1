@@ -18,6 +18,7 @@ import type { CardId, DeckDefinition } from '../game/types';
 import { getCardPresentation } from '../data/card-presentation';
 import { OperatorPortrait } from '../components/cards/OperatorPortrait';
 import { CardFrame } from '../components/cards/CardFrame';
+import { KeywordGlossary } from '../components/cards/KeywordGlossary';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -948,6 +949,7 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                     标签: {activeInspect.synergy_tags}
                   </div>
                 )}
+                <KeywordGlossary definition={activeInspect} compact maxItems={3} className="mt-1.5" />
               </div>
             </div>
           )}
@@ -1220,6 +1222,8 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                   </div>
                 )}
               </div>
+
+              <KeywordGlossary definition={mobileInspectCard} />
 
               <div className="flex items-center gap-2 pt-1">
                 <Button

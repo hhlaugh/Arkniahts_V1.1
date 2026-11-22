@@ -34,6 +34,8 @@
   --rarity-6: #f97316;            /* 6星: 橙红/高级资深干员 */
 
   /* 战术切角剪裁路径 */
+  --clip-cut-xs: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  --clip-cut-sharp: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
   --clip-cut-sm: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
   --clip-cut-md: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
   --clip-cut-lg: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
@@ -237,10 +239,70 @@ b { color: #fff; }
 }
 
 @keyframes turnBannerSlide {
-  0% { opacity: 0; transform: translate3d(0, -8px, 0); }
-  18% { opacity: 1; transform: translate3d(0, 0, 0); }
-  84% { opacity: 1; transform: translate3d(0, 0, 0); }
-  100% { opacity: 0; transform: translate3d(0, -4px, 0); }
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--banner-enter-x, -44px), -2px, 0) scale(0.985);
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--banner-exit-x, 24px), 0, 0) scale(0.99);
+  }
+}
+
+@keyframes turnBannerSweep {
+  0% {
+    opacity: 0;
+    transform: translate3d(-140%, 0, 0) skewX(-20deg);
+  }
+  25% {
+    opacity: 0.72;
+  }
+  65% {
+    opacity: 0.18;
+    transform: translate3d(240%, 0, 0) skewX(-20deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(240%, 0, 0) skewX(-20deg);
+  }
+}
+
+@keyframes turnBannerRailExpand {
+  0% {
+    opacity: 0.35;
+    transform: scaleX(0.15);
+  }
+  28% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  82% {
+    opacity: 0.85;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+}
+
+@keyframes hudTurnShift {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--hud-enter-x, -14px), 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes baseHitPulse {
@@ -285,7 +347,33 @@ b { color: #fff; }
 .anim-cell-hit-shake { animation: cellHitShake 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-skill-wave { animation: skillWaveRing calc(0.40s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-skill-sweep { animation: skillEnergySweep calc(0.38s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
-.anim-turn-banner { animation: turnBannerSlide calc(0.50s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-turn-banner {
+  animation: turnBannerSlide calc(0.52s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.anim-turn-banner-ally {
+  --banner-enter-x: -44px;
+  --banner-exit-x: 24px;
+}
+.anim-turn-banner-enemy {
+  --banner-enter-x: 44px;
+  --banner-exit-x: -24px;
+}
+.anim-turn-banner-sweep {
+  animation: turnBannerSweep calc(0.52s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.anim-turn-banner-rail {
+  transform-origin: center;
+  animation: turnBannerRailExpand calc(0.52s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.anim-hud-turn-shift {
+  animation: hudTurnShift 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.anim-hud-turn-shift-ally {
+  --hud-enter-x: -14px;
+}
+.anim-hud-turn-shift-enemy {
+  --hud-enter-x: 14px;
+}
 .anim-base-hit { animation: baseHitPulse calc(0.34s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-path-draw {
   stroke-dasharray: 1000;
@@ -662,14 +750,124 @@ b { color: #fff; }
 
 .holo-panel {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 14px 36px rgba(0, 0, 0, 0.68);
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 6px 18px rgba(0, 0, 0, 0.48);
 }
 
 .holo-frame {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 4px 12px rgba(0, 0, 0, 0.48);
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.34);
+}
+
+/* ---------- 近未来极简工业风：棋盘战区、网格与切角金属质感 ---------- */
+.board-chamfer-sm {
+  clip-path: var(--clip-cut-sm);
+}
+
+.board-chamfer-md {
+  clip-path: var(--clip-cut-md);
+}
+
+/* 硬朗尖锐外切角金属壳：外层 1px 斜角金属边框 + 内层深色拉丝钢材核心 */
+.board-lane-shell {
+  clip-path: var(--clip-cut-md);
+  padding: 1px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.52);
+}
+
+.board-lane {
+  clip-path: var(--clip-cut-md);
+  background-color: #0b0e13;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.012) 0px,
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    linear-gradient(180deg, #171d25 0%, #0f1319 48%, #0a0d12 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.72);
+}
+
+.board-lane-grid {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.095) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.095) 1px, transparent 1px),
+    linear-gradient(to right, rgba(148, 163, 184, 0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.032) 1px, transparent 1px),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    linear-gradient(180deg, rgba(23, 29, 37, 0.96) 0%, rgba(14, 18, 24, 0.98) 52%, rgba(9, 12, 17, 0.99) 100%);
+  background-size: 32px 32px, 32px 32px, 8px 8px, 8px 8px, 100% 100%, 100% 100%;
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px, 0 0, 0 0;
+}
+
+.board-slot-shell {
+  clip-path: var(--clip-cut-sharp);
+  padding: 1px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.75);
+}
+
+.board-slot {
+  clip-path: var(--clip-cut-sharp);
+  background-color: #090c11;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to right, rgba(148, 163, 184, 0.024) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.024) 1px, transparent 1px),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.011) 0px,
+      rgba(255, 255, 255, 0.011) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    linear-gradient(180deg, rgba(18, 23, 31, 0.97) 0%, rgba(10, 13, 18, 0.99) 100%);
+  background-size: 16px 16px, 16px 16px, 4px 4px, 4px 4px, 100% 100%, 100% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.72);
+}
+
+.board-unit-shell {
+  clip-path: var(--clip-cut-sharp);
+  padding: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.48);
+}
+
+.board-unit {
+  clip-path: var(--clip-cut-sharp);
+  background-color: #12171f;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    linear-gradient(180deg, rgba(27, 33, 43, 0.98) 0%, rgba(14, 18, 24, 0.99) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.65);
+}
+
+.board-camera-bar {
+  clip-path: var(--clip-cut-sm);
+  background: rgba(14, 18, 24, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 2px 8px rgba(0, 0, 0, 0.42);
 }
 
 .pb-safe {
@@ -699,6 +897,9 @@ b { color: #fff; }
   .anim-skill-wave,
   .anim-skill-sweep,
   .anim-turn-banner,
+  .anim-turn-banner-sweep,
+  .anim-turn-banner-rail,
+  .anim-hud-turn-shift,
   .anim-base-hit,
   .anim-attack-glow,
   .anim-path-draw,

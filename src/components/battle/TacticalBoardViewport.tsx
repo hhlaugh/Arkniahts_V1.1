@@ -286,7 +286,7 @@ export function TacticalBoardViewport({
         }
       }}
       onClick={() => onBackgroundClick?.()}
-      className="relative flex-1 min-h-0 overflow-hidden overscroll-contain flex items-center justify-center touch-none select-none px-1 sm:px-3 lg:px-4 py-1 sm:py-1.5"
+      className="relative flex-1 min-h-0 overflow-hidden overscroll-contain flex items-center justify-center touch-none select-none px-2.5 sm:px-7 lg:px-12 py-2 sm:py-4 lg:py-5"
     >
       {/* 动态 Arknights 主题战场氛围背景（CSS 轻微缓动 + 半边淡出官方风景 + Canvas 源石微尘/战术网格） */}
       <DynamicBattlefieldBackdrop
@@ -299,7 +299,7 @@ export function TacticalBoardViewport({
       <div
         ref={contentRef}
         data-board-scale={transform.scale.toFixed(2)}
-        className={`relative z-10 w-full ${wideBoard ? 'max-w-6xl' : 'max-w-4xl'} origin-center will-change-transform`}
+        className={`relative z-10 w-full ${wideBoard ? 'max-w-[1080px]' : 'max-w-[820px]'} origin-center will-change-transform`}
         style={{
           transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`,
           transition: isInteracting ? 'none' : 'transform 140ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -313,8 +313,7 @@ export function TacticalBoardViewport({
         data-board-camera-control="true"
         data-testid="board-camera-controls"
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-3 z-30 flex items-center gap-0.5 bg-[#0e1218]/94 backdrop-blur-xs border border-[#2c3643] shadow-[0_4px_16px_rgba(0,0,0,0.6)] p-0.5 font-mono text-[10px] sm:text-[11px] text-slate-200 tabular-nums"
-        style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}
+        className="board-camera-bar absolute bottom-2 right-2 sm:bottom-3 sm:right-4 z-30 flex items-center gap-0.5 border border-[#293340] p-0.5 font-mono text-[10px] sm:text-[11px] text-slate-200 tabular-nums"
       >
         <button
           type="button"
