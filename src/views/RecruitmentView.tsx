@@ -474,11 +474,6 @@ export function RecruitmentView({ onBack, onOpenDeckEditor }: RecruitmentViewPro
                 <Badge variant="class" value={p.profession}>{CLASS_LABEL[p.profession] ?? p.profession}</Badge>
                 <span className="text-emerald-300 font-bold">当前库存：{ownedCount} / 2</span>
               </div>
-              {inspectCard.rules_text_zh && (
-                <div className="bg-[#11151c] p-2.5 border border-[#273240] text-slate-200 leading-relaxed">
-                  {inspectCard.rules_text_zh}
-                </div>
-              )}
             </div>
           );
         })()}

@@ -266,17 +266,6 @@ export function TacticalDetailPanel({
             )}
 
             <div className="space-y-2">
-              {selectedDefinition.rules_text_zh && (
-                <div className="bg-[#12161d] p-2.5 border border-[#263140] space-y-1">
-                  <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wide block">
-                    能力 / 战术效果
-                  </span>
-                  <p className="text-slate-300 leading-relaxed m-0">
-                    {selectedDefinition.rules_text_zh}
-                  </p>
-                </div>
-              )}
-
               <KeywordGlossary definition={selectedDefinition} instance={selectedInstance} />
             </div>
 

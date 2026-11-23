@@ -14,7 +14,7 @@ import {
   validateCardPresentationIntegrity,
   verifyDataContractBaseline,
 } from '../data/validate-card-assets';
-import { CLASSIC_BOARD_PROFILE } from '../game/board';
+import { CLASSIC_BOARD_PROFILE, CUSTOM_5_LANE_EXAMPLE } from '../game/board';
 import { enumerateLegalActions } from '../game/legal-actions';
 import type { CardId } from '../game/types';
 import { AuthView } from './AuthView';
@@ -224,14 +224,30 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(startHtml).not.toContain('招募');
     expect(startHtml).not.toContain('PROTOCOL');
 
-    const deckSelectHtml = renderToString(
-      <DeckSelectView mode="hotseat" onStart={noop} onCancel={noop} onOpenDeckEditor={noop} />,
+    const deckSelectCollectionHtml = renderToString(
+      <DeckSelectView mode="hotseat" initialDeckMode="collection" onStart={noop} onCancel={noop} onOpenDeckEditor={noop} />,
     );
-    expect(deckSelectHtml).toContain('作战出击配置');
-    expect(deckSelectHtml).toContain('本地热座双人推演模式');
-    expect(deckSelectHtml).toContain('bg_rhodes_command.png');
-    expect(deckSelectHtml).toContain('bg_rhodes_exterior.png');
-    expect(deckSelectHtml).toContain('bg_snowfield.png');
+    expect(deckSelectCollectionHtml).toContain('作战出击配置');
+    expect(deckSelectCollectionHtml).toContain('本地热座双人推演模式');
+    expect(deckSelectCollectionHtml).toContain('bg_rhodes_command.png');
+    expect(deckSelectCollectionHtml).toContain('bg_rhodes_exterior.png');
+    expect(deckSelectCollectionHtml).toContain('bg_snowfield.png');
+    expect(deckSelectCollectionHtml).toContain('预览 8 套官方预设');
+
+    const deckSelectFreeHtml = renderToString(
+      <DeckSelectView
+        mode="vs-bot"
+        initialDeckMode="free"
+        initialBoardProfile={CUSTOM_5_LANE_EXAMPLE}
+        onStart={noop}
+        onCancel={noop}
+        onOpenDeckEditor={noop}
+      />,
+    );
+    expect(deckSelectFreeHtml).toContain('先遣突击');
+    expect(deckSelectFreeHtml).toContain('费用曲线');
+    expect(deckSelectFreeHtml).toContain('打法详情');
+    expect(deckSelectFreeHtml).toContain('自定义模式尚未单独平衡');
 
     const libraryHtml = renderToString(
       <CardLibraryView onBack={noop} onOpenDeckEditor={noop} />,
@@ -243,6 +259,7 @@ describe('Phase 7 全面回归验收测试套件', () => {
 
     const editorHtml = renderToString(<DeckEditorView onBack={noop} />);
     expect(editorHtml).toContain('20');
+    expect(editorHtml).toContain('预设详情');
     expect(editorHtml).toContain('bg_rhodes_command.png');
 
     const mulliganHtml = renderToString(

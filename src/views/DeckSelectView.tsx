@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CARD_BY_ID, DEMO_CARDS, getAllAvailableDecks, getCustomDecks, PLAYER_LABEL, validateDeck } from '../client/gameData';
+import {
+  CARD_BY_ID,
+  DEMO_CARDS,
+  PRESET_DECKS,
+  getAllAvailableDecks,
+  getCustomDecks,
+  getPresetDeckMetadata,
+  PLAYER_LABEL,
+  validateDeck,
+} from '../client/gameData';
 import { getActiveAccountName, getDeckMode, setDeckMode } from '../data/player-collection';
 import type { DeckMode } from '../data/player-collection';
 import type { LocalGameSetup } from '../client/localGameController';
@@ -13,6 +22,8 @@ import type { BoardProfile, DeckDefinition, PlayerId } from '../game/types';
 import { Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
+import { PresetDeckSummary } from '../components/deck/PresetDeckSummary';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
 
 const BOARD_PRESETS: readonly { readonly id: string; readonly label: string; readonly profile: BoardProfile }[] = [
@@ -43,6 +54,8 @@ interface DeckSelectViewProps {
   readonly onStart: (setup: LocalGameSetup) => void;
   readonly onCancel: () => void;
   readonly onOpenDeckEditor?: () => void;
+  readonly initialDeckMode?: DeckMode;
+  readonly initialBoardProfile?: BoardProfile;
 }
 
 function deckComposition(deck: DeckDefinition): string {
@@ -51,9 +64,16 @@ function deckComposition(deck: DeckDefinition): string {
     .join('、');
 }
 
-export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: DeckSelectViewProps) {
+export function DeckSelectView({
+  mode,
+  onStart,
+  onCancel,
+  onOpenDeckEditor,
+  initialDeckMode,
+  initialBoardProfile = CLASSIC_BOARD_PROFILE,
+}: DeckSelectViewProps) {
   const [accountName] = useState(() => getActiveAccountName());
-  const [deckMode, setDeckModeState] = useState<DeckMode>(() => getDeckMode());
+  const [deckMode, setDeckModeState] = useState<DeckMode>(() => initialDeckMode ?? getDeckMode());
   const availableDecks = useMemo(() => getAllAvailableDecks(deckMode), [deckMode]);
   const incompleteCustomDecks = useMemo(
     () => getCustomDecks().filter((deck) => !validateDeck(deck, DEMO_CARDS).valid),
@@ -77,9 +97,15 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
     player_b: availableDecks[1]?.deck_id ?? availableDecks[0]?.deck_id ?? '',
   });
   const [seedText, setSeedText] = useState('');
-  const [boardProfile, setBoardProfile] = useState<BoardProfile>(CLASSIC_BOARD_PROFILE);
+  const [boardProfile, setBoardProfile] = useState<BoardProfile>(initialBoardProfile);
   const [showCustomBoard, setShowCustomBoard] = useState(false);
+  const [expandedPresetKeys, setExpandedPresetKeys] = useState<Record<string, boolean>>({});
+  const [showPresetGuideModal, setShowPresetGuideModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const toggleExpanded = (key: string) => {
+    setExpandedPresetKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const boardValidation = useMemo(() => validateBoardProfile(boardProfile), [boardProfile]);
 
@@ -149,32 +175,53 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
             {availableDecks.map((deck) => {
               const isSelected = deckIds[playerId] === deck.deck_id;
               const isCustom = deck.deck_id.startsWith('CUSTOM-');
+              const meta = getPresetDeckMetadata(deck.deck_id);
+              const expandKey = `${playerId}:${deck.deck_id}`;
+              const isExpanded = Boolean(expandedPresetKeys[expandKey]) || (isSelected && Boolean(meta));
               return (
                 <div
                   key={deck.deck_id}
                   onClick={() => setDeckIds((prev) => ({ ...prev, [playerId]: deck.deck_id }))}
-                  className={`p-3 border transition-all cursor-pointer select-none ${
+                  className={`p-3 border transition-all cursor-pointer select-none space-y-2 ${
                     isSelected
                       ? 'bg-[#29323d]/95 border-[#e5a52b] ring-1 ring-[#e5a52b]/40 shadow-md'
                       : 'bg-[#181d22]/90 border-[#313b43] hover:border-[#4b5a66] hover:bg-[#1d232a]/95'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-white">{deck.deck_name_zh}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-xs text-white truncate">{deck.deck_name_zh}</span>
                       <Badge variant={isCustom ? 'rarity' : 'neutral'} value={isCustom ? 5 : undefined}>
-                        {isCustom ? '自定义' : '官方预设'}
+                        {isCustom ? '自定义' : meta ? '官方预设' : '新手预设'}
                       </Badge>
                     </div>
-                    {isSelected && (
-                      <span className="text-[10px] font-mono text-[#e5a52b] font-bold">
-                        ✓ 已选择
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {meta && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpanded(expandKey);
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-mono bg-[#11161d] border border-[#3a4756] text-slate-300 hover:text-amber-300 cursor-pointer"
+                        >
+                          {isExpanded ? '收起详情' : '打法详情'}
+                        </button>
+                      )}
+                      {isSelected && (
+                        <span className="text-[10px] font-mono text-[#e5a52b] font-bold">
+                          ✓ 已选择
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                    {deckComposition(deck)}
-                  </div>
+                  {meta ? (
+                    <PresetDeckSummary deck={deck} expanded={isExpanded} />
+                  ) : (
+                    <div className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                      {deckComposition(deck)}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -243,8 +290,8 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
           )}
         </div>
 
-        {/* Incomplete Custom Deck & Error Notice */}
-        {(incompleteCustomDecks.length > 0 || errorMessage) && (
+        {/* Incomplete Custom Deck, Collection Mode & Error Notice */}
+        {(incompleteCustomDecks.length > 0 || errorMessage || deckMode === 'collection') && (
           <div className="px-5 pt-3 space-y-2 bg-[#1b2025]">
             {errorMessage && (
               <div className="px-3 py-2 bg-rose-950/70 border border-rose-500/60 text-rose-200 text-xs flex items-center justify-between">
@@ -253,8 +300,13 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
               </div>
             )}
             {deckMode === 'collection' && (
-              <div className="px-3 py-2 bg-sky-950/50 border border-sky-500/40 text-sky-200 text-xs">
-                ℹ️ 收录模式：仅显示由已持有干员组成的卡组（含低星 starter 预设）；未持有的官方预设已隐藏。切换到自由构筑可使用全量卡池。
+              <div className="px-3 py-2 bg-sky-950/50 border border-sky-500/40 text-sky-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  ℹ️ 收录模式：仅显示由已持有干员组成的卡组（含低星 starter 预设）；未持有的官方预设已隐藏。切换到自由构筑可使用全部 8 套官方预设。
+                </span>
+                <Button variant="outline" size="sm" onClick={() => setShowPresetGuideModal(true)} className="text-[11px] px-2 py-0.5">
+                  📖 预览 8 套官方预设
+                </Button>
               </div>
             )}
             {incompleteCustomDecks.length > 0 && (
@@ -324,6 +376,12 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
               当前: <strong className="text-slate-200">{boardProfile.laneCount} 路</strong> ({boardProfile.lanes.map((l) => `${l.laneId}:F${l.frontSlots}/R${l.rearSlots}`).join(' · ')})
             </span>
           </div>
+
+          {boardProfile.mode !== 'classic' && (
+            <div className="px-2.5 py-1.5 bg-amber-950/55 border border-amber-500/45 text-[11px] text-amber-200">
+              ⚠️ 自定义模式尚未单独平衡：1~5 路沿用固定卡牌效果，不会按棋盘尺寸自动增强卡牌；官方预设首选平衡环境为经典 3 路。
+            </div>
+          )}
 
           {showCustomBoard && (
             <div className="p-2.5 bg-[#0f1318] border border-[#2a3440] space-y-2">
@@ -405,6 +463,38 @@ export function DeckSelectView({ mode, onStart, onCancel, onOpenDeckEditor }: De
           </div>
         </div>
       </Panel>
+
+      {/* 官方 8 套预设卡组只读预览弹窗（收录模式下不污染收藏与可用列表） */}
+      <Modal
+        isOpen={showPresetGuideModal}
+        onClose={() => setShowPresetGuideModal(false)}
+        title="V1.1 官方预设卡组一览（20 张）"
+        codeName="PRESET.CATALOG"
+        size="lg"
+        footer={
+          <Button variant="secondary" size="sm" onClick={() => setShowPresetGuideModal(false)}>
+            关闭预览
+          </Button>
+        }
+      >
+        <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+          <div className="px-3 py-2 bg-sky-950/40 border border-sky-500/35 text-xs text-sky-200">
+            官方预设仅供参考与自由构筑体验，不会改变你的实际干员收藏数量。
+          </div>
+          {PRESET_DECKS.map((preset) => (
+            <div key={preset.deck_id} className="p-3 bg-[#12171e] border border-[#2b3645] space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-sm text-white">{preset.deck_name_zh}</span>
+                <span className="text-[10px] font-mono text-slate-400">{preset.deck_id}</span>
+              </div>
+              <PresetDeckSummary deck={preset} expanded />
+              <div className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-[#222c38]">
+                牌表：{deckComposition(preset)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

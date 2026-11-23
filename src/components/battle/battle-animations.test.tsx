@@ -24,7 +24,7 @@ import { HealthBar } from '../ui/HealthBar';
 
 function createStartedController(seed = 777): LocalGameController {
   const ctrl = LocalGameController.create({
-    decks: { player_a: PRESET_DECKS[0], player_b: PRESET_DECKS[1] },
+    decks: { player_a: PRESET_DECKS[0]!, player_b: PRESET_DECKS[3] ?? PRESET_DECKS[0]! },
     cards: DEMO_CARDS,
     seed,
   });

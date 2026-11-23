@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { loadDemoData, summarizeValidation } from './load-card-data';
 
 describe('loadDemoData', () => {
-  it('loads all source cards and two complete preset decks without changing source records', () => {
+  it('loads all source cards and eight complete official preset decks without changing source records', () => {
     const result = loadDemoData();
     expect(result.cards).toHaveLength(108);
-    expect(result.decks).toHaveLength(2);
-    expect(result.decks.map((deck) => deck.cards.reduce((sum, item) => sum + item.quantity, 0))).toEqual([20, 20]);
+    expect(result.decks).toHaveLength(8);
+    expect(result.decks.map((deck) => deck.cards.reduce((sum, item) => sum + item.quantity, 0))).toEqual([
+      20, 20, 20, 20, 20, 20, 20, 20,
+    ]);
     expect(result.issues.some((item) => item.code === 'UNKNOWN_EFFECT_ACTION' || item.code === 'UNKNOWN_EFFECT_TRIGGER')).toBe(false);
   });
 

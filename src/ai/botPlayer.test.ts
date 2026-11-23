@@ -120,13 +120,13 @@ describe('BotPlayer (normal difficulty)', () => {
     let state = reachActionPhaseAs(303, 'player_a');
     const fen = findDeckInstance(state, 'player_a', 'OP-VAN-001');
     state = placeUnit(state, fen, { lane: 'L1', position: 'front', hp: 1 });
-    const enemyCaster = findDeckInstance(state, 'player_b', 'OP-CAS-006');
-    state = placeUnit(state, enemyCaster, { lane: 'L1', position: 'front' });
+    const enemyDefender = findDeckInstance(state, 'player_b', 'OP-DEF-009');
+    state = placeUnit(state, enemyDefender, { lane: 'L1', position: 'front' });
     state = {
       ...withHand(state, 'player_a', []),
       players: {
         ...state.players,
-        player_a: { ...state.players.player_a, hand: [], focus_target_id: enemyCaster },
+        player_a: { ...state.players.player_a, hand: [], focus_target_id: enemyDefender },
       },
     };
     const bot = new BotPlayer({ player: 'player_a', rng: () => 0.5 });
@@ -192,13 +192,13 @@ describe('BotPlayer (normal difficulty)', () => {
     let state = reachActionPhaseAs(303, 'player_a');
     const fen = findDeckInstance(state, 'player_a', 'OP-VAN-001');
     state = placeUnit(state, fen, { lane: 'L1', position: 'front', hp: 1 });
-    const enemyCaster = findDeckInstance(state, 'player_b', 'OP-CAS-006');
-    state = placeUnit(state, enemyCaster, { lane: 'L1', position: 'front' });
+    const enemyDefender = findDeckInstance(state, 'player_b', 'OP-DEF-009');
+    state = placeUnit(state, enemyDefender, { lane: 'L1', position: 'front' });
     state = {
       ...withHand(state, 'player_a', []),
       players: {
         ...state.players,
-        player_a: { ...state.players.player_a, hand: [], focus_target_id: enemyCaster },
+        player_a: { ...state.players.player_a, hand: [], focus_target_id: enemyDefender },
       },
     };
     const bot = new BotPlayer({ player: 'player_a', rng: () => 0.5 });

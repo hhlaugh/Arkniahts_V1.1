@@ -158,7 +158,7 @@ export class OnlineMatchController {
             boardProfile: this.boardProfile,
             guest: {
               connected: true,
-              deckId: this.roomState.guest?.deckId ?? DEMO_DECKS[1]?.deck_id ?? 'DECK-PRESET-B',
+              deckId: this.roomState.guest?.deckId ?? DEMO_DECKS[1]?.deck_id ?? 'PRESET-02',
               ready: this.roomState.guest?.ready ?? false,
             },
           };
@@ -288,7 +288,7 @@ export class OnlineMatchController {
           started: false,
           pausedForGuest: false,
           boardProfile: this.boardProfile,
-          host: { connected: true, deckId: DEMO_DECKS[0]?.deck_id ?? 'DECK-PRESET-A', ready: false },
+          host: { connected: true, deckId: DEMO_DECKS[0]?.deck_id ?? 'PRESET-01', ready: false },
           guest: null,
         };
         this.publish();
@@ -305,7 +305,7 @@ export class OnlineMatchController {
               boardProfile: this.boardProfile,
               guest: {
                 connected: true,
-                deckId: this.roomState.guest?.deckId ?? DEMO_DECKS[1]?.deck_id ?? 'DECK-PRESET-B',
+                deckId: this.roomState.guest?.deckId ?? DEMO_DECKS[1]?.deck_id ?? 'PRESET-02',
                 ready: false,
               },
             };

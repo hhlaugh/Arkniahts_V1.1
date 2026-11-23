@@ -423,8 +423,12 @@ export function CardFrame({
           {/* 效果描述框 */}
           {variant !== 'compact' && rulesSummary && (
             <p
-              className={`text-[10px] text-slate-300 leading-snug m-0 ${
-                variant === 'hand' ? 'hidden sm:line-clamp-1' : variant === 'preview' ? 'line-clamp-3' : 'line-clamp-2'
+              className={`text-[10px] text-slate-200 leading-snug m-0 ${
+                variant === 'hand'
+                  ? 'hidden sm:line-clamp-1'
+                  : variant === 'preview'
+                    ? 'text-[11px] leading-relaxed text-center py-0.5'
+                    : 'line-clamp-2'
               }`}
             >
               {rulesSummary}

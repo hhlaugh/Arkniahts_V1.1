@@ -7,11 +7,13 @@ import {
   PRESET_DECKS,
   deleteCustomDeck,
   getCustomDecks,
+  getPresetDeckMetadata,
   saveCustomDeck,
   validateDeck,
   validateDeckWithOwnership,
   type UiCardDefinition,
 } from '../client/gameData';
+import { PresetDeckSummary } from '../components/deck/PresetDeckSummary';
 import { getActiveAccountName, getActiveCollection, getDeckMode, setDeckMode } from '../data/player-collection';
 import type { DeckMode } from '../data/player-collection';
 import type { CardId, DeckDefinition } from '../game/types';
@@ -190,6 +192,7 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [importJsonText, setImportJsonText] = useState<string>('');
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [mobileTab, setMobileTab] = useState<'catalog' | 'deck'>('catalog');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -694,12 +697,23 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
             <option value="" disabled>
               载入预设模版...
             </option>
-            {PRESET_DECKS.map((preset) => (
-              <option key={preset.deck_id} value={preset.deck_id}>
-                {preset.deck_name_zh}
-              </option>
-            ))}
+            {PRESET_DECKS.map((preset) => {
+              const meta = getPresetDeckMetadata(preset.deck_id);
+              return (
+                <option key={preset.deck_id} value={preset.deck_id}>
+                  {preset.deck_name_zh}{meta?.difficulty ? ` (${meta.difficulty})` : ''}
+                </option>
+              );
+            })}
           </select>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowPresetsModal(true)}
+            title="浏览 8 套官方预设详细定位、曲线与打法"
+          >
+            📖 预设详情
+          </Button>
 
           <Button variant="primary" size="sm" cornerCut onClick={handleSave}>
             保存卡组
@@ -1283,13 +1297,6 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                 />
               </div>
 
-              <div className="bg-[#11151c] p-2.5 border border-[#273240] space-y-1.5">
-                <div className="text-slate-200">
-                  <strong className="text-amber-300 block mb-0.5">被动特性 / 效果</strong>
-                  {mobileInspectCard.rules_text_zh || '无特殊常驻被动效果'}
-                </div>
-              </div>
-
               <KeywordGlossary definition={mobileInspectCard} />
 
               <div className="flex items-center gap-2 pt-1">
@@ -1350,6 +1357,47 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
             onChange={(e) => setImportJsonText(e.target.value)}
             placeholder='{"deck_name_zh": "突击卡组", "cards": [{"card_id": "OP-VAN-006", "quantity": 2}, ...]}'
           />
+        </div>
+      </Modal>
+
+      {/* 官方预设模版详情与一键复制弹窗 */}
+      <Modal
+        isOpen={showPresetsModal}
+        onClose={() => setShowPresetsModal(false)}
+        title="官方预设卡组模板（8 套 · 20 张）"
+        codeName="PRESET.TEMPLATES"
+        size="lg"
+        footer={
+          <Button variant="secondary" size="sm" onClick={() => setShowPresetsModal(false)}>
+            关闭
+          </Button>
+        }
+      >
+        <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+          <p className="text-xs text-slate-300 m-0">
+            复制预设仅生成独立自定义副本供编辑，不会覆盖你已保存的卡组或修改干员收藏数量。
+          </p>
+          {PRESET_DECKS.map((preset) => (
+            <div key={preset.deck_id} className="p-3 bg-[#12171e] border border-[#2b3645] space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-white">{preset.deck_name_zh}</span>
+                  <span className="text-[10px] font-mono text-slate-400">{preset.deck_id}</span>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    handleLoadPreset(preset.deck_id);
+                    setShowPresetsModal(false);
+                  }}
+                >
+                  复制为可编辑副本
+                </Button>
+              </div>
+              <PresetDeckSummary deck={preset} expanded />
+            </div>
+          ))}
         </div>
       </Modal>
     </div>

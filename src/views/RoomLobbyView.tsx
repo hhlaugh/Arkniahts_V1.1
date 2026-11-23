@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { OnlineMatchController, OnlineMatchSnapshot } from '../client/onlineMatchController';
-import { getAllAvailableDecks } from '../client/gameData';
+import { getAllAvailableDecks, getPresetDeckMetadata } from '../client/gameData';
+import { PresetDeckSummary } from '../components/deck/PresetDeckSummary';
 import { CLASSIC_BOARD_PROFILE, CUSTOM_5_LANE_EXAMPLE, createCustomBoardProfile } from '../game/board';
 import { getActiveAccountName, getDeckMode } from '../data/player-collection';
 import type { BoardProfile } from '../game/types';
@@ -347,6 +348,7 @@ export function RoomLobbyView({ controller, snapshot, onBackToTitle }: RoomLobby
           </div>
           <span className="text-[10px] font-mono text-slate-400">
             {snapshot.boardProfile.laneCount} 路 ({snapshot.boardProfile.lanes.map((l) => `${l.laneId}:F${l.frontSlots}/R${l.rearSlots}`).join(' · ')})
+            {snapshot.boardProfile.mode !== 'classic' && ' · ⚠️ 自定义模式尚未单独平衡'}
           </span>
         </div>
 
@@ -384,6 +386,15 @@ export function RoomLobbyView({ controller, snapshot, onBackToTitle }: RoomLobby
                   {decks.find((d) => d.deck_id === roomState?.host.deckId)?.deck_name_zh ?? '尚未选定'}
                 </div>
               )}
+              {(() => {
+                const selectedHostDeck = decks.find((d) => d.deck_id === (roomState?.host.deckId ?? decks[0]?.deck_id));
+                if (!selectedHostDeck || !getPresetDeckMetadata(selectedHostDeck.deck_id)) return null;
+                return (
+                  <div className="pt-1.5">
+                    <PresetDeckSummary deck={selectedHostDeck} compact />
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="relative z-10">
@@ -429,6 +440,17 @@ export function RoomLobbyView({ controller, snapshot, onBackToTitle }: RoomLobby
                       {decks.find((d) => d.deck_id === roomState?.guest?.deckId)?.deck_name_zh ?? '尚未选定'}
                     </div>
                   )}
+                  {(() => {
+                    const selectedGuestDeck = decks.find(
+                      (d) => d.deck_id === (roomState?.guest?.deckId ?? decks[1]?.deck_id ?? decks[0]?.deck_id),
+                    );
+                    if (!selectedGuestDeck || !getPresetDeckMetadata(selectedGuestDeck.deck_id)) return null;
+                    return (
+                      <div className="pt-1.5">
+                        <PresetDeckSummary deck={selectedGuestDeck} compact />
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="relative z-10">

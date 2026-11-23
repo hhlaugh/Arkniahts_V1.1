@@ -1,5 +1,9 @@
 import { loadDemoData } from '../data/load-card-data';
 import {
+  loadOfficialPresetDecks,
+  type OfficialPresetDeckMetadata,
+} from '../data/load-preset-decks';
+import {
   getAccountCustomDecks,
   getActiveCollection,
   saveAccountCustomDecks,
@@ -20,91 +24,20 @@ const errors = loaded.issues.filter((issue) => issue.severity === 'error');
 if (errors.length > 0) throw new Error(`Demo 数据校验失败：${errors.map((issue) => `${issue.code} ${issue.message}`).join('；')}`);
 
 export const DEMO_CARDS: readonly CardDefinition[] = loaded.validCards;
-export const DEMO_DECKS: readonly DeckDefinition[] = loaded.decks;
 
-export const PRESET_DECKS: readonly DeckDefinition[] = [
-  ...DEMO_DECKS,
-  {
-    deck_id: 'DECK-V11-TACTICAL',
-    deck_name_zh: 'V1.1 战术突击组（含战术/设施/装备）',
-    cards: [
-      { card_id: 'OP-VAN-001' as CardId, quantity: 2 },
-      { card_id: 'OP-VAN-003' as CardId, quantity: 2 },
-      { card_id: 'OP-VAN-006' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-008' as CardId, quantity: 2 },
-      { card_id: 'OP-CAS-003' as CardId, quantity: 2 },
-      { card_id: 'DEMO-TAC-V2-002' as CardId, quantity: 2 },
-      { card_id: 'DEMO-TAC-V2-005' as CardId, quantity: 2 },
-      { card_id: 'DEMO-SUP-V2-001' as CardId, quantity: 2 },
-      { card_id: 'DEMO-SUP-V2-008' as CardId, quantity: 2 },
-    ],
-  },
-  {
-    deck_id: 'DECK-V11-SUPPORT',
-    deck_name_zh: 'V1.1 防线支援组（含设施/装备/控场）',
-    cards: [
-      { card_id: 'OP-DEF-001' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-008' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-009' as CardId, quantity: 2 },
-      { card_id: 'OP-SUP-005' as CardId, quantity: 2 },
-      { card_id: 'OP-SUP-006' as CardId, quantity: 2 },
-      { card_id: 'DEMO-TAC-V2-011' as CardId, quantity: 2 },
-      { card_id: 'DEMO-TAC-V2-013' as CardId, quantity: 2 },
-      { card_id: 'DEMO-SUP-V2-004' as CardId, quantity: 2 },
-      { card_id: 'DEMO-SUP-V2-007' as CardId, quantity: 2 },
-    ],
-  },
-  {
-    deck_id: 'DECK-ASSAULT',
-    deck_name_zh: '突击先锋组（德克萨斯/风笛/银灰）',
-    cards: [
-      { card_id: 'OP-VAN-006' as CardId, quantity: 2 },
-      { card_id: 'OP-VAN-005' as CardId, quantity: 2 },
-      { card_id: 'OP-VAN-009' as CardId, quantity: 2 },
-      { card_id: 'OP-GUA-005' as CardId, quantity: 2 },
-      { card_id: 'OP-GUA-007' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-001' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-008' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-008' as CardId, quantity: 2 },
-      { card_id: 'OP-SPE-006' as CardId, quantity: 2 },
-      { card_id: 'OP-GUA-004' as CardId, quantity: 2 },
-    ],
-  },
-  {
-    deck_id: 'DECK-CONTROL',
-    deck_name_zh: '天灾信使控场组（艾雅法拉/伊芙利特/初雪）',
-    cards: [
-      { card_id: 'OP-VAN-007' as CardId, quantity: 2 },
-      { card_id: 'OP-CAS-008' as CardId, quantity: 2 },
-      { card_id: 'OP-CAS-009' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-006' as CardId, quantity: 2 },
-      { card_id: 'OP-SUP-005' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-003' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-001' as CardId, quantity: 2 },
-      { card_id: 'OP-SUP-007' as CardId, quantity: 2 },
-      { card_id: 'OP-SPE-009' as CardId, quantity: 2 },
-      { card_id: 'OP-CAS-001' as CardId, quantity: 2 },
-    ],
-  },
-  {
-    deck_id: 'DECK-DEFENSE',
-    deck_name_zh: '重装磐石防卫组（塞雷娅/星熊/夜莺）',
-    cards: [
-      { card_id: 'OP-VAN-003' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-006' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-008' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-009' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-009' as CardId, quantity: 2 },
-      { card_id: 'OP-MED-007' as CardId, quantity: 2 },
-      { card_id: 'OP-SNI-009' as CardId, quantity: 2 },
-      { card_id: 'OP-CAS-006' as CardId, quantity: 2 },
-      { card_id: 'OP-DEF-005' as CardId, quantity: 2 },
-      { card_id: 'OP-GUA-009' as CardId, quantity: 2 },
-    ],
-  },
-];
+const officialPresets = loadOfficialPresetDecks(DEMO_CARDS);
+const presetErrors = officialPresets.issues.filter((issue) => issue.severity === 'error');
+if (presetErrors.length > 0) {
+  throw new Error(`官方预设卡组校验失败：${presetErrors.map((issue) => `${issue.code} ${issue.message}`).join('；')}`);
+}
+
+export const PRESET_DECKS: readonly DeckDefinition[] = officialPresets.decks;
+export const DEMO_DECKS: readonly DeckDefinition[] = officialPresets.decks;
+export const PRESET_DECK_META: ReadonlyMap<string, OfficialPresetDeckMetadata> = officialPresets.metadataById;
+
+export function getPresetDeckMetadata(deckId: string): OfficialPresetDeckMetadata | undefined {
+  return PRESET_DECK_META.get(deckId);
+}
 
 /**
  * 低星 starter 预设（GACHA_PLAN_v0.3 §5）：全部由 3★ 干员组成；每个新账户都拥有这些干员 ×2，
