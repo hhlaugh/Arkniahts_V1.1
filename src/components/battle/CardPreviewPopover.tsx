@@ -1,11 +1,14 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameState, CardInstanceId } from '../../game/types';
-import { getEntityKind, getEntityStats, isFacilityDisabled } from '../../game/range';
-import { STATUS_LABEL } from '../../client/gameData';
-import { cardDefinitionOf } from '../cards/CardView';
+import { formatCellLabel } from '../../game/board';
+import { getEffectiveAttackProfile, getEntityKind, getEntityStats, isFacilityDisabled } from '../../game/range';
+import { CLASS_COLOR, CLASS_LABEL, STATUS_LABEL } from '../../client/gameData';
+import { cardDefinitionOf, effectSummary } from '../cards/CardView';
 import { getCardPresentation } from '../../data/card-presentation';
-import { CardFrame } from '../cards/CardFrame';
-import { KeywordGlossary } from '../cards/KeywordGlossary';
+import { extractCardKeywords } from '../../data/keywords';
+import { OperatorPortrait } from '../cards/OperatorPortrait';
+import { RARITY_THEMES } from '../ui/tokens';
+import tacticalCardBackplate from '../../assets/images/tactical_card_backplate_1795070703422.jpg';
 
 export interface HoveredCardPreview {
   readonly instanceId: CardInstanceId;
@@ -17,70 +20,160 @@ export interface HoveredCardPreview {
     readonly width: number;
     readonly height: number;
   };
+  /** 'hover' = 桌面悬停浮层 (pointer-events-none); 'pinned' = 移动端长按钉住浮层 (轻点空白关闭) */
+  readonly mode?: 'hover' | 'pinned';
 }
 
 interface CardPreviewPopoverProps {
   readonly state: GameState;
   readonly hovered: HoveredCardPreview | null;
   readonly invalidReason?: string | null;
+  readonly onDismiss?: () => void;
 }
 
-const POPOVER_WIDTH = 264;
-const POPOVER_ESTIMATED_HEIGHT = 430;
-const EDGE_PADDING = 12;
+const DESKTOP_CARD_WIDTH = 248;
+const DESKTOP_KEYWORD_WIDTH = 198;
+const DESKTOP_GAP = 8;
+const MOBILE_GAP = 6;
+const DEFAULT_ESTIMATED_HEIGHT = 344;
+const EDGE_PADDING = 10;
+const SAFE_VIEWPORT_EDGE = 12;
+
+export interface HearthstonePreviewLayout {
+  readonly left: number;
+  readonly top: number;
+  readonly cardWidth: number;
+  readonly keywordWidth: number;
+  readonly gap: number;
+  readonly totalWidth: number;
+  readonly keywordSide: 'right' | 'left';
+}
+
+export function computeHearthstonePreviewLayout({
+  anchorRect,
+  viewportWidth,
+  viewportHeight,
+  estimatedHeight = DEFAULT_ESTIMATED_HEIGHT,
+  hasKeywords = false,
+}: {
+  readonly anchorRect: HoveredCardPreview['rect'];
+  readonly viewportWidth: number;
+  readonly viewportHeight: number;
+  readonly estimatedHeight?: number;
+  readonly hasKeywords?: boolean;
+}): HearthstonePreviewLayout {
+  const isCompact = viewportWidth < 640;
+  const edgePad = isCompact ? EDGE_PADDING : SAFE_VIEWPORT_EDGE;
+  const gap = hasKeywords ? (isCompact ? MOBILE_GAP : DESKTOP_GAP) : 0;
+
+  const cardWidth = isCompact
+    ? hasKeywords
+      ? Math.min(204, Math.max(176, Math.floor((viewportWidth - edgePad * 2 - gap) * 0.56)))
+      : Math.min(244, Math.max(196, viewportWidth - edgePad * 2))
+    : DESKTOP_CARD_WIDTH;
+
+  const keywordWidth = hasKeywords
+    ? isCompact
+      ? Math.min(168, Math.max(132, viewportWidth - edgePad * 2 - cardWidth - gap))
+      : DESKTOP_KEYWORD_WIDTH
+    : 0;
+
+  const totalWidth = cardWidth + gap + keywordWidth;
+  const anchorCenterX = anchorRect.left + anchorRect.width / 2;
+  const anchorCenterY = anchorRect.top + anchorRect.height / 2;
+  const maxCompositeLeft = Math.max(edgePad, viewportWidth - totalWidth - edgePad);
+  const maxTop = Math.max(edgePad, viewportHeight - estimatedHeight - edgePad);
+
+  let keywordSide: 'right' | 'left' = 'right';
+  if (hasKeywords) {
+    const idealCardLeft = Math.min(
+      Math.max(edgePad, anchorCenterX - cardWidth / 2),
+      Math.max(edgePad, viewportWidth - cardWidth - edgePad),
+    );
+    const fitsRight = idealCardLeft + cardWidth + gap + keywordWidth <= viewportWidth - edgePad;
+    const fitsLeft = idealCardLeft - gap - keywordWidth >= edgePad;
+    if (fitsRight) {
+      keywordSide = 'right';
+    } else if (fitsLeft) {
+      keywordSide = 'left';
+    } else {
+      keywordSide = anchorCenterX <= viewportWidth / 2 ? 'right' : 'left';
+    }
+  }
+
+  let left: number;
+  let top: number;
+
+  // 1. 优先放在锚点上方（手牌区 / 下半区单位）
+  const aboveTop = anchorRect.top - estimatedHeight - 10;
+  if (aboveTop >= edgePad) {
+    const rawCardLeft = anchorCenterX - cardWidth / 2;
+    const rawCompositeLeft = keywordSide === 'right' ? rawCardLeft : rawCardLeft - gap - keywordWidth;
+    left = Math.min(Math.max(edgePad, rawCompositeLeft), maxCompositeLeft);
+    top = Math.round(aboveTop);
+  } else {
+    // 2. 上方空间不足时，优先放在锚点下方（敌方前/后排单位）
+    const belowTop = anchorRect.bottom + 10;
+    if (belowTop + estimatedHeight <= viewportHeight - edgePad) {
+      const rawCardLeft = anchorCenterX - cardWidth / 2;
+      const rawCompositeLeft = keywordSide === 'right' ? rawCardLeft : rawCardLeft - gap - keywordWidth;
+      left = Math.min(Math.max(edgePad, rawCompositeLeft), maxCompositeLeft);
+      top = Math.round(belowTop);
+    } else {
+      // 3. 上下空间都受限时（如棋盘中段或矮横屏），优先贴目标右侧/左侧放置避免遮挡棋格
+      const rightCandidate = anchorRect.right + 12;
+      const leftCandidate = anchorRect.left - totalWidth - 12;
+      if (rightCandidate + totalWidth <= viewportWidth - edgePad) {
+        left = rightCandidate;
+        keywordSide = 'right';
+      } else if (leftCandidate >= edgePad) {
+        left = leftCandidate;
+        keywordSide = 'left';
+      } else {
+        const rawCompositeLeft = anchorCenterX - totalWidth / 2;
+        left = Math.min(Math.max(edgePad, rawCompositeLeft), maxCompositeLeft);
+      }
+      const idealTop = anchorCenterY - estimatedHeight / 2;
+      top = Math.min(Math.max(edgePad, idealTop), maxTop);
+    }
+  }
+
+  return {
+    left: Math.round(left),
+    top: Math.round(top),
+    cardWidth,
+    keywordWidth,
+    gap,
+    totalWidth,
+    keywordSide,
+  };
+}
 
 export function clampPopoverPosition(
   anchorRect: HoveredCardPreview['rect'],
   viewportWidth: number,
   viewportHeight: number,
-  estimatedHeight: number = POPOVER_ESTIMATED_HEIGHT,
+  estimatedHeight: number = DEFAULT_ESTIMATED_HEIGHT,
 ): { readonly left: number; readonly top: number } {
-  const maxLeft = Math.max(EDGE_PADDING, viewportWidth - POPOVER_WIDTH - EDGE_PADDING);
-  const maxTop = Math.max(EDGE_PADDING, viewportHeight - estimatedHeight - EDGE_PADDING);
-
-  // 1. 优先尝试放在悬停目标上方（手牌、下半区单位）
-  const aboveTop = anchorRect.top - estimatedHeight - 10;
-  if (aboveTop >= EDGE_PADDING) {
-    const centerX = anchorRect.left + anchorRect.width / 2;
-    const left = Math.min(Math.max(EDGE_PADDING, centerX - POPOVER_WIDTH / 2), maxLeft);
-    return { left: Math.round(left), top: Math.round(aboveTop) };
-  }
-
-  // 2. 若上方空间不足（敌方后排/上区单位），优先翻至目标下方，避免遮挡目标本身
-  const belowTop = anchorRect.bottom + 10;
-  if (belowTop + estimatedHeight <= viewportHeight - EDGE_PADDING) {
-    const centerX = anchorRect.left + anchorRect.width / 2;
-    const left = Math.min(Math.max(EDGE_PADDING, centerX - POPOVER_WIDTH / 2), maxLeft);
-    return { left: Math.round(left), top: Math.round(belowTop) };
-  }
-
-  // 3. 若上下空间均受限（中区在场单位），优先放置于目标右侧或左侧，不遮挡格子
-  const rightCandidate = anchorRect.right + 12;
-  const leftCandidate = anchorRect.left - POPOVER_WIDTH - 12;
-  let left: number;
-  if (rightCandidate + POPOVER_WIDTH <= viewportWidth - EDGE_PADDING) {
-    left = rightCandidate;
-  } else if (leftCandidate >= EDGE_PADDING) {
-    left = leftCandidate;
-  } else {
-    const centerX = anchorRect.left + anchorRect.width / 2;
-    left = Math.min(Math.max(EDGE_PADDING, centerX - POPOVER_WIDTH / 2), maxLeft);
-  }
-
-  const idealTop = anchorRect.top + anchorRect.height / 2 - estimatedHeight / 2;
-  const top = Math.min(Math.max(EDGE_PADDING, idealTop), maxTop);
-
-  return { left: Math.round(left), top: Math.round(top) };
+  const layout = computeHearthstonePreviewLayout({
+    anchorRect,
+    viewportWidth,
+    viewportHeight,
+    estimatedHeight,
+    hasKeywords: false,
+  });
+  return { left: layout.left, top: layout.top };
 }
 
 /**
- * 桌面端卡牌/在场单位悬停浮层预览：
- * - 仅在鼠标悬停停留达到阈值后触发，不与移动端长按冲突
- * - 实时测量浮层实际高度后再做边缘钳位，保证高星多词条卡牌也绝不裁切或遮挡手牌
+ * 炉石传说风格战中卡牌预览浮层：
+ * - 主卡面采用经典炉石分布：左上费用水晶、上方立绘+居中名称条、中下部单份效果描述框、左下攻击力 / 右下生命值角标
+ * - 当前 V1.1 规则无主动技能与 SP，卡面不再重复渲染规则文本或展示 SP / 主动技能
+ * - 卡牌侧边单独排列紧凑词条解释小框，自动根据屏幕剩余空间置于左或右侧
  */
-export function CardPreviewPopover({ state, hovered, invalidReason }: CardPreviewPopoverProps) {
+export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }: CardPreviewPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
-  const [measuredHeight, setMeasuredHeight] = useState<number>(POPOVER_ESTIMATED_HEIGHT);
+  const [measuredHeight, setMeasuredHeight] = useState<number>(DEFAULT_ESTIMATED_HEIGHT);
   const [viewport, setViewport] = useState<{ width: number; height: number }>(() => {
     if (typeof window === 'undefined') return { width: 1280, height: 800 };
     return { width: window.innerWidth, height: window.innerHeight };
@@ -107,109 +200,392 @@ export function CardPreviewPopover({ state, hovered, invalidReason }: CardPrevie
   const definition = cardDefinitionOf(state, hovered.instanceId);
   if (!instance || !definition) return null;
 
+  const isPinned = hovered.mode === 'pinned';
   const presentation = getCardPresentation(instance.card_id);
+  const rarity = presentation.rarity;
+  const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
+  const classColor = CLASS_COLOR[presentation.profession] ?? '#94a3b8';
+  const classLabelZh = CLASS_LABEL[presentation.profession] ?? presentation.profession;
+
   const isBoardUnit = instance.zone === 'board';
   const entityKind = isBoardUnit ? getEntityKind(state, instance) : null;
   const entityStats = isBoardUnit ? getEntityStats(state, instance) : null;
+  const attackProfile = isBoardUnit ? getEffectiveAttackProfile(state, instance) : null;
   const facilityDisabled = entityKind === 'facility' && isFacilityDisabled(state, instance);
 
-  const pos = clampPopoverPosition(hovered.rect, viewport.width, viewport.height, measuredHeight);
+  const keywords = extractCardKeywords(definition, instance);
+  const maxKeywords = viewport.width < 640 ? 4 : 6;
+  const visibleKeywords = keywords.slice(0, maxKeywords);
+  const hiddenKeywordCount = Math.max(0, keywords.length - visibleKeywords.length);
 
-  return (
+  const layout = computeHearthstonePreviewLayout({
+    anchorRect: hovered.rect,
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+    estimatedHeight: measuredHeight,
+    hasKeywords: visibleKeywords.length > 0,
+  });
+
+  const isOperator = definition.card_type === 'operator';
+  const isSummon = entityKind === 'summon';
+  const hasCombatStats = isOperator || isSummon;
+  const redeployCd = instance.operator_lifecycle?.redeploy_cd_remaining ?? 0;
+
+  // V1.1 卡牌仅保留单份效果描述（不重复渲染 active_skill_text_zh）
+  const rulesText = definition.rules_text_zh || effectSummary(definition);
+  const liveCombat = isBoardUnit ? instance.operator_combat : undefined;
+  const baseAtk = definition.atk ?? 0;
+  const effectiveAtk = entityStats?.atk ?? baseAtk;
+  const baseHp = definition.hp ?? 0;
+  const effectiveHp = isBoardUnit && liveCombat ? liveCombat.current_hp : baseHp;
+  const maxHp = entityStats?.maxHp ?? baseHp;
+  const shield = isBoardUnit && liveCombat ? liveCombat.shield : 0;
+
+  const atkDeltaColor =
+    isBoardUnit && entityStats
+      ? effectiveAtk > baseAtk
+        ? 'text-emerald-300'
+        : effectiveAtk < baseAtk
+          ? 'text-amber-300'
+          : 'text-rose-200'
+      : 'text-rose-200';
+
+  const hpDeltaColor =
+    isBoardUnit && liveCombat && liveCombat.current_hp < maxHp ? 'text-amber-300' : 'text-emerald-200';
+
+  const attackModeLabel =
+    attackProfile?.mode === 'ranged'
+      ? '远程'
+      : attackProfile?.mode === 'support'
+        ? '医疗'
+        : definition.attack_type === 'ranged'
+          ? '远程'
+          : '近战';
+  const deployRuleLabel =
+    definition.deploy_rule === 'front_only'
+      ? '仅前排'
+      : definition.deploy_rule === 'back_only'
+        ? '仅后排'
+        : '全阵位';
+  const cellLabel =
+    isBoardUnit && instance.lane && instance.position
+      ? formatCellLabel(state.board_profile, instance.lane, instance.position, instance.slot_index)
+      : null;
+
+  const cardTypeLabel =
+    entityKind === 'facility' || definition.support_subtype === 'facility'
+      ? '场地设施'
+      : isSummon
+        ? '召唤单位'
+        : definition.card_type === 'tactic'
+          ? '战术指令'
+          : definition.card_type === 'support'
+            ? '支援装备'
+            : `${attackModeLabel} · ${deployRuleLabel}`;
+
+  const centerSubLabel =
+    isSummon
+      ? instance.summon_state?.taunt_scope !== 'none'
+        ? '嘲讽召唤'
+        : '召唤物'
+      : definition.operator_subclass_zh
+        ? `${classLabelZh} · ${definition.operator_subclass_zh}`
+        : classLabelZh;
+
+  const previewContent = (
     <div
       ref={popoverRef}
-      role="tooltip"
+      role={isPinned ? 'dialog' : 'tooltip'}
+      aria-modal={isPinned ? 'false' : undefined}
       data-testid="card-preview-popover"
+      data-preview-mode={isPinned ? 'pinned' : 'hover'}
+      data-keyword-side={layout.keywordSide}
       aria-label={`${definition.card_name_zh} 卡牌详情预览`}
-      className="fixed z-40 pointer-events-none animate-fade-in"
-      style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${POPOVER_WIDTH}px` }}
+      className={`fixed z-50 max-h-[calc(100dvh-20px)] ${
+        isPinned ? 'pointer-events-auto overflow-y-auto overscroll-contain' : 'pointer-events-none'
+      } animate-fade-in`}
+      style={{
+        left: `${layout.left}px`,
+        top: `${layout.top}px`,
+        width: `${layout.totalWidth}px`,
+      }}
+      onPointerDown={(e) => {
+        if (!isPinned) return;
+        e.stopPropagation();
+        onDismiss?.();
+      }}
     >
-      <div className="board-chamfer-sm bg-[#0f131a]/97 border border-[#3a4656] shadow-[0_6px_18px_rgba(0,0,0,0.68)] p-2 flex flex-col gap-1.5">
-        <div className="flex justify-center">
-          <CardFrame
-            cardId={instance.card_id}
-            definition={definition}
-            presentation={presentation}
-            variant="preview"
-            interactive={false}
-            redeployCd={instance.operator_lifecycle?.redeploy_cd_remaining ?? 0}
-            className="w-full max-w-[238px] min-h-[240px]"
-          />
-        </div>
+      <div
+        className={`flex items-start ${layout.keywordSide === 'left' ? 'flex-row-reverse' : 'flex-row'}`}
+        style={{ gap: `${layout.gap}px` }}
+      >
+        {/* 主卡面：炉石传说布局（左上费用 / 上方立绘+居中名称条 / 中下效果框 / 左下攻击 + 右下血量） */}
+        <div className="flex flex-col shrink-0" style={{ width: `${layout.cardWidth}px` }}>
+          <article
+            data-testid="magnified-card-preview"
+            className="board-chamfer-sm relative overflow-hidden bg-[#0e131b] border shadow-[0_14px_34px_rgba(0,0,0,0.82)] flex flex-col"
+            style={{
+              width: `${layout.cardWidth}px`,
+              borderColor: `${rarityTheme.color}99`,
+            }}
+          >
+            {/* 钛金碳纤维机械背板与稀有度顶光 */}
+            <img
+              src={tacticalCardBackplate}
+              alt=""
+              aria-hidden="true"
+              referrerPolicy="no-referrer"
+              className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover opacity-[0.26]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage: `radial-gradient(circle at 86% 6%, ${rarityTheme.color}30 0%, transparent 56%)`,
+              }}
+            />
 
-        {/* 在场单位实时作战状态 */}
-        {isBoardUnit && instance.operator_combat && entityStats && (
-          <div className="px-2 py-1.5 bg-[#0a0d12] border border-[#283342] font-mono text-[10px] space-y-1">
-            <div className="flex items-center justify-between text-slate-300 tabular-nums">
-              <span className="text-emerald-300 font-bold">
-                HP {instance.operator_combat.current_hp}/{entityStats.maxHp}
-                {instance.operator_combat.shield > 0 ? ` (+${instance.operator_combat.shield}盾)` : ''}
-              </span>
-              {entityKind === 'facility' ? (
-                <span className="text-amber-300 font-bold">
-                  {facilityDisabled ? '⏸ 瘫痪' : '⚙ 生效'} · 余{instance.facility_state?.remaining_turns ?? 1}回
-                </span>
-              ) : (
-                <span className="text-slate-200 font-bold">
-                  <span className="text-rose-300">ATK {entityStats.atk}</span>
-                  <span className="text-slate-600 mx-1">·</span>
-                  <span className="text-sky-300">
-                    SP {instance.operator_combat.current_sp}/{definition.max_sp ?? 5}
+            {/* 顶部区域：立绘视窗 + 左上角悬浮 CP 费用晶体 + 右上角职业星级 + 下沿居中名牌横幅 */}
+            <div
+              className={`relative z-10 ${
+                viewport.height < 520 ? 'h-[92px]' : 'h-[124px] sm:h-[150px]'
+              } w-full overflow-hidden border-b border-[#2c3849]`}
+            >
+              <OperatorPortrait
+                cardId={instance.card_id}
+                presentation={presentation}
+                variant="portrait"
+                className="w-full h-full"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(8,12,18,0.58) 0%, transparent 32%, rgba(9,13,19,0.72) 70%, rgba(10,14,20,0.98) 100%)',
+                }}
+              />
+
+              {/* 左上角：CP 费用徽章 + 再部署冷却 */}
+              <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                <div
+                  data-testid="card-cost-badge"
+                  className={`flex items-baseline gap-0.5 px-2 py-0.5 font-mono font-black shadow-lg ${
+                    invalidReason && !isBoardUnit
+                      ? 'bg-slate-900 text-rose-300 border border-rose-500/75'
+                      : 'bg-[#e5a52b] text-slate-950'
+                  }`}
+                  style={{ clipPath: 'polygon(12% 0, 100% 0, 88% 100%, 0 100%)' }}
+                >
+                  <span className="text-[9px] font-sans">CP</span>
+                  <span className="text-sm sm:text-base leading-none tabular-nums">{definition.cost}</span>
+                </div>
+                {redeployCd > 0 && (
+                  <span className="px-1.5 py-0.5 bg-amber-950/90 border border-amber-500/70 text-[9px] font-mono font-bold text-amber-300 leading-none">
+                    冷却 {redeployCd}
                   </span>
+                )}
+              </div>
+
+              {/* 右上角：职业与稀有度星级 */}
+              <div className="absolute top-2 right-2 flex flex-col items-end gap-0.5">
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 bg-[#0a0e14]/90 text-slate-100 border-r-2 leading-none"
+                  style={{ borderRightColor: classColor }}
+                >
+                  {classLabelZh}
                 </span>
+                <span
+                  className="text-[9px] font-mono font-bold px-1 bg-[#0a0e14]/80 leading-tight tracking-tight"
+                  style={{ color: rarityTheme.color }}
+                >
+                  {'★'.repeat(rarity)}
+                </span>
+              </div>
+
+              {/* 立绘下沿：炉石式居中卡名横幅 */}
+              <div className="absolute inset-x-2 bottom-1.5 px-2.5 py-1 bg-[#0d121a]/92 border border-[#3a485a] text-center shadow-md">
+                <div className="flex items-baseline justify-center gap-1.5">
+                  <h4 className="m-0 text-sm sm:text-[15px] font-black text-white tracking-wide truncate">
+                    {definition.card_name_zh}
+                  </h4>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase truncate max-w-[42%]">
+                    {presentation.codeNameEn}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center flex-wrap gap-x-1.5 text-[9px] sm:text-[10px] font-mono text-slate-300 leading-tight mt-0.5">
+                  <span>{cardTypeLabel}</span>
+                  {cellLabel && (
+                    <>
+                      <span className="text-slate-600" aria-hidden="true">·</span>
+                      <span className="text-amber-300 font-bold">{cellLabel}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 中下部：单份效果描述框（与在场附加状态/装备） */}
+            <div className="relative z-10 px-2.5 pt-2 pb-1.5">
+              <div
+                data-testid="card-rules-box"
+                className="bg-[#121822]/95 border border-[#2a3647] px-2.5 sm:px-3 py-2 space-y-1.5 text-[10px] sm:text-[11px] leading-relaxed min-h-[58px] flex flex-col justify-center"
+              >
+                {rulesText && (
+                  <p className="m-0 text-slate-100 text-center">{rulesText}</p>
+                )}
+
+                {liveCombat?.equipped_package && (
+                  <div className="pt-1 border-t border-[#222c3a] text-[10px] font-mono text-emerald-300 text-center">
+                    🔧 已装备：{liveCombat.equipped_package.card_name_zh}
+                  </div>
+                )}
+
+                {liveCombat && liveCombat.statuses.length > 0 && (
+                  <div className="pt-1 border-t border-[#222c3a] text-[10px] font-mono text-rose-200 flex flex-wrap justify-center gap-x-2 gap-y-0.5">
+                    {liveCombat.statuses.map((s, idx) => (
+                      <span key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? idx}`}>
+                        {STATUS_LABEL[s.kind] ?? s.kind} {s.remaining_owner_turns}回
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {invalidReason && (
+                  <div className="pt-1 border-t border-rose-500/35 text-[10px] font-bold text-rose-300 text-center">
+                    ⚠️ {invalidReason}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 底部角标栏：炉石经典 左下攻击力 / 中间分支标识 / 右下生命值（无 SP） */}
+            <div className="relative z-10 px-2 pb-2 pt-0.5 flex items-end justify-between gap-1.5 font-mono tabular-nums">
+              {hasCombatStats ? (
+                <>
+                  {/* 左下角：攻击力徽章 */}
+                  <div
+                    data-testid="card-atk-badge"
+                    className="flex items-baseline gap-1 px-2.5 py-1 bg-[#1e1217] border border-rose-500/75 shadow-md shrink-0"
+                    style={{ clipPath: 'polygon(0 0, 86% 0, 100% 28%, 100% 100%, 14% 100%, 0 72%)' }}
+                  >
+                    <span className="text-[9px] font-bold text-rose-300/85">ATK</span>
+                    <span className={`text-sm sm:text-base font-black leading-none ${atkDeltaColor}`}>
+                      {effectiveAtk}
+                    </span>
+                  </div>
+
+                  {/* 中间：干员分支 / 职业标识 */}
+                  <span className="text-[9px] text-slate-400 tracking-wide truncate pb-1 text-center min-w-0">
+                    {centerSubLabel}
+                  </span>
+
+                  {/* 右下角：生命值徽章（含护盾） */}
+                  <div
+                    data-testid="card-hp-badge"
+                    className="flex items-baseline gap-1 px-2.5 py-1 bg-[#0e1f19] border border-emerald-500/75 shadow-md shrink-0"
+                    style={{ clipPath: 'polygon(14% 0, 100% 0, 100% 72%, 86% 100%, 0 100%, 0 28%)' }}
+                  >
+                    <span className="text-[9px] font-bold text-emerald-300/85">HP</span>
+                    <span className={`text-sm sm:text-base font-black leading-none ${hpDeltaColor}`}>
+                      {effectiveHp}
+                    </span>
+                    {isBoardUnit && effectiveHp < maxHp && (
+                      <span className="text-[9px] text-slate-400 leading-none">/{maxHp}</span>
+                    )}
+                    {shield > 0 && (
+                      <span className="text-[9px] font-bold text-sky-300 leading-none">
+                        (+{shield}盾)
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : entityKind === 'facility' && liveCombat && entityStats ? (
+                <>
+                  <span className="text-[10px] font-bold text-amber-300 pb-0.5 pl-0.5">
+                    {facilityDisabled ? '⏸ 已瘫痪' : '⚙ 生效中'} · 余{instance.facility_state?.remaining_turns ?? 1}回
+                  </span>
+                  <div
+                    data-testid="card-hp-badge"
+                    className="flex items-baseline gap-1 px-2.5 py-1 bg-[#0e1f19] border border-emerald-500/75 shadow-md shrink-0"
+                    style={{ clipPath: 'polygon(14% 0, 100% 0, 100% 72%, 86% 100%, 0 100%, 0 28%)' }}
+                  >
+                    <span className="text-[9px] font-bold text-emerald-300/85">HP</span>
+                    <span className={`text-sm font-black leading-none ${hpDeltaColor}`}>
+                      {effectiveHp}
+                    </span>
+                    <span className="text-[9px] text-slate-400 leading-none">/{entityStats.maxHp}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full flex items-center justify-between px-1 py-0.5 text-[10px] font-bold text-slate-300 border-t border-[#222c3a]">
+                  <span>{cardTypeLabel}</span>
+                  <span className="text-amber-300">{definition.cost} CP</span>
+                </div>
               )}
             </div>
-            {instance.operator_combat.statuses.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-0.5">
-                {instance.operator_combat.statuses.map((s) => (
-                  <span
-                    key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? ''}`}
-                    className="px-1 py-0.2 bg-rose-950/80 border border-rose-500/50 text-rose-200 text-[9px]"
-                  >
-                    {STATUS_LABEL[s.kind] ?? s.kind} ({s.remaining_owner_turns}回)
+          </article>
+
+          {isPinned && (
+            <div className="mt-1 px-2.5 py-1 bg-[#080c12]/92 border border-[#2c3849] text-center text-[9px] font-mono text-slate-300 shadow-md">
+              轻点任意处关闭预览
+            </div>
+          )}
+        </div>
+
+        {/* 卡牌侧边独立词条解释小框列（仿炉石传说侧边词条气泡） */}
+        {visibleKeywords.length > 0 && (
+          <aside
+            data-testid="keyword-side-callouts"
+            aria-label="词条简要说明"
+            className="flex flex-col gap-1.5 shrink-0"
+            style={{ width: `${layout.keywordWidth}px` }}
+          >
+            {visibleKeywords.map((entry) => (
+              <div
+                key={entry.keyword}
+                data-testid="keyword-callout-box"
+                className="board-chamfer-sm bg-[#0d1219]/96 border border-[#3a485a] shadow-[0_8px_20px_rgba(0,0,0,0.72)] px-2.5 py-1.5"
+              >
+                <div className="flex items-baseline justify-between gap-1.5 mb-0.5">
+                  <span className="text-[11px] sm:text-xs font-bold text-[#e5a52b] leading-tight">
+                    {entry.keyword}
                   </span>
-                ))}
+                  <span className="text-[9px] font-mono text-slate-400 shrink-0 leading-none">
+                    {entry.category}
+                  </span>
+                </div>
+                <p className="m-0 text-[10px] sm:text-[11px] text-slate-200 leading-snug">
+                  {entry.brief}
+                </p>
+              </div>
+            ))}
+            {hiddenKeywordCount > 0 && (
+              <div className="board-chamfer-sm bg-[#0d1219]/92 border border-[#2b3646] px-2 py-1 text-[9px] font-mono text-slate-400">
+                另有 {hiddenKeywordCount} 条相关词条
               </div>
             )}
-          </div>
-        )}
-
-        {(definition.rules_text_zh || definition.active_skill_text_zh) && (
-          <div className="px-2 py-1.5 bg-[#0b0f15] border border-[#25303e] text-[10px] text-slate-200 space-y-1 leading-snug">
-            {definition.rules_text_zh && <p className="m-0">{definition.rules_text_zh}</p>}
-            {definition.active_skill_text_zh && (
-              <p className="m-0 text-sky-300">
-                ⚡ 主动 ({definition.active_skill_sp_cost ?? 0} SP): {definition.active_skill_text_zh}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* 词条简要说明 */}
-        <KeywordGlossary
-          definition={definition}
-          instance={instance}
-          compact
-          maxItems={4}
-        />
-
-        {invalidReason ? (
-          <div className="px-2 py-1 bg-rose-950/90 border border-rose-500/60 text-rose-200 text-[10px] font-bold">
-            ⚠️ {invalidReason}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
-            <span>{isBoardUnit ? '单击选中单位' : '单击选中卡牌'}</span>
-            <span>
-              {isBoardUnit
-                ? '双击可快速发动主动技'
-                : definition.card_type === 'operator'
-                  ? '拖放或点高亮格部署'
-                  : '单击后选目标'}
-            </span>
-          </div>
+          </aside>
         )}
       </div>
     </div>
   );
+
+  if (isPinned) {
+    return (
+      <div
+        data-testid="card-preview-backdrop"
+        className="fixed inset-0 z-50 bg-black/35 animate-fade-in"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDismiss?.();
+        }}
+      >
+        {previewContent}
+      </div>
+    );
+  }
+
+  return previewContent;
 }

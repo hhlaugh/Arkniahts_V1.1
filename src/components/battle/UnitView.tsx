@@ -30,7 +30,7 @@ interface UnitViewProps {
   readonly tapCue?: UnitTapCue | null;
   readonly onClick?: () => void;
   readonly onDoubleTap?: () => void;
-  readonly onLongPress?: () => void;
+  readonly onLongPress?: (rect?: DOMRect) => void;
   readonly onHoverStart?: (rect: DOMRect) => void;
   readonly onHoverEnd?: () => void;
 }
@@ -365,9 +365,9 @@ export function UnitView({
                 🔧 {combat.equipped_package.card_name_zh}
               </span>
             ) : (
-              <span className="text-sky-400 font-bold flex items-center gap-0.5">
-                <span className="text-[8px] sm:text-[9px]">⚡</span>
-                <span>{combat.current_sp}/{definition.max_sp ?? 5}</span>
+              <span className="text-slate-300 font-bold text-[9px] leading-none">
+                <span className="hidden sm:inline">{attackModeFull}</span>
+                <span className="sm:hidden">{attackModeShort}</span>
               </span>
             )}
           </div>

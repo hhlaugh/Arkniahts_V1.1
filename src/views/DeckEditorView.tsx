@@ -1009,7 +1009,6 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                   <div className="flex gap-3 text-xs font-mono pt-0.5">
                     <span className="text-rose-400 font-bold">ATK {activeInspect.atk ?? 0}</span>
                     <span className="text-emerald-400 font-bold">HP {activeInspect.hp ?? 0}</span>
-                    <span className="text-sky-400 font-bold">SP {activeInspect.starting_sp ?? 0}/{activeInspect.max_sp ?? 5}</span>
                   </div>
                 )}
               </div>
@@ -1018,11 +1017,6 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                   <strong className="text-amber-300 mr-1.5">特性/效果:</strong>
                   <span>{activeInspect.rules_text_zh || '无特殊常驻被动效果'}</span>
                 </div>
-                {activeInspect.active_skill_text_zh && (
-                  <div className="mt-1 text-sky-300">
-                    <strong>主动技能 ({activeInspect.active_skill_sp_cost ?? 0} SP):</strong> {activeInspect.active_skill_text_zh}
-                  </div>
-                )}
                 {activeInspect.synergy_tags && (
                   <div className="mt-1 text-[10px] font-mono text-slate-400">
                     标签: {activeInspect.synergy_tags}
@@ -1294,12 +1288,6 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                   <strong className="text-amber-300 block mb-0.5">被动特性 / 效果</strong>
                   {mobileInspectCard.rules_text_zh || '无特殊常驻被动效果'}
                 </div>
-                {mobileInspectCard.active_skill_text_zh && (
-                  <div className="text-sky-300 pt-1 border-t border-[#232c38]">
-                    <strong className="block mb-0.5">主动技能 ({mobileInspectCard.active_skill_sp_cost ?? 0} SP)</strong>
-                    {mobileInspectCard.active_skill_text_zh}
-                  </div>
-                )}
               </div>
 
               <KeywordGlossary definition={mobileInspectCard} />

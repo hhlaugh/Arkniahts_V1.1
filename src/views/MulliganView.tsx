@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ActionResult } from '../client/localGameController';
 import { PLAYER_LABEL } from '../client/gameData';
-import { CardView, cardDefinitionOf } from '../components/cards/CardView';
-import { CardFrame } from '../components/cards/CardFrame';
-import { KeywordGlossary } from '../components/cards/KeywordGlossary';
+import { CardView } from '../components/cards/CardView';
 import { CardPreviewPopover, type HoveredCardPreview } from '../components/battle/CardPreviewPopover';
 import type { CardInstanceId, GameState, PlayerId } from '../game/types';
 import { Panel } from '../components/ui/Panel';
 import { Button } from '../components/ui/Button';
-import { BottomSheet } from '../components/ui/BottomSheet';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
 import { useIsMobile } from '../hooks/useViewport';
 import { playTacticalSfx } from '../audio/bgmPlayer';
@@ -35,11 +32,20 @@ export function MulliganView({
 }: MulliganViewProps) {
   const [selected, setSelected] = useState<ReadonlySet<CardInstanceId>>(new Set());
   const [hoveredCard, setHoveredCard] = useState<HoveredCardPreview | null>(null);
-  const [inspectId, setInspectId] = useState<CardInstanceId | null>(null);
+  const [pinnedCard, setPinnedCard] = useState<HoveredCardPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isMobile = useIsMobile();
   const hand = state.players[playerId].hand;
+
+  useEffect(() => {
+    if (!pinnedCard) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPinnedCard(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pinnedCard]);
 
   const toggle = (id: CardInstanceId) => {
     if (submitting) return;
@@ -162,9 +168,32 @@ export function MulliganView({
                 checked={selected.has(id)}
                 interactive
                 onClick={() => toggle(id)}
-                onLongPress={() => {
+                onLongPress={(rect) => {
                   setHoveredCard(null);
-                  setInspectId(id);
+                  const vw = typeof window !== 'undefined' ? window.innerWidth : 390;
+                  const vh = typeof window !== 'undefined' ? window.innerHeight : 844;
+                  const fallbackRect = {
+                    left: Math.round(vw / 2 - 48),
+                    top: Math.round(vh * 0.54),
+                    right: Math.round(vw / 2 + 48),
+                    bottom: Math.round(vh * 0.54 + 110),
+                    width: 96,
+                    height: 110,
+                  };
+                  setPinnedCard({
+                    instanceId: id,
+                    rect: rect
+                      ? {
+                          left: rect.left,
+                          top: rect.top,
+                          right: rect.right,
+                          bottom: rect.bottom,
+                          width: rect.width,
+                          height: rect.height,
+                        }
+                      : fallbackRect,
+                    mode: 'pinned',
+                  });
                 }}
                 onHoverStart={(rect) => {
                   setHoveredCard({ instanceId: id, rect });
@@ -209,48 +238,11 @@ export function MulliganView({
         </div>
       </Panel>
 
-      <CardPreviewPopover state={state} hovered={hoveredCard} />
-
-      {(() => {
-        const inspectInst = inspectId ? state.card_instances[inspectId] : undefined;
-        const inspectDef = inspectId ? cardDefinitionOf(state, inspectId) : undefined;
-        return (
-          <BottomSheet
-            isOpen={Boolean(inspectInst && inspectDef)}
-            onClose={() => setInspectId(null)}
-            title={inspectDef?.card_name_zh ?? '卡牌详情'}
-            codeName={inspectInst?.card_id}
-            maxHeight="max-h-[86dvh]"
-          >
-            {inspectInst && inspectDef && (
-              <div className="p-4 space-y-3 text-xs">
-                <div className="flex justify-center">
-                  <CardFrame
-                    cardId={inspectInst.card_id}
-                    definition={inspectDef}
-                    variant="preview"
-                    interactive={false}
-                    className="w-[186px] min-h-[240px] shadow-md"
-                  />
-                </div>
-                {(inspectDef.rules_text_zh || inspectDef.active_skill_text_zh) && (
-                  <div className="bg-[#12161d] p-2.5 border border-[#263140] space-y-1.5">
-                    {inspectDef.rules_text_zh && (
-                      <p className="text-slate-200 leading-relaxed m-0">{inspectDef.rules_text_zh}</p>
-                    )}
-                    {inspectDef.active_skill_text_zh && (
-                      <p className="text-sky-300 leading-relaxed m-0">
-                        ⚡ 主动 ({inspectDef.active_skill_sp_cost ?? 0} SP): {inspectDef.active_skill_text_zh}
-                      </p>
-                    )}
-                  </div>
-                )}
-                <KeywordGlossary definition={inspectDef} instance={inspectInst} />
-              </div>
-            )}
-          </BottomSheet>
-        );
-      })()}
+      <CardPreviewPopover
+        state={state}
+        hovered={pinnedCard ?? hoveredCard}
+        onDismiss={() => setPinnedCard(null)}
+      />
     </div>
   );
 }

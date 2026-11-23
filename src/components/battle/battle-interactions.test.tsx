@@ -14,7 +14,11 @@ import {
   isRecentTouchActivity,
   markTouchPointerActivity,
 } from '../../hooks/useHoverIntent';
-import { clampPopoverPosition, CardPreviewPopover } from './CardPreviewPopover';
+import {
+  clampPopoverPosition,
+  computeHearthstonePreviewLayout,
+  CardPreviewPopover,
+} from './CardPreviewPopover';
 import { PlayerHandDock } from './PlayerHandDock';
 import { TacticalDetailPanel } from './TacticalDetailPanel';
 import { KeywordGlossary } from '../cards/KeywordGlossary';
@@ -33,7 +37,7 @@ import {
 } from './tacticalSelectors';
 import { UnitView } from './UnitView';
 import { DynamicBattlefieldBackdrop } from './DynamicBattlefieldBackdrop';
-import { DEMO_CARDS, PRESET_DECKS } from '../../client/gameData';
+import { DEMO_CARDS, PRESET_DECKS, type UiCardDefinition } from '../../client/gameData';
 import { isOperatorDeployPositionAllowed } from '../../game/effects';
 import { advancePhase, createInitialGameState, mulligan, reduceGameAction } from '../../game/engine';
 import type { CardId, CardInstanceId, Cost, GameState } from '../../game/types';
@@ -678,7 +682,8 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     expect(glossaryHtml).toContain('【护盾】');
     expect(glossaryHtml).toContain('【中毒】');
 
-    // 2. 桌面悬停浮层：含详情卡面 + 在场参数 + 词条简要说明
+    // 2. 炉石风格悬停浮层：放大主卡面承载完整有效信息 + 侧边独立词条小框
+    const silverAshUi = silverAsh as UiCardDefinition;
     const popoverHtml = renderToString(
       <CardPreviewPopover
         state={unitState}
@@ -687,11 +692,66 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
           rect: { left: 480, top: 40, right: 610, bottom: 120, width: 130, height: 80 },
         }}
       />,
-    );
+    ).replace(/<!-- -->/g, '');
     expect(popoverHtml).toContain('data-testid="card-preview-popover"');
+    expect(popoverHtml).toContain('data-testid="magnified-card-preview"');
+    expect(popoverHtml).toContain('data-testid="card-cost-badge"');
+    expect(popoverHtml).toContain('data-testid="card-rules-box"');
+    expect(popoverHtml).toContain('data-testid="card-atk-badge"');
+    expect(popoverHtml).toContain('data-testid="card-hp-badge"');
+    expect(popoverHtml).toContain('data-testid="keyword-side-callouts"');
+    expect(popoverHtml).toContain('data-testid="keyword-callout-box"');
     expect(popoverHtml).toContain(silverAsh.card_name_zh);
     expect(popoverHtml).toContain('(+1盾)');
     expect(popoverHtml).toContain('词条简要说明');
+    expect(popoverHtml).toContain('护盾');
+    expect(popoverHtml).toContain('中毒');
+    // 不展示已移除的 SP 与主动技能，且效果描述只出现一次（炉石布局：描述框 -> 左下攻击 -> 右下生命）
+    expect(popoverHtml).not.toContain('SP');
+    expect(popoverHtml).not.toContain('主动技');
+    if (silverAshUi.rules_text_zh) {
+      expect(popoverHtml.split(silverAshUi.rules_text_zh).length - 1).toBe(1);
+    }
+    const rulesIdx = popoverHtml.indexOf('data-testid="card-rules-box"');
+    const atkIdx = popoverHtml.indexOf('data-testid="card-atk-badge"');
+    const hpIdx = popoverHtml.indexOf('data-testid="card-hp-badge"');
+    expect(rulesIdx).toBeGreaterThan(-1);
+    expect(atkIdx).toBeGreaterThan(rulesIdx);
+    expect(hpIdx).toBeGreaterThan(atkIdx);
+
+    // 2b. 移动端长按钉住预览模式（pinned）：渲染轻量遮罩与关闭提示，而不呼出整页 BottomSheet
+    const pinnedHtml = renderToString(
+      <CardPreviewPopover
+        state={unitState}
+        hovered={{
+          instanceId: unitId,
+          rect: { left: 140, top: 520, right: 250, bottom: 630, width: 110, height: 110 },
+          mode: 'pinned',
+        }}
+      />,
+    );
+    expect(pinnedHtml).toContain('data-testid="card-preview-backdrop"');
+    expect(pinnedHtml).toContain('data-preview-mode="pinned"');
+    expect(pinnedHtml).toContain('轻点任意处关闭预览');
+
+    // 2c. 炉石侧边词条列位置计算：桌面右侧有空位放右侧，靠右边缘自动翻到左侧，360px 窄屏仍严格贴边并排不裁切
+    const desktopLeftSideFlip = computeHearthstonePreviewLayout({
+      anchorRect: { left: 1120, top: 560, right: 1236, bottom: 710, width: 116, height: 150 },
+      viewportWidth: 1280,
+      viewportHeight: 800,
+      hasKeywords: true,
+    });
+    expect(desktopLeftSideFlip.keywordSide).toBe('left');
+    expect(desktopLeftSideFlip.left + desktopLeftSideFlip.totalWidth).toBeLessThanOrEqual(1280 - 12);
+
+    const mobileCompactLayout = computeHearthstonePreviewLayout({
+      anchorRect: { left: 20, top: 520, right: 102, bottom: 628, width: 82, height: 108 },
+      viewportWidth: 360,
+      viewportHeight: 740,
+      hasKeywords: true,
+    });
+    expect(mobileCompactLayout.left).toBeGreaterThanOrEqual(10);
+    expect(mobileCompactLayout.left + mobileCompactLayout.totalWidth).toBeLessThanOrEqual(360 - 10);
 
     // 3. 顶部敌方单位悬停时自动翻转至目标下方，不遮挡目标格子
     const flippedPos = clampPopoverPosition(
@@ -701,7 +761,7 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     );
     expect(flippedPos.top).toBeGreaterThanOrEqual(118 + 10);
 
-    // 4. 移动端/侧栏战术详情面板（长按弹起后渲染）：含详情卡面 + 词条简要说明
+    // 4. 侧栏战术详情面板：含详情卡面 + 词条简要说明，且不重复显示主动技能/SP
     const detailHtml = renderToString(
       <TacticalDetailPanel
         state={unitState}
@@ -717,14 +777,20 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     expect(detailHtml).toContain(silverAsh.card_name_zh);
     expect(detailHtml).toContain('词条简要说明');
     expect(detailHtml).toContain('【中毒】');
+    expect(detailHtml).not.toContain('主动技能');
+    expect(detailHtml).not.toContain('SP');
+    if (silverAshUi.rules_text_zh) {
+      expect(detailHtml.split(silverAshUi.rules_text_zh).length - 1).toBe(1);
+    }
 
-    // 5. UnitView 具备尖锐硬朗切角金属壳结构
+    // 5. UnitView 具备尖锐硬朗切角金属壳结构，且不显示无效的 SP 计数
     const unitHtml = renderToString(
       <UnitView state={unitState} instance={unitInstance} highlight="none" />,
     );
     expect(unitHtml).toContain('board-unit-shell');
     expect(unitHtml).toContain('board-unit');
     expect(unitHtml).not.toContain('pr-11');
+    expect(unitHtml).not.toContain('0/0');
 
     // 6. UnitView 有角标时自动预留右上角空距，避免与状态或 attackMode 重叠
     const skillReadyHtml = renderToString(

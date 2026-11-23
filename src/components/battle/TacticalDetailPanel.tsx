@@ -241,14 +241,8 @@ export function TacticalDetailPanel({
                     <span>剩余 {selectedInstance.facility_state?.remaining_turns ?? 1} 回合</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="pt-1">
                     <ResourceIndicator type="atk" current={entityStats.atk} size="sm" />
-                    <ResourceIndicator
-                      type="sp"
-                      current={selectedInstance.operator_combat.current_sp}
-                      max={selectedDefinition.max_sp ?? 5}
-                      size="sm"
-                    />
                   </div>
                 )}
 
@@ -279,17 +273,6 @@ export function TacticalDetailPanel({
                   </span>
                   <p className="text-slate-300 leading-relaxed m-0">
                     {selectedDefinition.rules_text_zh}
-                  </p>
-                </div>
-              )}
-
-              {selectedDefinition.active_skill_text_zh && (
-                <div className="bg-[#12161d] p-2.5 border border-[#263140] space-y-1">
-                  <span className="text-[10px] font-bold text-sky-300 uppercase tracking-wide block">
-                    主动技能 (消耗 {selectedDefinition.active_skill_sp_cost ?? 0} SP)
-                  </span>
-                  <p className="text-slate-300 leading-relaxed m-0">
-                    {selectedDefinition.active_skill_text_zh}
                   </p>
                 </div>
               )}
@@ -414,33 +397,6 @@ export function TacticalDetailPanel({
 
               {isBoardUnit && isOwnUnit && canAct && isActionPhase && !hasPending && (
                 <div className="space-y-1.5">
-                  {selectedDefinition.effect_trigger === 'active' && (
-                    <>
-                      <Button
-                        variant="primary"
-                        size="md"
-                        cornerCut
-                        disabled={!canSkillDirect && !hasSkillTargets}
-                        onClick={() => {
-                          const direct = skillActions.find((a) => a.target_instance_id === undefined);
-                          if (direct) onDispatch(direct);
-                        }}
-                        className="w-full font-bold"
-                      >
-                        ⚡ 发动主动技能 {selectedDefinition.active_skill_sp_cost ? `(SP ${selectedDefinition.active_skill_sp_cost})` : ''}
-                      </Button>
-                      {!canSkillDirect && hasSkillTargets && (
-                        <span className="text-[10px] text-cyan-300 block text-center">
-                          点击棋盘青色高亮目标发动技能
-                        </span>
-                      )}
-                      {skillInvalidReason && (
-                        <span className="text-[10px] text-slate-400 block text-center">
-                          无法释放：{skillInvalidReason}
-                        </span>
-                      )}
-                    </>
-                  )}
 
                   {entityKind === 'operator' && (
                     <>

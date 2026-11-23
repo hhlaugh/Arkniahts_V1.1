@@ -148,6 +148,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     readonly firstTargetId: CardInstanceId;
   } | null>(null);
   const [hoveredCard, setHoveredCard] = useState<HoveredCardPreview | null>(null);
+  const [pinnedPreview, setPinnedPreview] = useState<HoveredCardPreview | null>(null);
   const [hoveredUnitId, setHoveredUnitId] = useState<CardInstanceId | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<SlotCoords | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<CardInstanceId | null>(null);
@@ -267,6 +268,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     setSelection(null);
     setPendingPlayDraft(null);
     setHoveredCard(null);
+    setPinnedPreview(null);
     setHoveredUnitId(null);
     setHoveredSlot(null);
     setDraggingCardId(null);
@@ -278,10 +280,12 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       setShowLog(true);
       setShowDetail(true);
       setHoveredCard(null);
+      setPinnedPreview(null);
     } else {
       setShowLog(false);
       setShowDetail(false);
       setHoveredCard(null);
+      setPinnedPreview(null);
       setHoveredUnitId(null);
       setHoveredSlot(null);
       setDraggingCardId(null);
@@ -315,8 +319,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       setDragOverSlot(null);
       setHoveredSlot(null);
       setHoveredUnitId(null);
-      if (isMobile && (showDetail || showLog)) {
-        setShowDetail(false);
+      if (pinnedPreview) {
+        setPinnedPreview(null);
+        return;
+      }
+      if (isMobile && showLog) {
         setShowLog(false);
         return;
       }
@@ -326,7 +333,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMobile, showDetail, showLog]);
+  }, [isMobile, pinnedPreview, showLog]);
 
   const legal = useMemo(() => enumerateLegalActions(state, actor), [state, actor]);
   const boardLanes = useMemo(() => sortedLanes(displayState.board_profile), [displayState.board_profile]);
@@ -508,10 +515,10 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         setSelection(null);
         setPendingPlayDraft(null);
         setHoveredCard(null);
+        setPinnedPreview(null);
         setHoveredSlot(null);
         setDragOverSlot(null);
         setDraggingCardId(null);
-        if (isMobile) setShowDetail(false);
       }
     } catch (err) {
       playTacticalSfx('alert');
@@ -519,11 +526,36 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     }
   };
 
+  const openPinnedPreview = (instanceId: CardInstanceId, rect?: DOMRect) => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : width;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : height;
+    const anchorRect = rect
+      ? {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        }
+      : {
+          left: Math.round(vw / 2 - 48),
+          top: Math.round(vh * 0.56),
+          right: Math.round(vw / 2 + 48),
+          bottom: Math.round(vh * 0.56 + 110),
+          width: 96,
+          height: 110,
+        };
+    setHoveredCard(null);
+    setPinnedPreview({ instanceId, rect: anchorRect, mode: 'pinned' });
+  };
+
   const clearNonModalSelection = () => {
     if (Date.now() - justFinishedTouchDragAtRef.current < 160) return;
     setSelection(null);
     setPendingPlayDraft(null);
     setHoveredCard(null);
+    setPinnedPreview(null);
     setHoveredSlot(null);
     setHoveredUnitId(null);
   };
@@ -866,7 +898,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     if (!canAct || hasPending || !isActionPhase || instance.controller_id !== actor) {
       if (unitSlotKey) triggerSlotCue(unitSlotKey, 'tap');
       setSelection(unitId);
-      setShowDetail(true);
+      openPinnedPreview(unitId);
       playCombatSfx('select');
       triggerHaptic(10);
       return;
@@ -1230,12 +1262,13 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
 
   const selectedInstance = selection ? state.card_instances[selection] : undefined;
   const selectedDefinition = selection ? cardDefinitionOf(state, selection) : undefined;
-  const hoveredCardInvalidReason = useMemo(() => {
-    if (!hoveredCard || !isActionPhase || hasPending || !canAct || bottomPlayer !== actor) return null;
-    const hoveredInst = state.card_instances[hoveredCard.instanceId];
-    if (!hoveredInst || hoveredInst.zone !== 'hand') return null;
-    return getInvalidCardReason(state, actor, hoveredCard.instanceId);
-  }, [actor, bottomPlayer, canAct, hasPending, hoveredCard, isActionPhase, state]);
+  const activePreview = pinnedPreview ?? hoveredCard;
+  const activePreviewInvalidReason = useMemo(() => {
+    if (!activePreview || !isActionPhase || hasPending || !canAct || bottomPlayer !== actor) return null;
+    const previewInst = state.card_instances[activePreview.instanceId];
+    if (!previewInst || previewInst.zone !== 'hand') return null;
+    return getInvalidCardReason(state, actor, activePreview.instanceId);
+  }, [activePreview, actor, bottomPlayer, canAct, hasPending, isActionPhase, state]);
 
   const attackPreviewTargetName = attackPreview?.primaryTargetId
     ? cardDefinitionOf(state, attackPreview.primaryTargetId)?.card_name_zh ?? attackPreview.primaryTargetId
@@ -1600,10 +1633,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           tapCue={unitTapCue}
           onClick={() => onUnitClick(instance)}
           onDoubleTap={() => handleUnitDoubleTap(instance)}
-          onLongPress={() => {
+          onLongPress={(rect) => {
             cancelPendingTouchCandidate();
-            setSelection(instance.card_instance_id);
-            setShowDetail(true);
+            openPinnedPreview(instance.card_instance_id, rect);
           }}
           onHoverStart={(rect) => {
             if (!draggingCardId && !touchDragState) {
@@ -1841,10 +1873,10 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setShowDetail(true)}
+                onClick={() => openPinnedPreview(selectedInstance.card_instance_id)}
                 className="px-2.5 py-0.5 text-[10px] min-h-[28px] sm:min-h-[26px]"
               >
-                详情档案
+                🔍 卡牌详情
               </Button>
             )}
             <Button
@@ -1881,8 +1913,20 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         seed={controller?.getSetup().seed}
         showLog={showLog}
         onToggleLog={() => setShowLog((prev) => !prev)}
-        showDetail={showDetail}
-        onToggleDetail={() => setShowDetail((prev) => !prev)}
+        showDetail={isMobile ? Boolean(pinnedPreview) : showDetail}
+        onToggleDetail={() => {
+          if (!isMobile) {
+            setShowDetail((prev) => !prev);
+            return;
+          }
+          if (pinnedPreview) {
+            setPinnedPreview(null);
+          } else if (selection) {
+            openPinnedPreview(selection);
+          } else {
+            setError('长按任意手牌或单位即可放大查看卡牌与词条');
+          }
+        }}
         onSurrender={canSurrender ? () => setConfirmDialog('surrender') : undefined}
         onExit={effectiveOnExit ? () => setConfirmDialog('exit') : undefined}
         animSpeedMode={combatAnim.speedMode}
@@ -2199,10 +2243,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
             disableMotion={combatAnim.effectiveDisabled}
             selectionPrompt={selectionPromptContent}
             onHandCardClick={onHandCardClick}
-            onLongPressCard={(id) => {
+            onLongPressCard={(id, rect) => {
               cancelPendingTouchCandidate();
-              setSelection(id);
-              setShowDetail(true);
+              openPinnedPreview(id, rect);
             }}
             onHoverCard={(preview) => {
               if (preview) {
@@ -2245,12 +2288,13 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         )}
       </div>
 
-      {/* 桌面端悬停卡牌预览浮层 (仅精细指针悬停停留触发，独立 fixed 图层，绝不撑开页面) */}
+      {/* 炉石风格放大卡牌 + 侧边词条小框预览 (支持桌面悬停与移动端长按浮层，不另开整页抽屉) */}
       {!draggingCardId && !touchDragState && (
         <CardPreviewPopover
-          state={state}
-          hovered={hoveredCard}
-          invalidReason={hoveredCardInvalidReason}
+          state={displayState}
+          hovered={activePreview}
+          invalidReason={activePreviewInvalidReason}
+          onDismiss={() => setPinnedPreview(null)}
         />
       )}
 
@@ -2264,32 +2308,6 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           maxHeight={isLandscape ? 'max-h-[92dvh]' : 'max-h-[85dvh]'}
         >
           <LogView history={snapshot.logHistory} state={snapshot.state} />
-        </BottomSheet>
-      )}
-
-      {/* 6. 移动端独立底部抽屉：干员战术详情与指令操作 */}
-      {isMobile && (
-        <BottomSheet
-          isOpen={showDetail}
-          onClose={() => setShowDetail(false)}
-          title="战术单位指令与档案"
-          codeName={selectedInstance?.card_id ?? 'SYS.DOSSIER'}
-          maxHeight={isLandscape ? 'max-h-[92dvh]' : 'max-h-[85dvh]'}
-        >
-          <TacticalDetailPanel
-            state={state}
-            selection={selection}
-            embedded
-            onDeselect={() => {
-              setSelection(null);
-              setShowDetail(false);
-            }}
-            canAct={canAct}
-            isActionPhase={isActionPhase}
-            hasPending={hasPending}
-            legalActions={legal}
-            onDispatch={dispatch}
-          />
         </BottomSheet>
       )}
 

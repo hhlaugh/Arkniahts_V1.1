@@ -235,7 +235,7 @@ export function CardFrame({
   const nameZh = definition?.card_name_zh ?? p.codeNameZh;
 
   const uiDef = definition as UiCardDefinition | undefined;
-  const rulesSummary = uiDef?.rules_text_zh || uiDef?.active_skill_text_zh || '';
+  const rulesSummary = uiDef?.rules_text_zh || '';
 
   const visualState = selected
     ? 'selected'
@@ -418,45 +418,9 @@ export function CardFrame({
           )}
         </div>
 
-        {/* TypeAndStatsLayer：数值面板 */}
+        {/* TypeAndStatsLayer：炉石布局 — 效果描述居中在上，底部左攻右血（无 SP） */}
         <div className={`flex flex-col gap-0.5 sm:gap-1 w-full pt-0.5 sm:pt-1 border-t border-slate-700/75 bg-[#10151b]/90 px-0.5 sm:px-1 ${variant === 'hand' || variant === 'compact' ? 'pb-0.5' : 'pb-1'}`}>
-          {isOperator && definition && (
-            <div className={`flex items-center justify-between ${variant === 'hand' || variant === 'compact' ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[11px]'} font-mono tabular-nums leading-none`}>
-              {variant === 'hand' ? (
-                <>
-                  <span className="text-rose-300 font-bold">
-                    <span className="hidden sm:inline">ATK </span>
-                    <span className="sm:hidden">⚔</span>
-                    {definition.atk ?? 0}
-                  </span>
-                  <span className="text-emerald-300 font-bold">
-                    <span className="hidden sm:inline">HP </span>
-                    <span className="sm:hidden">♥</span>
-                    {definition.hp ?? 0}
-                  </span>
-                  <span className="text-sky-300 font-bold">
-                    <span className="hidden sm:inline">SP </span>
-                    <span className="sm:hidden">⚡</span>
-                    {definition.starting_sp ?? 0}/{definition.max_sp ?? 5}
-                  </span>
-                </>
-              ) : variant === 'compact' ? (
-                <>
-                  <span className="text-rose-300 font-bold">⚔{definition.atk ?? 0}</span>
-                  <span className="text-emerald-300 font-bold">♥{definition.hp ?? 0}</span>
-                  <span className="text-sky-300 font-bold">⚡{definition.starting_sp ?? 0}/{definition.max_sp ?? 5}</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-rose-300 font-bold">ATK {definition.atk ?? 0}</span>
-                  <span className="text-emerald-300 font-bold">HP {definition.hp ?? 0}</span>
-                  <span className="text-sky-300 font-bold">SP {definition.starting_sp ?? 0}/{definition.max_sp ?? 5}</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* SkillSummaryLayer：规则/技能摘要 */}
+          {/* 效果描述框 */}
           {variant !== 'compact' && rulesSummary && (
             <p
               className={`text-[10px] text-slate-300 leading-snug m-0 ${
@@ -465,6 +429,40 @@ export function CardFrame({
             >
               {rulesSummary}
             </p>
+          )}
+
+          {/* 底部数值栏：左下攻击力 / 右下生命值 */}
+          {isOperator && definition && (
+            <div className={`flex items-center justify-between ${variant === 'hand' || variant === 'compact' ? 'text-[9px] sm:text-[11px]' : 'text-[10px] sm:text-[11px]'} font-mono tabular-nums leading-none`}>
+              {variant === 'hand' ? (
+                <>
+                  <span className="px-1 py-0.5 bg-[#1b1216] border border-rose-500/45 text-rose-300 font-bold">
+                    <span className="hidden sm:inline">ATK </span>
+                    <span className="sm:hidden">⚔</span>
+                    {definition.atk ?? 0}
+                  </span>
+                  <span className="px-1 py-0.5 bg-[#0e1c17] border border-emerald-500/45 text-emerald-300 font-bold">
+                    <span className="hidden sm:inline">HP </span>
+                    <span className="sm:hidden">♥</span>
+                    {definition.hp ?? 0}
+                  </span>
+                </>
+              ) : variant === 'compact' ? (
+                <>
+                  <span className="text-rose-300 font-bold">⚔{definition.atk ?? 0}</span>
+                  <span className="text-emerald-300 font-bold">♥{definition.hp ?? 0}</span>
+                </>
+              ) : (
+                <>
+                  <span className="px-1.5 py-0.5 bg-[#1b1216] border border-rose-500/50 text-rose-300 font-bold">
+                    ATK {definition.atk ?? 0}
+                  </span>
+                  <span className="px-1.5 py-0.5 bg-[#0e1c17] border border-emerald-500/50 text-emerald-300 font-bold">
+                    HP {definition.hp ?? 0}
+                  </span>
+                </>
+              )}
+            </div>
           )}
 
           {/* 卡组编辑 / 图鉴操作区 */}

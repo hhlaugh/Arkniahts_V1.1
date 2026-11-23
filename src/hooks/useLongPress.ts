@@ -132,7 +132,7 @@ export function createLongPressController(options: LongPressControllerOptions) {
 }
 
 export interface UseLongPressOptions {
-  readonly onLongPress?: () => void;
+  readonly onLongPress?: (rect?: DOMRect) => void;
   readonly onClick?: () => void;
   readonly onDoubleTap?: () => void;
   readonly delayMs?: number;
@@ -167,6 +167,7 @@ export function useLongPress({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startPosRef = useRef<PointerPosition | null>(null);
+  const targetElRef = useRef<HTMLElement | null>(null);
   const longPressFiredRef = useRef(false);
   const cancelledByMoveRef = useRef(false);
   const suppressNextClickRef = useRef(false);
@@ -215,10 +216,12 @@ export function useLongPress({
       // 桌面鼠标仅保留轻点/双击，不触发移动端手指长按详情蓄力
       if (!onLongPress || (longPressTrigger === 'touch' && e.pointerType === 'mouse')) {
         startPosRef.current = null;
+        targetElRef.current = null;
         return;
       }
 
       startPosRef.current = { x: e.clientX, y: e.clientY };
+      targetElRef.current = e.currentTarget as HTMLElement;
 
       holdFeedbackTimerRef.current = setTimeout(() => {
         holdFeedbackTimerRef.current = null;
@@ -234,7 +237,8 @@ export function useLongPress({
         lastTapAtRef.current = 0;
         setIsHolding(false);
         triggerHaptic(14);
-        onLongPress();
+        const rect = targetElRef.current?.isConnected ? targetElRef.current.getBoundingClientRect() : undefined;
+        onLongPress(rect);
       }, delayMs);
     },
     [disabled, onLongPress, clearTimers, delayMs, longPressTrigger],

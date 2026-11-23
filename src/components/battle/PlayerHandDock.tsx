@@ -24,7 +24,7 @@ interface PlayerHandDockProps {
   readonly selectionPrompt?: React.ReactNode;
   readonly idlePrompt?: React.ReactNode;
   readonly onHandCardClick: (id: CardInstanceId) => void;
-  readonly onLongPressCard: (id: CardInstanceId) => void;
+  readonly onLongPressCard: (id: CardInstanceId, rect?: DOMRect) => void;
   readonly onHoverCard: (preview: HoveredCardPreview | null) => void;
   readonly onDragStartCard: (id: CardInstanceId, e: React.DragEvent) => void;
   readonly onDragEndCard: () => void;
@@ -231,9 +231,9 @@ export function PlayerHandDock({
                     touchActionMode="pan-y"
                     isTouchDragging={draggingCardId === id}
                     onClick={() => onHandCardClick(id)}
-                    onLongPress={() => {
+                    onLongPress={(rect) => {
                       onHoverCard(null);
-                      onLongPressCard(id);
+                      onLongPressCard(id, rect);
                     }}
                     onHoverStart={(rect) => {
                       if (!draggingCardId) {
@@ -459,9 +459,9 @@ export function PlayerHandDock({
                   touchActionMode="pan-x"
                   isTouchDragging={draggingCardId === id}
                   onClick={() => onHandCardClick(id)}
-                  onLongPress={() => {
+                  onLongPress={(rect) => {
                     onHoverCard(null);
-                    onLongPressCard(id);
+                    onLongPressCard(id, rect);
                   }}
                   onHoverStart={(rect) => {
                     if (!draggingCardId) {

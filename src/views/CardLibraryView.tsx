@@ -195,20 +195,14 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
 
         {/* Combat Stats Grid (Operators Only) */}
         {inspectCard.card_type === 'operator' && (
-          <div className="grid grid-cols-3 gap-2 bg-[#0e1218] p-2.5 border border-[#2b3644] text-center font-mono">
+          <div className="grid grid-cols-2 gap-2 bg-[#0e1218] p-2.5 border border-[#2b3644] text-center font-mono">
             <div className="space-y-0.5">
               <span className="text-[10px] text-slate-400 uppercase block">ATK 攻击</span>
               <span className="text-sm font-bold text-rose-400">{inspectCard.atk ?? 0}</span>
             </div>
-            <div className="space-y-0.5 border-x border-[#232c38]">
+            <div className="space-y-0.5 border-l border-[#232c38]">
               <span className="text-[10px] text-slate-400 uppercase block">HP 生命</span>
               <span className="text-sm font-bold text-emerald-400">{inspectCard.hp ?? 0}</span>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-400 uppercase block">SP 技力</span>
-              <span className="text-sm font-bold text-sky-400">
-                {inspectCard.starting_sp ?? 0} / {inspectCard.max_sp ?? 5}
-              </span>
             </div>
           </div>
         )}
@@ -250,19 +244,6 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
             {inspectCard.rules_text_zh || '基础通用单位，无特殊常驻被动效果。'}
           </p>
         </div>
-
-        {/* Active Skill */}
-        {inspectCard.active_skill_text_zh && (
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-sky-300 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-1 h-3 bg-sky-400" />
-              主动技能 (消耗 {inspectCard.active_skill_sp_cost ?? 0} SP)
-            </span>
-            <p className="text-slate-300 leading-relaxed bg-[#11151c] p-2.5 border border-[#273240] m-0">
-              {inspectCard.active_skill_text_zh}
-            </p>
-          </div>
-        )}
 
         <KeywordGlossary definition={inspectCard} />
 

@@ -56,7 +56,7 @@ interface CardViewProps {
   readonly isTouchDragging?: boolean;
   readonly onClick?: () => void;
   readonly onDoubleTap?: () => void;
-  readonly onLongPress?: () => void;
+  readonly onLongPress?: (rect?: DOMRect) => void;
   readonly onHoverStart?: (rect: DOMRect) => void;
   readonly onHoverEnd?: () => void;
   readonly onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;

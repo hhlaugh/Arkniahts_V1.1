@@ -479,12 +479,6 @@ export function RecruitmentView({ onBack, onOpenDeckEditor }: RecruitmentViewPro
                   {inspectCard.rules_text_zh}
                 </div>
               )}
-              {inspectCard.active_skill_text_zh && (
-                <div className="bg-[#11151c] p-2.5 border border-[#273240] text-sky-300 leading-relaxed">
-                  <strong>主动技能 ({inspectCard.active_skill_sp_cost ?? 0} SP)：</strong>
-                  {inspectCard.active_skill_text_zh}
-                </div>
-              )}
             </div>
           );
         })()}
