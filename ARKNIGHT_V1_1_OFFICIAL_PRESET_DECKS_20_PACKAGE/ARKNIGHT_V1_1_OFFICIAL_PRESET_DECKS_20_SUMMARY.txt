@@ -1,0 +1,12 @@
+Arknight V1.1 Official Preset Decks - 20 card proposal
+Confirmed: 20 cards per deck; max 2 copies of the same card name.
+Preset design ratio only: 13 operators + 5 tactics + 1 facility + 1 equipment.
+Decks:
+PRESET-01 先遣突击: 20 copies, 18 unique, total CP sum 47, average 2.35, curve {'1': 6, '2': 5, '3': 5, '4': 4, '5': 0, '6': 0, '7': 0, '8': 0}, duplicates [('芬', 2), ('空降部署', 2)]
+PRESET-02 铁壁防线: 20 copies, 17 unique, total CP sum 56, average 2.8, curve {'1': 0, '2': 8, '3': 8, '4': 4, '5': 0, '6': 0, '7': 0, '8': 0}, duplicates [('米格鲁', 2), ('斑点', 2), ('防线固守', 2)]
+PRESET-03 寒霜封锁: 20 copies, 17 unique, total CP sum 53, average 2.65, curve {'1': 3, '2': 5, '3': 8, '4': 4, '5': 0, '6': 0, '7': 0, '8': 0}, duplicates [('梓兰', 2), ('真理', 2), ('压制射击', 2)]
+PRESET-04 狙击火网: 20 copies, 18 unique, total CP sum 55, average 2.75, curve {'1': 0, '2': 8, '3': 9, '4': 3, '5': 0, '6': 0, '7': 0, '8': 0}, duplicates [('克洛丝', 2), ('后排狙杀', 2)]
+PRESET-05 召唤阵地: 20 copies, 18 unique, total CP sum 59, average 2.95, curve {'1': 1, '2': 6, '3': 7, '4': 5, '5': 1, '6': 0, '7': 0, '8': 0}, duplicates [('梅尔', 2), ('麦哲伦', 2)]
+PRESET-06 位移破阵: 20 copies, 17 unique, total CP sum 60, average 3.0, curve {'1': 0, '2': 5, '3': 10, '4': 5, '5': 0, '6': 0, '7': 0, '8': 0}, duplicates [('暗索', 2), ('阿消', 2), ('临机调度', 2)]
+PRESET-07 法术破甲: 20 copies, 17 unique, total CP sum 56, average 2.8, curve {'1': 0, '2': 8, '3': 10, '4': 1, '5': 0, '6': 1, '7': 0, '8': 0}, duplicates [('史都华德', 2), ('夜烟', 2), ('破甲弹', 2)]
+PRESET-08 毒伤反制: 20 copies, 18 unique, total CP sum 61, average 3.05, curve {'1': 1, '2': 2, '3': 14, '4': 1, '5': 2, '6': 0, '7': 0, '8': 0}, duplicates [('蓝毒', 2), ('棘刺', 2)]
