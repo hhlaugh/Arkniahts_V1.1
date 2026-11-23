@@ -2,6 +2,7 @@ import type React from 'react';
 import type { CardInstanceId, GameState } from '../../game/types';
 import type { UiCardDefinition } from '../../client/gameData';
 import { useLongPress } from '../../hooks/useLongPress';
+import { HOVER_INTENT_DELAY_MS, useHoverIntent } from '../../hooks/useHoverIntent';
 import { CardFrame } from './CardFrame';
 
 export function cardDefinitionOf(state: GameState, instanceId: CardInstanceId): UiCardDefinition | undefined {
@@ -89,7 +90,14 @@ export function CardView({
     onLongPress,
     onClick,
     onDoubleTap,
+    longPressTrigger: 'touch',
     disabled: !onClick && !onLongPress && !onDoubleTap,
+  });
+  const hoverHandlers = useHoverIntent({
+    delayMs: HOVER_INTENT_DELAY_MS,
+    disabled: !onHoverStart || isTouchDragging,
+    onHoverShow: onHoverStart,
+    onHoverHide: onHoverEnd,
   });
 
   if (!instance || !definition) return null;
@@ -112,13 +120,15 @@ export function CardView({
       redeployCd={cd}
       draggable={draggable}
       onDragStart={(e) => {
+        hoverHandlers.cancelHover();
         onHoverEnd?.();
         onDragStart?.(e);
       }}
       onDragEnd={onDragEnd}
-      onMouseEnter={(e) => onHoverStart?.(e.currentTarget.getBoundingClientRect())}
-      onMouseLeave={() => onHoverEnd?.()}
+      onPointerEnter={hoverHandlers.onPointerEnter}
+      onPointerLeave={hoverHandlers.onPointerLeave}
       onPointerDown={(e) => {
+        hoverHandlers.onPointerDown(e);
         longPressHandlers.onPointerDown(e);
         if (e.pointerType !== 'mouse') {
           onTouchPointerDown?.(e);
@@ -130,6 +140,7 @@ export function CardView({
       onContextMenu={longPressHandlers.onContextMenu}
       onClick={(e) => {
         e?.stopPropagation();
+        hoverHandlers.cancelHover();
         longPressHandlers.onClick(e as React.MouseEvent);
       }}
       className={`${touchPanClass} card card-${definition.card_type}${selected ? ' selected' : ''}${interactive ? ' interactive' : ''}${checked ? ' checked' : ''}${cd > 0 ? ' card-dimmed' : ''}${isTouchDragging ? ' opacity-35 scale-95 border-dashed ring-1 ring-amber-400/60' : ''}`}

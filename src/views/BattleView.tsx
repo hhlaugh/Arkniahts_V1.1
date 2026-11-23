@@ -1606,7 +1606,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
             setShowDetail(true);
           }}
           onHoverStart={(rect) => {
-            if (!isMobile && !draggingCardId) {
+            if (!draggingCardId && !touchDragState) {
               setHoveredUnitId(instance.card_instance_id);
               setHoveredCard({ instanceId: instance.card_instance_id, rect });
             }
@@ -1717,7 +1717,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                   )}
                 </span>
               ) : (
-                <span className="text-slate-300"> · {selectedEntityKind === 'facility' ? '场地设施（长按看详情）' : '战场单位（长按看详情）'}</span>
+                <span className="text-slate-300">
+                  {' '}·{' '}
+                  {selectedEntityKind === 'facility'
+                    ? isMobile
+                      ? '场地设施（长按看详情）'
+                      : '场地设施（悬停或右侧查看档案）'
+                    : isMobile
+                      ? '战场单位（长按看详情）'
+                      : '战场单位（悬停或右侧查看档案）'}
+                </span>
               )}
             </span>
           ) : (
@@ -1947,7 +1956,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       {/* 3. 核心三栏桌面工作区 / 移动端自适应战场 */}
       <div className="flex min-h-0 overflow-hidden relative">
         {!isMobile && showLog && (
-          <aside className="w-80 border-r border-[#242e3d] bg-[#121620] flex flex-col shrink-0 overflow-hidden shadow-lg z-20">
+          <aside className="w-68 xl:w-76 border-r border-[#242e3d] bg-[#121620] flex flex-col shrink-0 overflow-hidden shadow-lg z-20">
             <Panel
               variant="default"
               title={`战斗日志 (${snapshot.logHistory.length})`}
@@ -2087,6 +2096,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                               )}
                             </div>
                           )}
+                          {laneProfile.rearSlots > 0 && laneProfile.frontSlots > 0 && (
+                            <div aria-hidden="true" className="h-[1px] mx-1 bg-rose-500/15" />
+                          )}
                           {laneProfile.frontSlots > 0 && (
                             <div
                               className="grid gap-1 sm:gap-1.5"
@@ -2120,6 +2132,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                                 renderSlot(bottomPlayer, lane, 'front', idx + 1, laneProfile.frontSlots),
                               )}
                             </div>
+                          )}
+                          {laneProfile.frontSlots > 0 && laneProfile.rearSlots > 0 && (
+                            <div aria-hidden="true" className="h-[1px] mx-1 bg-sky-400/15" />
                           )}
                           {laneProfile.rearSlots > 0 && (
                             <div
@@ -2214,7 +2229,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         </main>
 
         {!isMobile && showDetail && (
-          <aside className="w-80 border-l border-[#242e3d] bg-[#121620] flex flex-col shrink-0 overflow-hidden shadow-lg z-20">
+          <aside className="w-72 xl:w-80 border-l border-[#242e3d] bg-[#121620] flex flex-col shrink-0 overflow-hidden shadow-lg z-20">
             <TacticalDetailPanel
               state={state}
               selection={selection}
@@ -2230,8 +2245,8 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         )}
       </div>
 
-      {/* 桌面端悬停卡牌预览浮层 (独立 fixed 图层，绝不撑开页面) */}
-      {!isMobile && !draggingCardId && (
+      {/* 桌面端悬停卡牌预览浮层 (仅精细指针悬停停留触发，独立 fixed 图层，绝不撑开页面) */}
+      {!draggingCardId && !touchDragState && (
         <CardPreviewPopover
           state={state}
           hovered={hoveredCard}
@@ -2264,6 +2279,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           <TacticalDetailPanel
             state={state}
             selection={selection}
+            embedded
             onDeselect={() => {
               setSelection(null);
               setShowDetail(false);

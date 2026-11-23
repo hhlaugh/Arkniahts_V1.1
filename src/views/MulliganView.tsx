@@ -145,7 +145,7 @@ export function MulliganView({
         {/* Instructions banner */}
         <div className="px-3 sm:px-5 py-2 bg-[#1a2026] border-b border-[#2e3740] text-[11px] sm:text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2">
           <span>
-            点击勾选想要换掉的卡牌（可全不选）。{isMobile ? '长按卡牌可查看详情与词条说明。' : '悬停卡牌可预览详情与词条说明。'}
+            点击勾选想要换掉的卡牌（可全不选）。{isMobile ? '手指长按卡牌可查看详情与词条说明。' : '鼠标悬停卡牌片刻可预览详情与词条说明。'}
           </span>
           <span className="text-slate-400 text-[10px] font-mono hidden sm:inline">STEP: 01_DEPLOY_PREP</span>
         </div>
@@ -167,9 +167,7 @@ export function MulliganView({
                   setInspectId(id);
                 }}
                 onHoverStart={(rect) => {
-                  if (!isMobile) {
-                    setHoveredCard({ instanceId: id, rect });
-                  }
+                  setHoveredCard({ instanceId: id, rect });
                 }}
                 onHoverEnd={() => {
                   setHoveredCard((prev) => (prev?.instanceId === id ? null : prev));
@@ -211,11 +209,9 @@ export function MulliganView({
         </div>
       </Panel>
 
-      {!isMobile && (
-        <CardPreviewPopover state={state} hovered={hoveredCard} />
-      )}
+      <CardPreviewPopover state={state} hovered={hoveredCard} />
 
-      {isMobile && (() => {
+      {(() => {
         const inspectInst = inspectId ? state.card_instances[inspectId] : undefined;
         const inspectDef = inspectId ? cardDefinitionOf(state, inspectId) : undefined;
         return (

@@ -24,6 +24,8 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
+import { useHoverIntent } from '../hooks/useHoverIntent';
+import { useLongPress } from '../hooks/useLongPress';
 
 interface DeckEditorViewProps {
   readonly onBack: () => void;
@@ -62,6 +64,81 @@ function serializeDeckSignature(deck: DeckDefinition): string {
     .map((c) => `${c.card_id}:${c.quantity}`)
     .join(',');
   return `${deck.deck_name_zh.trim()}|${normalizedCards}`;
+}
+
+interface DeckCatalogCardItemProps {
+  readonly uiCard: UiCardDefinition;
+  readonly inDeckCount: number;
+  readonly copyCap: number;
+  readonly ownedCount: number;
+  readonly showOwnership: boolean;
+  readonly disabled: boolean;
+  readonly actionLabel: string;
+  readonly onAdd: (cardId: CardId) => void;
+  readonly onHoverInspect: (card: UiCardDefinition) => void;
+  readonly onLongPressInspect: (card: UiCardDefinition) => void;
+}
+
+function DeckCatalogCardItem({
+  uiCard,
+  inDeckCount,
+  copyCap,
+  ownedCount,
+  showOwnership,
+  disabled,
+  actionLabel,
+  onAdd,
+  onHoverInspect,
+  onLongPressInspect,
+}: DeckCatalogCardItemProps) {
+  const hoverHandlers = useHoverIntent({
+    delayMs: 260,
+    onHoverShow: () => onHoverInspect(uiCard),
+  });
+  const longPressHandlers = useLongPress({
+    longPressTrigger: 'touch',
+    onClick: () => onAdd(uiCard.card_id),
+    onLongPress: () => onLongPressInspect(uiCard),
+  });
+
+  return (
+    <div className="h-full flex flex-col">
+      <CardFrame
+        cardId={uiCard.card_id}
+        definition={uiCard}
+        variant="deck"
+        inDeckCount={inDeckCount}
+        maxInDeckCount={copyCap}
+        ownedCount={ownedCount}
+        showOwnership={showOwnership}
+        selected={inDeckCount > 0}
+        holding={longPressHandlers.isHolding}
+        disabled={disabled}
+        onPointerEnter={hoverHandlers.onPointerEnter}
+        onPointerLeave={hoverHandlers.onPointerLeave}
+        onPointerDown={(e) => {
+          hoverHandlers.onPointerDown(e);
+          longPressHandlers.onPointerDown(e);
+        }}
+        onPointerMove={longPressHandlers.onPointerMove}
+        onPointerUp={longPressHandlers.onPointerUp}
+        onPointerCancel={longPressHandlers.onPointerCancel}
+        onContextMenu={longPressHandlers.onContextMenu}
+        onClick={(e) => {
+          hoverHandlers.cancelHover();
+          if (e) {
+            longPressHandlers.onClick(e);
+          } else {
+            onAdd(uiCard.card_id);
+          }
+        }}
+        onActionClick={() => onAdd(uiCard.card_id)}
+        onInspectClick={() => onLongPressInspect(uiCard)}
+        actionLabel={actionLabel}
+        className="flex-1"
+      />
+    </div>
+  );
 }
 
 export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
@@ -868,32 +945,34 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                 const copyCap = deckMode === 'collection' ? Math.max(1, Math.min(2, ownedCount)) : 2;
                 const isMaxed = inDeckCount >= copyCap || nameCount >= 2 || validation.totalCards >= 20;
 
+                const actionLabel =
+                  inDeckCount >= copyCap
+                    ? deckMode === 'collection' && copyCap < 2
+                      ? '持有上限'
+                      : '已满'
+                    : nameCount >= 2
+                      ? '同名满'
+                      : validation.totalCards >= 20
+                        ? '满编'
+                        : '+ 加入';
+
                 return (
-                  <div
+                  <DeckCatalogCardItem
                     key={card.card_id}
-                    onMouseEnter={() => setInspectCard(uiCard)}
-                    className="h-full flex flex-col"
-                  >
-                    <CardFrame
-                      cardId={card.card_id}
-                      definition={uiCard}
-                      variant="deck"
-                      inDeckCount={inDeckCount}
-                      maxInDeckCount={copyCap}
-                      ownedCount={ownedCount}
-                      showOwnership={deckMode === 'collection'}
-                      selected={inDeckCount > 0}
-                      disabled={isMaxed && inDeckCount === 0}
-                      onClick={() => addCard(card.card_id)}
-                      onActionClick={() => addCard(card.card_id)}
-                      onInspectClick={() => {
-                        setInspectCard(uiCard);
-                        setMobileInspectCard(uiCard);
-                      }}
-                      actionLabel={inDeckCount >= copyCap ? (deckMode === 'collection' && copyCap < 2 ? '持有上限' : '已满') : nameCount >= 2 ? '同名满' : validation.totalCards >= 20 ? '满编' : '+ 加入'}
-                      className="flex-1"
-                    />
-                  </div>
+                    uiCard={uiCard}
+                    inDeckCount={inDeckCount}
+                    copyCap={copyCap}
+                    ownedCount={ownedCount}
+                    showOwnership={deckMode === 'collection'}
+                    disabled={isMaxed && inDeckCount === 0}
+                    actionLabel={actionLabel}
+                    onAdd={addCard}
+                    onHoverInspect={(c) => setInspectCard(c)}
+                    onLongPressInspect={(c) => {
+                      setInspectCard(c);
+                      setMobileInspectCard(c);
+                    }}
+                  />
                 );
               })
             )}

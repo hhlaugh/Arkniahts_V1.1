@@ -40,6 +40,8 @@ export interface CardFrameProps {
   readonly onPointerMove?: (e: React.PointerEvent<HTMLDivElement>) => void;
   readonly onPointerUp?: (e: React.PointerEvent<HTMLDivElement>) => void;
   readonly onPointerCancel?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  readonly onPointerEnter?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  readonly onPointerLeave?: (e: React.PointerEvent<HTMLDivElement>) => void;
   readonly onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
   readonly className?: string;
 }
@@ -217,6 +219,8 @@ export function CardFrame({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  onPointerEnter,
+  onPointerLeave,
   onContextMenu,
   className = '',
 }: CardFrameProps) {
@@ -280,11 +284,13 @@ export function CardFrame({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       onContextMenu={onContextMenu}
       onClick={disabled ? undefined : (e) => onClick?.(e)}
       onKeyDown={handleKeyDown}
       className={`card-frame touch-gesture-surface group relative flex flex-col justify-between text-slate-100 select-none overflow-hidden transition-all duration-150 border ${
-        isClickable ? 'cursor-pointer hover:-translate-y-1' : ''
+        isClickable ? 'cursor-pointer hover:-translate-y-1.5 hover:border-amber-400/55' : ''
       } ${holding ? 'ring-2 ring-amber-400/80 border-amber-400' : ''} ${sizeClasses} ${className}`}
       style={{
         clipPath: CORNER_CUTS.md,
@@ -349,6 +355,11 @@ export function CardFrame({
             <span className="text-[8px] font-sans tracking-tight">DP</span>
             <span className="text-xs sm:text-sm leading-none">{cost}</span>
           </div>
+          {unplayable && redeployCd === 0 && (
+            <span className="px-1 py-0.2 bg-[#0f1318]/92 border border-rose-500/75 text-[8px] sm:text-[9px] font-bold text-rose-300 leading-tight pointer-events-none shadow-sm">
+              费用不足
+            </span>
+          )}
           {showOwnership && ownedCount !== undefined && (
             <span
               className={`px-1 py-0.2 text-[9px] font-mono font-bold leading-tight border ${
@@ -504,13 +515,6 @@ export function CardFrame({
           )}
         </div>
       </div>
-
-      {/* 8. InteractionLayer：手牌费用不足非色盲提示角标 */}
-      {unplayable && redeployCd === 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-25 px-1.5 py-0.5 bg-[#0f1318]/90 border border-rose-500/70 text-[10px] font-bold text-rose-300 pointer-events-none shadow">
-          费用不足
-        </div>
-      )}
 
       {/* 再部署 CD 遮罩覆层 */}
       {redeployCd > 0 && (

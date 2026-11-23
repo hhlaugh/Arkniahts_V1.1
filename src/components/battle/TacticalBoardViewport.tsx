@@ -16,6 +16,7 @@ import {
 } from './boardViewportMath';
 
 import { DynamicBattlefieldBackdrop } from './DynamicBattlefieldBackdrop';
+import { LONG_PRESS_MOVE_THRESHOLD_PX } from '../../hooks/useLongPress';
 import type { ScenicSceneId } from '../ui/ScenicBackdrop';
 
 interface TacticalBoardViewportProps {
@@ -88,6 +89,14 @@ export function TacticalBoardViewport({
   useEffect(() => {
     onScaleChange?.(transform.scale);
   }, [transform.scale, onScaleChange]);
+
+  useEffect(() => {
+    if (!disableGestures) return;
+    activePointersRef.current.clear();
+    panSessionRef.current = null;
+    pinchSessionRef.current = null;
+    setIsInteracting(false);
+  }, [disableGestures]);
 
   // 首次或视口尺寸变化时若棋盘超出当前容器则自动计算安全适配倍率
   useEffect(() => {
@@ -224,9 +233,10 @@ export function TacticalBoardViewport({
     const dx = pt.x - pan.startPointer.x;
     const dy = pt.y - pan.startPointer.y;
     const dist = Math.hypot(dx, dy);
+    const dragThresholdPx = e.pointerType === 'touch' ? LONG_PRESS_MOVE_THRESHOLD_PX : BOARD_DRAG_THRESHOLD_PX;
 
     if (!pan.moved) {
-      if (dist < BOARD_DRAG_THRESHOLD_PX) return;
+      if (dist < dragThresholdPx) return;
       pan.moved = true;
       suppressNextClickRef.current = true;
       setIsInteracting(true);

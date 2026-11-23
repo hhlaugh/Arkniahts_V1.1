@@ -7,7 +7,15 @@ import {
   exceedsMoveThreshold,
   LONG_PRESS_DELAY_MS,
 } from '../../hooks/useLongPress';
+import {
+  createHoverIntentController,
+  HOVER_INTENT_DELAY_MS,
+  isFineHoverPointerType,
+  isRecentTouchActivity,
+  markTouchPointerActivity,
+} from '../../hooks/useHoverIntent';
 import { clampPopoverPosition, CardPreviewPopover } from './CardPreviewPopover';
+import { PlayerHandDock } from './PlayerHandDock';
 import { TacticalDetailPanel } from './TacticalDetailPanel';
 import { KeywordGlossary } from '../cards/KeywordGlossary';
 import { extractCardKeywords } from '../../data/keywords';
@@ -716,5 +724,105 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     );
     expect(unitHtml).toContain('board-unit-shell');
     expect(unitHtml).toContain('board-unit');
+    expect(unitHtml).not.toContain('pr-11');
+
+    // 6. UnitView 有角标时自动预留右上角空距，避免与状态或 attackMode 重叠
+    const skillReadyHtml = renderToString(
+      <UnitView state={unitState} instance={unitInstance} highlight="none" canActivateSkill />,
+    );
+    expect(skillReadyHtml).toContain('pr-11');
+    expect(skillReadyHtml).toContain('⚡ 就绪');
+  });
+
+  it('桌面悬停意图与触控隔离: 鼠标须稳定悬停达到阈值才显示，移出/点击立即取消且触控指针绝不触发悬停', () => {
+    const onShow = vi.fn();
+    const onHide = vi.fn();
+    const ctrl = createHoverIntentController({ onShow, onHide });
+
+    // 快速扫过不足 380ms 移出 -> 不展示详情
+    ctrl.enter();
+    vi.advanceTimersByTime(HOVER_INTENT_DELAY_MS - 100);
+    expect(onShow).not.toHaveBeenCalled();
+    ctrl.leave();
+    vi.advanceTimersByTime(300);
+    expect(onShow).not.toHaveBeenCalled();
+    expect(onHide).not.toHaveBeenCalled();
+
+    // 稳定悬停达到 380ms -> 展示详情；点击/移出立即隐藏
+    ctrl.enter();
+    vi.advanceTimersByTime(HOVER_INTENT_DELAY_MS);
+    expect(onShow).toHaveBeenCalledTimes(1);
+    expect(ctrl.isShown()).toBe(true);
+    ctrl.cancel();
+    expect(ctrl.isShown()).toBe(false);
+    expect(onHide).toHaveBeenCalledTimes(1);
+
+    // 指针类型与近期触控防穿透校验
+    expect(isFineHoverPointerType('mouse')).toBe(true);
+    expect(isFineHoverPointerType('pen')).toBe(true);
+    expect(isFineHoverPointerType('touch')).toBe(false);
+
+    const t0 = 1_700_000_000_000;
+    markTouchPointerActivity(t0);
+    expect(isRecentTouchActivity(t0 + 200)).toBe(true);
+    expect(isRecentTouchActivity(t0 + 1200)).toBe(false);
+  });
+
+  it('布局与手牌托盘体验: 固定占位提示栏、下次部署减费中文文案及移动端 embedded 详情面板', () => {
+    const baseState = createActionPhaseState(314);
+    const actor = baseState.active_player_id;
+    const discountedState: GameState = {
+      ...baseState,
+      players: {
+        ...baseState.players,
+        [actor]: {
+          ...baseState.players[actor],
+          next_deploy_discounts: [{ source_instance_id: 'disc-1' as CardInstanceId, amount: 1 }],
+        },
+      },
+    };
+
+    const dockHtml = renderToString(
+      <PlayerHandDock
+        state={discountedState}
+        bottomPlayer={actor}
+        actor={actor}
+        canAct
+        isActionPhase
+        hasPending={false}
+        isHotseat={false}
+        isMobile={false}
+        layoutMode="bottom"
+        selection={null}
+        draggingCardId={null}
+        onHandCardClick={() => {}}
+        onLongPressCard={() => {}}
+        onHoverCard={() => {}}
+        onDragStartCard={() => {}}
+        onDragEndCard={() => {}}
+        onEndActionPhase={() => {}}
+      />,
+    );
+    expect(dockHtml).toContain('min-h-[34px]');
+    expect(dockHtml).toContain('first:ml-auto last:mr-auto');
+    expect(dockHtml).toContain('下次部署 -1 CP');
+    expect(dockHtml).not.toContain('下 deploy');
+
+    const firstHandId = discountedState.players[actor].hand[0];
+    const embeddedDetailHtml = renderToString(
+      <TacticalDetailPanel
+        state={discountedState}
+        selection={firstHandId}
+        embedded
+        onDeselect={() => {}}
+        canAct
+        isActionPhase
+        hasPending={false}
+        legalActions={[]}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(embeddedDetailHtml).toContain('取消选中');
+    expect(embeddedDetailHtml).not.toContain('战术参数与指令');
   });
 });

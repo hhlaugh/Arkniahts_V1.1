@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameState, CardInstanceId } from '../../game/types';
 import { getEntityKind, getEntityStats, isFacilityDisabled } from '../../game/range';
 import { STATUS_LABEL } from '../../client/gameData';
@@ -75,10 +75,12 @@ export function clampPopoverPosition(
 
 /**
  * 桌面端卡牌/在场单位悬停浮层预览：
- * - 支持悬停手牌与棋盘在场单位（敌我干员 / 设施 / 召唤物）
- * - 展示详情卡面、在场实时参数、能力与技能规则，以及全部涉及词条简要说明
+ * - 仅在鼠标悬停停留达到阈值后触发，不与移动端长按冲突
+ * - 实时测量浮层实际高度后再做边缘钳位，保证高星多词条卡牌也绝不裁切或遮挡手牌
  */
 export function CardPreviewPopover({ state, hovered, invalidReason }: CardPreviewPopoverProps) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number>(POPOVER_ESTIMATED_HEIGHT);
   const [viewport, setViewport] = useState<{ width: number; height: number }>(() => {
     if (typeof window === 'undefined') return { width: 1280, height: 800 };
     return { width: window.innerWidth, height: window.innerHeight };
@@ -90,6 +92,14 @@ export function CardPreviewPopover({ state, hovered, invalidReason }: CardPrevie
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!hovered || !popoverRef.current) return;
+    const h = popoverRef.current.offsetHeight;
+    if (h > 0) {
+      setMeasuredHeight((prev) => (Math.abs(prev - h) > 2 ? h : prev));
+    }
+  }, [hovered, invalidReason, viewport.width, viewport.height]);
 
   if (!hovered) return null;
 
@@ -103,10 +113,11 @@ export function CardPreviewPopover({ state, hovered, invalidReason }: CardPrevie
   const entityStats = isBoardUnit ? getEntityStats(state, instance) : null;
   const facilityDisabled = entityKind === 'facility' && isFacilityDisabled(state, instance);
 
-  const pos = clampPopoverPosition(hovered.rect, viewport.width, viewport.height);
+  const pos = clampPopoverPosition(hovered.rect, viewport.width, viewport.height, measuredHeight);
 
   return (
     <div
+      ref={popoverRef}
       role="tooltip"
       data-testid="card-preview-popover"
       aria-label={`${definition.card_name_zh} 卡牌详情预览`}
@@ -188,13 +199,13 @@ export function CardPreviewPopover({ state, hovered, invalidReason }: CardPrevie
           </div>
         ) : (
           <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
-            <span>{isBoardUnit ? '点击选中单位' : '点击选中卡牌'}</span>
+            <span>{isBoardUnit ? '单击选中单位' : '单击选中卡牌'}</span>
             <span>
               {isBoardUnit
-                ? '双击或点详情查看全部指令'
+                ? '双击可快速发动主动技'
                 : definition.card_type === 'operator'
-                  ? '可拖放部署'
-                  : '点击后选目标'}
+                  ? '拖放或点高亮格部署'
+                  : '单击后选目标'}
             </span>
           </div>
         )}

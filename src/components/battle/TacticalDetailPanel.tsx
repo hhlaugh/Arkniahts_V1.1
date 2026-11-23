@@ -29,6 +29,7 @@ interface TacticalDetailPanelProps {
   readonly hasPending: boolean;
   readonly legalActions: readonly GameAction[];
   readonly onDispatch: (action: GameAction) => void;
+  readonly embedded?: boolean;
   readonly className?: string;
 }
 
@@ -46,6 +47,7 @@ export function TacticalDetailPanel({
   hasPending,
   legalActions,
   onDispatch,
+  embedded = false,
   className = '',
 }: TacticalDetailPanelProps) {
   const selectedInstance: CardInstance | undefined = selection ? state.card_instances[selection] : undefined;
@@ -144,18 +146,10 @@ export function TacticalDetailPanel({
       ? getInvalidUnitActionReason(state, actor, selection, 'activate_skill')
       : null;
 
-  return (
-    <Panel
-      variant="raised"
-      title="战术参数与指令"
-      codeName={selectedInstance ? selectedInstance.card_instance_id : 'IDLE'}
-      headerScene="rhodes-bridge"
-      scanlines
-      grid
-      className={`flex flex-col h-full bg-[#161a22] border-[#2f3b4a] shadow-xl overflow-hidden ${className}`}
-    >
-      {selectedInstance && selectedDefinition && selectedPresentation ? (
-        <div className="flex flex-col h-full overflow-hidden">
+  const bodyContent =
+    selectedInstance && selectedDefinition && selectedPresentation ? (
+      <div className="flex flex-col h-full overflow-hidden">
+        {!embedded && (
           <div className="relative flex items-center justify-between px-3.5 py-2 bg-[#13171e] border-b border-[#283240] shrink-0 overflow-hidden">
             <ScenicBannerLayer scene="rhodes-command" fade="right" opacityClassName="opacity-28" />
             <div className="relative z-10 flex items-center gap-1.5 min-w-0">
@@ -170,8 +164,23 @@ export function TacticalDetailPanel({
               ✕ 取消
             </Button>
           </div>
+        )}
 
-          <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3.5 text-xs">
+        {embedded && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-[#11161e] border-b border-[#263140] shrink-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Badge variant={isBoardUnit ? 'status' : 'cost'} value={isBoardUnit ? (entityKind === 'facility' ? '设施' : entityKind === 'summon' ? '召唤物' : '在场单位') : `${selectedDefinition.cost} CP`}>
+                {isBoardUnit ? (entityKind === 'facility' ? '设施' : entityKind === 'summon' ? '召唤' : '在场') : '手牌'}
+              </Badge>
+              <span className="text-xs font-bold text-white truncate">{selectedDefinition.card_name_zh}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onDeselect} className="text-slate-400 hover:text-white px-2 py-0.5 text-xs">
+              取消选中
+            </Button>
+          </div>
+        )}
+
+        <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3.5 text-xs">
             <div className="flex justify-center">
               <CardFrame
                 cardId={selectedInstance.card_id}
@@ -513,7 +522,27 @@ export function TacticalDetailPanel({
             </div>
           </div>
         </div>
-      )}
+      );
+
+  if (embedded) {
+    return (
+      <div className={`flex flex-col bg-[#161a22] overflow-hidden ${className}`}>
+        {bodyContent}
+      </div>
+    );
+  }
+
+  return (
+    <Panel
+      variant="raised"
+      title="战术参数与指令"
+      codeName={selectedInstance ? selectedInstance.card_instance_id : 'IDLE'}
+      headerScene="rhodes-bridge"
+      scanlines
+      grid
+      className={`flex flex-col h-full bg-[#161a22] border-[#2f3b4a] shadow-xl overflow-hidden ${className}`}
+    >
+      {bodyContent}
     </Panel>
   );
 }

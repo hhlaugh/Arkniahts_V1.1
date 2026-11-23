@@ -31,6 +31,9 @@ export default defineConfig(() => {
           if (fs.existsSync(distDir) && fs.existsSync(rootArknightsAssets)) {
             fs.cpSync(rootArknightsAssets, distArknightsAssets, {recursive: true, force: true});
           }
+          if (fs.existsSync(distDir)) {
+            fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
+          }
         },
       },
     ],

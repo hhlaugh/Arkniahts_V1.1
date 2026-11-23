@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
+import { markTouchPointerActivity } from './useHoverIntent';
 
 export const LONG_PRESS_DELAY_MS = 450;
 export const LONG_PRESS_MOVE_THRESHOLD_PX = 10;
@@ -137,6 +138,8 @@ export interface UseLongPressOptions {
   readonly delayMs?: number;
   readonly moveThresholdPx?: number;
   readonly doubleTapWindowMs?: number;
+  /** 默认仅移动端触控（'touch'）启用长按，避免桌面鼠标按住或拖拽时误触长按弹窗。 */
+  readonly longPressTrigger?: 'touch' | 'all';
   readonly disabled?: boolean;
 }
 
@@ -157,6 +160,7 @@ export function useLongPress({
   delayMs = LONG_PRESS_DELAY_MS,
   moveThresholdPx = LONG_PRESS_MOVE_THRESHOLD_PX,
   doubleTapWindowMs = DOUBLE_TAP_WINDOW_MS,
+  longPressTrigger = 'touch',
   disabled = false,
 }: UseLongPressOptions): LongPressHandlers {
   const [isHolding, setIsHolding] = useState(false);
@@ -197,13 +201,24 @@ export function useLongPress({
       if (disabled) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
+      const pointerType: string = e.pointerType;
+      const isTouchPointer = pointerType === 'touch' || pointerType === '';
+      if (isTouchPointer) {
+        markTouchPointerActivity();
+      }
+
       clearTimers();
       longPressFiredRef.current = false;
       cancelledByMoveRef.current = false;
       suppressNextClickRef.current = false;
-      startPosRef.current = { x: e.clientX, y: e.clientY };
 
-      if (!onLongPress) return;
+      // 桌面鼠标仅保留轻点/双击，不触发移动端手指长按详情蓄力
+      if (!onLongPress || (longPressTrigger === 'touch' && e.pointerType === 'mouse')) {
+        startPosRef.current = null;
+        return;
+      }
+
+      startPosRef.current = { x: e.clientX, y: e.clientY };
 
       holdFeedbackTimerRef.current = setTimeout(() => {
         holdFeedbackTimerRef.current = null;
@@ -222,7 +237,7 @@ export function useLongPress({
         onLongPress();
       }, delayMs);
     },
-    [disabled, onLongPress, clearTimers, delayMs],
+    [disabled, onLongPress, clearTimers, delayMs, longPressTrigger],
   );
 
   const onPointerMove = useCallback(
@@ -279,11 +294,11 @@ export function useLongPress({
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      if (onLongPress && !disabled) {
+      if (onLongPress && !disabled && isHolding) {
         e.preventDefault();
       }
     },
-    [onLongPress, disabled],
+    [onLongPress, disabled, isHolding],
   );
 
   return {

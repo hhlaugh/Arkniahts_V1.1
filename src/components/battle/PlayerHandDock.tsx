@@ -22,6 +22,7 @@ interface PlayerHandDockProps {
   readonly allyBaseDamageDelta?: number | null;
   readonly disableMotion?: boolean;
   readonly selectionPrompt?: React.ReactNode;
+  readonly idlePrompt?: React.ReactNode;
   readonly onHandCardClick: (id: CardInstanceId) => void;
   readonly onLongPressCard: (id: CardInstanceId) => void;
   readonly onHoverCard: (preview: HoveredCardPreview | null) => void;
@@ -59,6 +60,7 @@ export function PlayerHandDock({
   allyBaseDamageDelta = null,
   disableMotion = false,
   selectionPrompt,
+  idlePrompt,
   onHandCardClick,
   onLongPressCard,
   onHoverCard,
@@ -75,6 +77,16 @@ export function PlayerHandDock({
   const litPips = Math.min(CP_CAP_GAUGE, Math.max(0, playerAlly.cost));
   const canInteractHand = isActionPhase && !hasPending && isAllyTurn && canAct;
   const allyHpPct = Math.max(0, Math.min(100, (playerAlly.base_points / BASE_HP_MAX) * 100));
+  const handTrayRef = React.useRef<HTMLDivElement>(null);
+
+  const handleTrayWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = handTrayRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth + 2) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY;
+      onHoverCard(null);
+    }
+  };
 
   if (layoutMode === 'side-rail') {
     return (
@@ -224,7 +236,7 @@ export function PlayerHandDock({
                       onLongPressCard(id);
                     }}
                     onHoverStart={(rect) => {
-                      if (!isMobile && !draggingCardId) {
+                      if (!draggingCardId) {
                         onHoverCard({ instanceId: id, rect });
                       }
                     }}
@@ -264,12 +276,23 @@ export function PlayerHandDock({
         aria-hidden="true"
         className="pointer-events-none absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-cyan-400/20 via-cyan-300/70 to-amber-400/50 z-20"
       />
-      {/* 0. 整合式选中提示 / 目标预演条（内嵌于底座顶部，不遮挡战场） */}
-      {selectionPrompt && (
-        <div className="relative z-10 px-2 sm:px-3.5 py-1 bg-[#16202e]/95 border-b border-[#29384d] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 text-xs text-amber-300">
-          {selectionPrompt}
-        </div>
-      )}
+      {/* 0. 固定高度的整合式战术引导/选中指令条（彻底杜绝悬停或选中时棋盘上下跳动） */}
+      <div className="relative z-10 min-h-[34px] px-2 sm:px-3.5 py-1 bg-[#131b27]/95 border-b border-[#253245] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 text-xs">
+        {selectionPrompt ?? (
+          <div className="flex items-center justify-between gap-2 w-full text-[11px] text-slate-400 min-w-0">
+            <span className="truncate">
+              {idlePrompt ??
+                (canInteractHand
+                  ? isMobile
+                    ? '轻点选牌 / 上拉拖牌部署；长按任意卡牌或单位查看详情与词条。'
+                    : '单击或拖放手牌部署；鼠标悬停卡牌或单位片刻预览详情与词条。'
+                  : hasPending
+                    ? '请先完成上方待决战术选择。'
+                    : '等待对手行动中…')}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* 1. 己方指挥核心条：自适应单行紧凑分区（360px 窄屏绝不挤压换行） */}
       <div
@@ -365,8 +388,8 @@ export function PlayerHandDock({
               })}
             </div>
             {playerAlly.next_deploy_discounts.length > 0 && (
-              <span className="hidden lg:inline text-[10px] px-1 py-0.2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300">
-                下 deploy -{playerAlly.next_deploy_discounts.reduce((s, d) => s + d.amount, 0)} CP
+              <span className="hidden sm:inline text-[10px] px-1.5 py-0.2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 whitespace-nowrap">
+                {`下次部署 -${playerAlly.next_deploy_discounts.reduce((s, d) => s + d.amount, 0)} CP`}
               </span>
             )}
           </div>
@@ -405,10 +428,12 @@ export function PlayerHandDock({
         </div>
       </div>
 
-      {/* 2. 手牌横向滚动托盘 */}
+      {/* 2. 手牌横向滚动托盘（居中自适应 + 滚轮横向滚动 + 触控防裁切） */}
       <div
+        ref={handTrayRef}
+        onWheel={handleTrayWheel}
         onScroll={() => onHoverCard(null)}
-        className={`relative z-10 flex items-center gap-1.5 sm:gap-2 pt-1 sm:pt-2 pb-1 sm:pb-1.5 px-2 sm:px-3 content-start snap-x min-h-[116px] sm:min-h-[148px] lg:min-h-[164px] ${
+        className={`relative z-10 flex items-center gap-1.5 sm:gap-2.5 pt-1.5 sm:pt-2.5 pb-1.5 sm:pb-2 px-2.5 sm:px-4 snap-x min-h-[120px] sm:min-h-[154px] lg:min-h-[168px] ${
           draggingCardId ? 'overflow-hidden touch-none' : 'overflow-x-auto overscroll-x-contain'
         }`}
       >
@@ -424,7 +449,7 @@ export function PlayerHandDock({
               canInteractHand &&
               (def?.card_type === 'operator' || (def?.card_type === 'support' && def?.support_subtype === 'facility'));
             return (
-              <div key={id} className="snap-start shrink-0">
+              <div key={id} className="snap-start shrink-0 first:ml-auto last:mr-auto">
                 <CardView
                   state={state}
                   instanceId={id}
@@ -439,7 +464,7 @@ export function PlayerHandDock({
                     onLongPressCard(id);
                   }}
                   onHoverStart={(rect) => {
-                    if (!isMobile && !draggingCardId) {
+                    if (!draggingCardId) {
                       onHoverCard({ instanceId: id, rect });
                     }
                   }}

@@ -4,6 +4,7 @@ import type { CardInstance, GameState } from '../../game/types';
 import { STATUS_LABEL } from '../../client/gameData';
 import { getCardPresentation } from '../../data/card-presentation';
 import { useLongPress } from '../../hooks/useLongPress';
+import { HOVER_INTENT_DELAY_MS, useHoverIntent } from '../../hooks/useHoverIntent';
 import type { FloatingPopupKind, UnitAnimationState } from './combatPresentation';
 import { cardDefinitionOf } from '../cards/CardView';
 import { OperatorPortrait } from '../cards/OperatorPortrait';
@@ -80,7 +81,14 @@ export function UnitView({
     onLongPress,
     onClick,
     onDoubleTap,
+    longPressTrigger: 'touch',
     disabled: !onClick && !onDoubleTap && !onLongPress,
+  });
+  const hoverHandlers = useHoverIntent({
+    delayMs: HOVER_INTENT_DELAY_MS,
+    disabled: !onHoverStart,
+    onHoverShow: onHoverStart,
+    onHoverHide: onHoverEnd,
   });
 
   if (!definition || !combat) return null;
@@ -105,6 +113,7 @@ export function UnitView({
   const isAttackTarget = highlight === 'attack_target';
   const hasEquipped = Boolean(combat.equipped_package || combat.equipment_ids.length > 0);
   const hasStatuses = combat.statuses.length > 0 || hasEquipped;
+  const hasCornerBadge = isDragLocked || isTarget || isAttackTarget || isFocusTarget || canActivateSkill;
 
   const motionOff = Boolean(animState?.disableMotion);
   const rarityDeployCls =
@@ -151,15 +160,19 @@ export function UnitView({
       data-entity-kind={entityKind}
       data-highlight={highlight}
       data-tap-cue={tapCue?.kind}
-      onMouseEnter={(e) => onHoverStart?.(e.currentTarget.getBoundingClientRect())}
-      onMouseLeave={onHoverEnd}
-      onPointerDown={longPressHandlers.onPointerDown}
+      onPointerEnter={hoverHandlers.onPointerEnter}
+      onPointerLeave={hoverHandlers.onPointerLeave}
+      onPointerDown={(e) => {
+        hoverHandlers.onPointerDown(e);
+        longPressHandlers.onPointerDown(e);
+      }}
       onPointerMove={longPressHandlers.onPointerMove}
       onPointerUp={longPressHandlers.onPointerUp}
       onPointerCancel={longPressHandlers.onPointerCancel}
       onContextMenu={longPressHandlers.onContextMenu}
       onClick={(e) => {
         e.stopPropagation();
+        hoverHandlers.cancelHover();
         longPressHandlers.onClick(e);
       }}
       onKeyDown={(e) => {
@@ -193,11 +206,13 @@ export function UnitView({
                         ? 'bg-rose-400'
                         : showSkillFx
                           ? 'bg-cyan-300'
-                          : entityKind === 'facility'
-                            ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
-                            : entityKind === 'summon'
-                              ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
-                              : 'bg-[#384556] group-hover:bg-[#7b8da6]'
+                          : canActivateSkill
+                            ? 'bg-amber-400/70 group-hover:bg-amber-300'
+                            : entityKind === 'facility'
+                              ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
+                              : entityKind === 'summon'
+                                ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
+                                : 'bg-[#384556] group-hover:bg-[#7b8da6]'
         }`}
       >
       {/* 内部裁切内容容器 */}
@@ -253,7 +268,7 @@ export function UnitView({
         )}
 
         {/* 顶部：头像、名称与状态标 */}
-        <div className="flex items-center justify-between gap-0.5 sm:gap-1 w-full overflow-hidden">
+        <div className={`flex items-center justify-between gap-0.5 sm:gap-1 w-full overflow-hidden ${hasCornerBadge ? 'pr-11 sm:pr-12' : ''}`}>
           <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
             <OperatorPortrait
               key={instance.card_id}
@@ -304,12 +319,12 @@ export function UnitView({
                 </span>
               )}
             </div>
-          ) : (
+          ) : !hasCornerBadge ? (
             <span className="text-[8px] sm:text-[9px] font-mono text-slate-400 shrink-0 leading-none">
               <span className="hidden sm:inline">{attackModeFull}</span>
               <span className="sm:hidden">{attackModeShort}</span>
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* 中部：生命条与护盾 */}
