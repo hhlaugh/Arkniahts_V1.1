@@ -27,7 +27,7 @@ import { PresetDeckSummary } from '../components/deck/PresetDeckSummary';
 import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdrop';
 
 const BOARD_PRESETS: readonly { readonly id: string; readonly label: string; readonly profile: BoardProfile }[] = [
-  { id: 'classic-3x2', label: '经典 3×2 (F1/R1)', profile: CLASSIC_BOARD_PROFILE },
+  { id: 'classic-21-32-21', label: '经典三路 (21/32/21)', profile: CLASSIC_BOARD_PROFILE },
   {
     id: 'custom-1-lane',
     label: '单路狭道 1×2',

@@ -8,7 +8,7 @@ import type {
   GameState,
 } from '../../game/types';
 import { cardDefinitionOf } from '../cards/CardView';
-import { getCardPresentation } from '../../data/card-presentation';
+import { getCardPresentation, getSummonPresentation } from '../../data/card-presentation';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -52,13 +52,17 @@ export function TacticalDetailPanel({
 }: TacticalDetailPanelProps) {
   const selectedInstance: CardInstance | undefined = selection ? state.card_instances[selection] : undefined;
   const selectedDefinition = selection ? cardDefinitionOf(state, selection) : undefined;
-  const selectedPresentation = selectedInstance ? getCardPresentation(selectedInstance.card_id) : undefined;
 
   const actor = state.active_player_id;
   const isOwnUnit = selectedInstance?.controller_id === actor;
   const isBoardUnit = selectedInstance?.zone === 'board';
   const isHandCard = selectedInstance?.zone === 'hand';
   const entityKind = selectedInstance ? getEntityKind(state, selectedInstance) : 'operator';
+  const basePresentation = selectedInstance ? getCardPresentation(selectedInstance.card_id) : undefined;
+  const selectedPresentation =
+    selectedInstance && basePresentation && entityKind === 'summon'
+      ? getSummonPresentation(selectedInstance.summon_state?.token_id, basePresentation)
+      : basePresentation;
   const entityStats = selectedInstance ? getEntityStats(state, selectedInstance) : null;
   const effectiveProfile = selectedInstance ? getEffectiveAttackProfile(state, selectedInstance) : null;
   const facilityDisabled = selectedInstance ? isFacilityDisabled(state, selectedInstance) : false;
@@ -157,7 +161,7 @@ export function TacticalDetailPanel({
                 {isBoardUnit ? (entityKind === 'facility' ? '设施' : entityKind === 'summon' ? '召唤' : '在场') : '手牌'}
               </Badge>
               <span className="text-xs font-bold text-white truncate max-w-[140px]">
-                {selectedDefinition.card_name_zh}
+                {entityKind === 'summon' ? selectedPresentation.codeNameZh : selectedDefinition.card_name_zh}
               </span>
             </div>
             <Button variant="ghost" size="sm" onClick={onDeselect} className="relative z-10 text-slate-400 hover:text-white px-2 py-0.5 text-xs">
@@ -172,7 +176,9 @@ export function TacticalDetailPanel({
               <Badge variant={isBoardUnit ? 'status' : 'cost'} value={isBoardUnit ? (entityKind === 'facility' ? '设施' : entityKind === 'summon' ? '召唤物' : '在场单位') : `${selectedDefinition.cost} CP`}>
                 {isBoardUnit ? (entityKind === 'facility' ? '设施' : entityKind === 'summon' ? '召唤' : '在场') : '手牌'}
               </Badge>
-              <span className="text-xs font-bold text-white truncate">{selectedDefinition.card_name_zh}</span>
+              <span className="text-xs font-bold text-white truncate">
+                {entityKind === 'summon' ? selectedPresentation.codeNameZh : selectedDefinition.card_name_zh}
+              </span>
             </div>
             <Button variant="ghost" size="sm" onClick={onDeselect} className="text-slate-400 hover:text-white px-2 py-0.5 text-xs">
               取消选中
@@ -456,7 +462,7 @@ export function TacticalDetailPanel({
             <div className="flex items-center justify-between text-slate-400">
               <span>战区规模:</span>
               <span className="text-cyan-300 font-bold">
-                {state.board_profile.laneCount} 路 · {state.board_profile.mode === 'classic' ? '经典 3×2' : '自定义'}
+                {state.board_profile.laneCount} 路 · {state.board_profile.mode === 'classic' ? '经典三路 (21/32/21)' : '自定义'}
               </span>
             </div>
             <div className="flex items-center justify-between text-slate-400">

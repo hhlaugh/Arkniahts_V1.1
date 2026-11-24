@@ -1,5 +1,43 @@
 import type { CardId } from '../game/types';
 
+import summonMeeboImg from '../assets/images/summon_meebo_1795498706092.jpg';
+import summonPhantomShadowImg from '../assets/images/summon_phantom_shadow_1795498707522.jpg';
+import summonSilenceDroneImg from '../assets/images/summon_silence_drone_1795498705746.jpg';
+import summonNightingaleCageImg from '../assets/images/summon_nightingale_cage_1795498708508.jpg';
+import summonMagallanStrikeImg from '../assets/images/summon_magallan_strike_1795498709653.jpg';
+import summonMagallanSupportImg from '../assets/images/summon_magallan_support_1795498709550.jpg';
+
+import facFrontlineBunkerImg from '../assets/images/fac_frontline_bunker_1795498710383.jpg';
+import facCommsTerminalImg from '../assets/images/fac_comms_terminal_1795498710207.jpg';
+import facWatchtowerImg from '../assets/images/fac_watchtower_1795498710193.jpg';
+import facFieldRepairImg from '../assets/images/fac_field_repair_1795498710504.jpg';
+import facJammingTowerImg from '../assets/images/fac_jamming_tower_1795498826833.jpg';
+import facLogisticsDeskImg from '../assets/images/fac_logistics_desk_1795498826386.jpg';
+
+import eqCompositeArmorImg from '../assets/images/eq_composite_armor_1795498824997.jpg';
+import eqSniperScopeImg from '../assets/images/eq_sniper_scope_1795498806740.jpg';
+import eqOriginiumAmpImg from '../assets/images/eq_originium_amp_1795498713396.jpg';
+import eqFirstAidImg from '../assets/images/eq_first_aid_1795498713709.jpg';
+import eqAssaultModuleImg from '../assets/images/eq_assault_module_1795498714213.jpg';
+import eqTacticalVisorImg from '../assets/images/eq_tactical_visor_1795498826605.jpg';
+
+import tacRedeploySwapImg from '../assets/images/tac_redeploy_swap_1795498828021.jpg';
+import tacAirdropDeployImg from '../assets/images/tac_airdrop_deploy_1795498716937.jpg';
+import tacBattleRallyImg from '../assets/images/tac_battle_rally_1795498716710.jpg';
+import tacPrecisionBlastImg from '../assets/images/tac_precision_blast_1795498717968.jpg';
+import tacShrapnelSalvoImg from '../assets/images/tac_shrapnel_salvo_1795498718591.jpg';
+import tacRearSnipeImg from '../assets/images/tac_rear_snipe_1795498826450.jpg';
+import tacAntiSummonImg from '../assets/images/tac_anti_summon_1795498827538.jpg';
+import tacMedkitHealImg from '../assets/images/tac_medkit_heal_1795498827640.jpg';
+import tacEmergencyShieldImg from '../assets/images/tac_emergency_shield_1795498899798.jpg';
+import tacBastionCoverImg from '../assets/images/tac_bastion_cover_1795498808105.jpg';
+import tacSuppressionFireImg from '../assets/images/tac_suppression_fire_1795498901176.jpg';
+import tacArmorPierceImg from '../assets/images/tac_armor_pierce_1795498899905.jpg';
+import tacEmpSabotageImg from '../assets/images/tac_emp_sabotage_1795498901286.jpg';
+import tacReconIntelImg from '../assets/images/tac_recon_intel_1795498901542.jpg';
+import tacIntelFocusImg from '../assets/images/tac_intel_focus_1795498806933.jpg';
+import tacPreemptiveStrikeImg from '../assets/images/tac_preemptive_strike_1795498901458.jpg';
+
 /**
  * 卡牌表现层元数据模型 (Card Presentation Manifest)
  * 严格与游戏规则数据（CardDefinition）解耦：仅保存展示、立绘路径、头像路径、裁切位置与素材来源。
@@ -1061,7 +1099,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacRedeploySwapImg, avatar: tacRedeploySwapImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '临机调度' },
   },
@@ -1072,7 +1110,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacAirdropDeployImg, avatar: tacAirdropDeployImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '空降部署' },
   },
@@ -1083,7 +1121,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacBattleRallyImg, avatar: tacBattleRallyImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '战线集结' },
   },
@@ -1094,7 +1132,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacRedeploySwapImg, avatar: tacRedeploySwapImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '预备队换班' },
   },
@@ -1105,7 +1143,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacPrecisionBlastImg, avatar: tacPrecisionBlastImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '定点爆破' },
   },
@@ -1116,7 +1154,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacShrapnelSalvoImg, avatar: tacShrapnelSalvoImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '破片齐射' },
   },
@@ -1127,7 +1165,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacRearSnipeImg, avatar: tacRearSnipeImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '后排狙杀' },
   },
@@ -1138,7 +1176,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacAntiSummonImg, avatar: tacAntiSummonImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '反召唤弹' },
   },
@@ -1149,7 +1187,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacMedkitHealImg, avatar: tacMedkitHealImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '急救包' },
   },
@@ -1160,7 +1198,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacEmergencyShieldImg, avatar: tacEmergencyShieldImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '紧急护盾' },
   },
@@ -1171,7 +1209,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacBastionCoverImg, avatar: tacBastionCoverImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '防线固守' },
   },
@@ -1182,7 +1220,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacBastionCoverImg, avatar: tacBastionCoverImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '掩护撤退' },
   },
@@ -1193,7 +1231,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacSuppressionFireImg, avatar: tacSuppressionFireImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '压制射击' },
   },
@@ -1204,7 +1242,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacSuppressionFireImg, avatar: tacSuppressionFireImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '全线压制' },
   },
@@ -1215,7 +1253,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacRedeploySwapImg, avatar: tacRedeploySwapImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '侧翼掩护' },
   },
@@ -1226,7 +1264,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacBattleRallyImg, avatar: tacBattleRallyImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '推进行动' },
   },
@@ -1237,7 +1275,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacArmorPierceImg, avatar: tacArmorPierceImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '破甲弹' },
   },
@@ -1248,7 +1286,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacEmpSabotageImg, avatar: tacEmpSabotageImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '电磁干扰' },
   },
@@ -1259,7 +1297,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacArmorPierceImg, avatar: tacArmorPierceImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '清障行动' },
   },
@@ -1270,7 +1308,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacEmpSabotageImg, avatar: tacEmpSabotageImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '设施破坏' },
   },
@@ -1281,7 +1319,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacReconIntelImg, avatar: tacReconIntelImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '战术分析' },
   },
@@ -1292,7 +1330,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacIntelFocusImg, avatar: tacIntelFocusImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '集火标记' },
   },
@@ -1303,7 +1341,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacPreemptiveStrikeImg, avatar: tacPreemptiveStrikeImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '先发制人' },
   },
@@ -1314,7 +1352,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Tactic Order',
     profession: 'tactic',
     rarity: 3,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: tacRearSnipeImg, avatar: tacRearSnipeImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '越线校准' },
   },
@@ -1325,7 +1363,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facFrontlineBunkerImg, avatar: facFrontlineBunkerImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '前线掩体' },
   },
@@ -1336,7 +1374,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facCommsTerminalImg, avatar: facCommsTerminalImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '战术通讯终端' },
   },
@@ -1347,7 +1385,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facWatchtowerImg, avatar: facWatchtowerImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '观察哨' },
   },
@@ -1358,7 +1396,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facFieldRepairImg, avatar: facFieldRepairImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '战地维修站' },
   },
@@ -1369,7 +1407,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facJammingTowerImg, avatar: facJammingTowerImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '电子干扰塔' },
   },
@@ -1380,7 +1418,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Facility',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: facLogisticsDeskImg, avatar: facLogisticsDeskImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '后勤调度台' },
   },
@@ -1391,7 +1429,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqCompositeArmorImg, avatar: eqCompositeArmorImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '复合装甲' },
   },
@@ -1402,7 +1440,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqSniperScopeImg, avatar: eqSniperScopeImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '狙击瞄准镜' },
   },
@@ -1413,7 +1451,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqOriginiumAmpImg, avatar: eqOriginiumAmpImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '源石增幅模块' },
   },
@@ -1424,7 +1462,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqFirstAidImg, avatar: eqFirstAidImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '急救组件' },
   },
@@ -1435,7 +1473,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqAssaultModuleImg, avatar: eqAssaultModuleImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '强袭组件' },
   },
@@ -1446,7 +1484,7 @@ const PRESENTATIONS: readonly CardPresentation[] = [
     codeNameEn: 'Equipment',
     profession: 'support',
     rarity: 2,
-    assets: { portrait: '', avatar: '' },
+    assets: { portrait: eqTacticalVisorImg, avatar: eqTacticalVisorImg },
     display: { portraitFit: 'cover', portraitPosition: 'center center' },
     source: { name: 'V1.1 Tactical & Support Kit', notes: '战术目镜' },
   },
@@ -1495,6 +1533,94 @@ export function getCardPresentation(cardId: CardId): CardPresentation {
     source: {
       name: 'Auto Generated Presentation Fallback',
       notes: '动态安全降级兜底',
+    },
+  };
+}
+
+interface SummonVisualConfig {
+  readonly tokenId: string;
+  readonly codeNameZh: string;
+  readonly codeNameEn: string;
+  readonly profession: string;
+  readonly image: string;
+}
+
+const SUMMON_VISUAL_MAP: Readonly<Record<string, SummonVisualConfig>> = {
+  meebo: {
+    tokenId: 'meebo',
+    codeNameZh: '机械水獭·咪波',
+    codeNameEn: 'Meebo',
+    profession: 'specialist',
+    image: summonMeeboImg,
+  },
+  mayer_meebo: {
+    tokenId: 'mayer_meebo',
+    codeNameZh: '机械水獭·咪波',
+    codeNameEn: 'Meebo',
+    profession: 'specialist',
+    image: summonMeeboImg,
+  },
+  phantom_shadow: {
+    tokenId: 'phantom_shadow',
+    codeNameZh: '虚影',
+    codeNameEn: 'Phantom Shadow',
+    profession: 'specialist',
+    image: summonPhantomShadowImg,
+  },
+  silence_med_drone: {
+    tokenId: 'silence_med_drone',
+    codeNameZh: '医疗无人机',
+    codeNameEn: 'Medical Drone',
+    profession: 'medic',
+    image: summonSilenceDroneImg,
+  },
+  nightingale_birdcage: {
+    tokenId: 'nightingale_birdcage',
+    codeNameZh: '圣域鸟笼',
+    codeNameEn: 'Sanctuary Birdcage',
+    profession: 'medic',
+    image: summonNightingaleCageImg,
+  },
+  magallan_strike_drone: {
+    tokenId: 'magallan_strike_drone',
+    codeNameZh: '强击无人机',
+    codeNameEn: 'Armed Drone',
+    profession: 'supporter',
+    image: summonMagallanStrikeImg,
+  },
+  magallan_support_drone: {
+    tokenId: 'magallan_support_drone',
+    codeNameZh: '支援无人机',
+    codeNameEn: 'Support Drone',
+    profession: 'supporter',
+    image: summonMagallanSupportImg,
+  },
+};
+
+export function getSummonPresentation(
+  tokenId: string | undefined | null,
+  fallback: CardPresentation,
+): CardPresentation {
+  if (!tokenId) return fallback;
+  const spec = SUMMON_VISUAL_MAP[tokenId];
+  if (!spec) return fallback;
+  return {
+    ...fallback,
+    operatorId: `summon_${spec.tokenId}`,
+    codeNameZh: spec.codeNameZh,
+    codeNameEn: spec.codeNameEn,
+    profession: spec.profession,
+    assets: {
+      portrait: spec.image,
+      avatar: spec.image,
+    },
+    display: {
+      portraitFit: 'cover',
+      portraitPosition: 'center center',
+    },
+    source: {
+      name: 'Rhodes Island Tactical Summon Visuals',
+      notes: spec.codeNameZh,
     },
   };
 }

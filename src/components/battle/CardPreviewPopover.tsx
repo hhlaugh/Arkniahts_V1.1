@@ -4,7 +4,7 @@ import { formatCellLabel } from '../../game/board';
 import { getEffectiveAttackProfile, getEntityKind, getEntityStats, isFacilityDisabled } from '../../game/range';
 import { CLASS_COLOR, CLASS_LABEL, STATUS_LABEL } from '../../client/gameData';
 import { cardDefinitionOf, effectSummary } from '../cards/CardView';
-import { getCardPresentation } from '../../data/card-presentation';
+import { getCardPresentation, getSummonPresentation } from '../../data/card-presentation';
 import { extractCardKeywords } from '../../data/keywords';
 import { OperatorPortrait } from '../cards/OperatorPortrait';
 import { RARITY_THEMES } from '../ui/tokens';
@@ -201,7 +201,13 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
   if (!instance || !definition) return null;
 
   const isPinned = hovered.mode === 'pinned';
-  const presentation = getCardPresentation(instance.card_id);
+  const isBoardUnit = instance.zone === 'board';
+  const entityKind = isBoardUnit ? getEntityKind(state, instance) : null;
+  const basePresentation = getCardPresentation(instance.card_id);
+  const presentation =
+    entityKind === 'summon'
+      ? getSummonPresentation(instance.summon_state?.token_id, basePresentation)
+      : basePresentation;
   const rarity = presentation.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
   const supportSubtype =
@@ -219,8 +225,6 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
       ? '🔧 支援 · 装备'
       : CLASS_LABEL[presentation.profession] ?? presentation.profession;
 
-  const isBoardUnit = instance.zone === 'board';
-  const entityKind = isBoardUnit ? getEntityKind(state, instance) : null;
   const entityStats = isBoardUnit ? getEntityStats(state, instance) : null;
   const attackProfile = isBoardUnit ? getEffectiveAttackProfile(state, instance) : null;
   const facilityDisabled = entityKind === 'facility' && isFacilityDisabled(state, instance);
@@ -443,7 +447,7 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
               <div className="absolute inset-x-2 bottom-1.5 px-2.5 py-1 bg-[#0d121a]/92 border border-[#3a485a] text-center shadow-md">
                 <div className="flex items-baseline justify-center gap-1.5">
                   <h4 className="m-0 text-sm sm:text-[15px] font-black text-white tracking-wide truncate">
-                    {definition.card_name_zh}
+                    {isSummon ? presentation.codeNameZh : definition.card_name_zh}
                   </h4>
                   <span className="text-[9px] font-mono text-slate-400 uppercase truncate max-w-[42%]">
                     {presentation.codeNameEn}

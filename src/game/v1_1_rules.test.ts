@@ -209,10 +209,25 @@ describe('V1.1 规范全量验收测试', () => {
     expect(keywordsJson).toHaveLength(38);
   });
 
-  it('2. 动态 BoardProfile：支持经典 3×2、单路与 5 路自定义，拒绝非法路线/格数', () => {
+  it('2. 动态 BoardProfile：支持经典三路 21/32/21、单路与 5 路自定义，拒绝非法路线/格数', () => {
     expect(validateBoardProfile(CLASSIC_BOARD_PROFILE).valid).toBe(true);
+    expect(CLASSIC_BOARD_PROFILE.lanes.map((l) => `${l.frontSlots}${l.rearSlots}`)).toEqual(['21', '32', '21']);
     expect(validateBoardProfile(CUSTOM_5_LANE_EXAMPLE).valid).toBe(true);
     expect(validateBoardProfile(createCustomBoardProfile([{ frontSlots: 2, rearSlots: 2 }])).valid).toBe(true);
+
+    // 旧版 3×2 classic 配置不再合法
+    expect(
+      validateBoardProfile({
+        profileId: 'legacy-3x2',
+        mode: 'classic',
+        laneCount: 3,
+        lanes: [
+          { laneId: 'L1', laneOrder: 0, frontSlots: 1, rearSlots: 1 },
+          { laneId: 'L2', laneOrder: 1, frontSlots: 1, rearSlots: 1 },
+          { laneId: 'L3', laneOrder: 2, frontSlots: 1, rearSlots: 1 },
+        ],
+      }).valid,
+    ).toBe(false);
 
     expect(validateBoardProfile(createCustomBoardProfile([])).valid).toBe(false);
     expect(
@@ -543,5 +558,77 @@ describe('V1.1 规范全量验收测试', () => {
       expect(finalState.phase, `board=${label}`).toBe('finished');
       expect(finalState.winner, `board=${label}`).not.toBeNull();
     }
+  });
+
+  it('10. 阿消/温蒂部署推击敌方前位且敌方后位有设施占用时，伤害与压制作用于被推敌方而非自身', () => {
+    let s = startGame(901);
+    const actor = s.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+    s = setCp(s, actor, 10, 10);
+
+    let enemyFrontId: CardInstanceId;
+    let enemyFacilityId: CardInstanceId;
+    let shawHandId: CardInstanceId;
+    // 敌方 L1 前排有芬（HP 4），L1 后排有设施（前线掩体）
+    ({ state: s, id: enemyFrontId } = placeBoardUnit(s, enemy, 'OP-VAN-001', 'L1', 'front', 1, {
+      current_hp: 4 as HpValue,
+    }));
+    ({ state: s, id: enemyFacilityId } = placeBoardUnit(s, enemy, 'DEMO-SUP-V2-001', 'L1', 'back', 1));
+    ({ state: s, id: shawHandId } = giveHandCard(s, actor, 'OP-SPE-002'));
+
+    const res = reduceGameAction(s, actor, {
+      type: 'deploy_operator',
+      card_instance_id: shawHandId,
+      lane: 'L1',
+      position: 'front',
+      slot_index: 1,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    const after = res.value;
+    const shaw = after.card_instances[shawHandId]!;
+    const pushedEnemy = after.card_instances[enemyFrontId]!;
+    const rearFacility = after.card_instances[enemyFacilityId]!;
+
+    // 阿消自身满血且未被压制
+    expect(shaw.zone).toBe('board');
+    expect(shaw.operator_combat?.current_hp).toBe(2);
+    expect(shaw.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(false);
+
+    // 敌方前排留守前排并受到 1 点伤害与压制；敌方后排设施完好
+    expect(pushedEnemy.position).toBe('front');
+    expect(pushedEnemy.operator_combat?.current_hp).toBe(3);
+    expect(pushedEnemy.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(true);
+    expect(rearFacility.position).toBe('back');
+    expect(rearFacility.operator_combat?.current_hp).toBe(3);
+
+    // 同理验证温蒂（OP-SPE-009）在 L3 后排被设施占用时，2点伤害与压制作用于敌方而非自身
+    let wendyState = startGame(902);
+    const wActor = wendyState.active_player_id;
+    const wEnemy: PlayerId = wActor === 'player_a' ? 'player_b' : 'player_a';
+    wendyState = setCp(wendyState, wActor, 10, 10);
+    let wEnemyFrontId: CardInstanceId;
+    let wendyHandId: CardInstanceId;
+    ({ state: wendyState, id: wEnemyFrontId } = placeBoardUnit(wendyState, wEnemy, 'OP-DEF-003', 'L3', 'front', 1, {
+      current_hp: 5 as HpValue,
+    }));
+    ({ state: wendyState } = placeBoardUnit(wendyState, wEnemy, 'DEMO-SUP-V2-002', 'L3', 'back', 1));
+    ({ state: wendyState, id: wendyHandId } = giveHandCard(wendyState, wActor, 'OP-SPE-009'));
+
+    const wRes = reduceGameAction(wendyState, wActor, {
+      type: 'deploy_operator',
+      card_instance_id: wendyHandId,
+      lane: 'L3',
+      position: 'front',
+      slot_index: 1,
+    });
+    expect(wRes.ok).toBe(true);
+    if (!wRes.ok) return;
+    const wAfter = wRes.value;
+    expect(wAfter.card_instances[wendyHandId]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(false);
+    expect(wAfter.card_instances[wendyHandId]?.operator_combat?.current_hp).toBe(3);
+    expect(wAfter.card_instances[wEnemyFrontId]?.operator_combat?.current_hp).toBe(3);
+    expect(wAfter.card_instances[wEnemyFrontId]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(true);
   });
 });

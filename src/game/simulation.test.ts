@@ -189,7 +189,7 @@ export function simulateMatch(seed: number, stats?: SimulationStats): GameState 
         stats.onDeployTriggers += 1;
       }
     }
-    if (state.phase === 'action' && action.type !== 'end_action_phase') {
+    if (state.phase === 'action' && action.type !== 'end_action_phase' && state.pending_effect_choices.length === 0) {
       if (actionGuard % 80 === 0) {
         const end = reduceGameAction(state, player, { type: 'end_action_phase' });
         if (!end.ok) throw new Error(end.reason);

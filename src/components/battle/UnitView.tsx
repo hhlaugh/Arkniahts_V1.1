@@ -2,7 +2,7 @@ import React from 'react';
 import { getEffectiveAttackProfile, getEntityKind, getEntityStats, isFacilityDisabled } from '../../game/range';
 import type { CardInstance, GameState } from '../../game/types';
 import { STATUS_LABEL } from '../../client/gameData';
-import { getCardPresentation } from '../../data/card-presentation';
+import { getCardPresentation, getSummonPresentation } from '../../data/card-presentation';
 import { useLongPress } from '../../hooks/useLongPress';
 import { HOVER_INTENT_DELAY_MS, useHoverIntent } from '../../hooks/useHoverIntent';
 import type { FloatingPopupKind, UnitAnimationState } from './combatPresentation';
@@ -46,6 +46,7 @@ const POPUP_COLORS: Record<FloatingPopupKind, string> = {
 };
 
 const SUMMON_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  meebo: '机械水獭·咪波',
   mayer_meebo: '机械水獭·咪波',
   phantom_shadow: '虚影',
   silence_med_drone: '医疗无人机',
@@ -97,7 +98,11 @@ export function UnitView({
   const stats = getEntityStats(state, instance);
   const attackProfile = getEffectiveAttackProfile(state, instance);
   const facilityDisabled = entityKind === 'facility' && isFacilityDisabled(state, instance);
-  const presentation = getCardPresentation(instance.card_id);
+  const basePresentation = getCardPresentation(instance.card_id);
+  const presentation =
+    entityKind === 'summon'
+      ? getSummonPresentation(instance.summon_state?.token_id, basePresentation)
+      : basePresentation;
   const rarity = presentation.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
 
@@ -271,7 +276,7 @@ export function UnitView({
         <div className={`flex items-center justify-between gap-0.5 sm:gap-1 w-full overflow-hidden ${hasCornerBadge ? 'pr-11 sm:pr-12' : ''}`}>
           <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1">
             <OperatorPortrait
-              key={instance.card_id}
+              key={instance.summon_state?.token_id ?? instance.card_id}
               cardId={instance.card_id}
               presentation={presentation}
               variant="avatar"

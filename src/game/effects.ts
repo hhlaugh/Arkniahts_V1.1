@@ -435,7 +435,15 @@ function resolveTargets(state: GameState, targetSpec: unknown, ctx: EffectExecut
         return compareBoardEntities(state.board_profile, a, b);
       });
 
-  switch (String(targetSpec ?? 'self')) {
+  if (targetSpec === undefined || targetSpec === null || targetSpec === '') {
+    if (ctx.defaultTargetToSelected) {
+      const s = ctx.selectedTargetId ? state.card_instances[ctx.selectedTargetId] : undefined;
+      return s && s.zone === 'board' ? [s] : [];
+    }
+    return source && source.zone === 'board' ? [source] : [];
+  }
+
+  switch (String(targetSpec)) {
     case 'self':
     case 'host':
       return source && source.zone === 'board' ? [source] : [];
@@ -471,11 +479,15 @@ function resolveTargets(state: GameState, targetSpec: unknown, ctx: EffectExecut
         .map((id) => state.card_instances[id])
         .filter((u): u is CardInstance => Boolean(u && u.zone === 'board'));
     case 'enemy_front_same_lane': {
-      const front = allBoard.filter((u) => u.controller_id !== actorId && sameLane(u) && u.position === 'front');
+      const front = allBoard.filter(
+        (u) => u.controller_id !== actorId && isUnitInstance(state, u) && sameLane(u) && u.position === 'front',
+      );
       return front.length > 0 ? [front[0]] : [];
     }
     case 'enemy_back_same_lane': {
-      const back = allBoard.filter((u) => u.controller_id !== actorId && sameLane(u) && u.position === 'back');
+      const back = allBoard.filter(
+        (u) => u.controller_id !== actorId && isUnitInstance(state, u) && sameLane(u) && u.position === 'back',
+      );
       return back.length > 0 ? [back[0]] : [];
     }
     case 'one_enemy_same_lane': {

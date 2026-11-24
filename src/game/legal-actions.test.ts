@@ -95,6 +95,6 @@ describe('enumerateLegalActions', () => {
       if (definition.deploy_rule === 'back_only') expect(action.position).toBe('back');
       if (definition.attack_type === 'melee' && !definition.deploy_rule) expect(action.position).toBe('front');
     }
-    expect(new Set(deploys.map((action) => `${action.lane}:${action.position}`)).size).toBe(deploys.length);
+    expect(new Set(deploys.map((action) => `${action.lane}:${action.position}:${action.slot_index ?? 1}`)).size).toBe(deploys.length);
   });
 });

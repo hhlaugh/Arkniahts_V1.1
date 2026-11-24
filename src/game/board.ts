@@ -1,13 +1,13 @@
 import type { BoardPosition, BoardProfile, CardInstance, LaneId, LaneProfile, Position } from './types';
 
 export const CLASSIC_BOARD_PROFILE: BoardProfile = {
-  profileId: 'classic-3x2',
+  profileId: 'classic-21-32-21',
   mode: 'classic',
   laneCount: 3,
   lanes: [
-    { laneId: 'L1', laneOrder: 0, frontSlots: 1, rearSlots: 1 },
-    { laneId: 'L2', laneOrder: 1, frontSlots: 1, rearSlots: 1 },
-    { laneId: 'L3', laneOrder: 2, frontSlots: 1, rearSlots: 1 },
+    { laneId: 'L1', laneOrder: 0, frontSlots: 2, rearSlots: 1 },
+    { laneId: 'L2', laneOrder: 1, frontSlots: 3, rearSlots: 2 },
+    { laneId: 'L3', laneOrder: 2, frontSlots: 2, rearSlots: 1 },
   ],
 };
 
@@ -97,18 +97,34 @@ export function validateBoardProfile(profile: unknown): { readonly valid: boolea
       errors.push(`frontSlots 必须在 0 到 3 之间: ${String(lane.frontSlots)}`);
     } else {
       totalDeployableSlots += lane.frontSlots;
-      if (p.mode === 'classic' && lane.frontSlots !== 1) {
-        errors.push('经典模式每路前排必须固定为 1 格。');
-      }
     }
 
     if (typeof lane.rearSlots !== 'number' || !Number.isInteger(lane.rearSlots) || lane.rearSlots < 0 || lane.rearSlots > 3) {
       errors.push(`rearSlots 必须在 0 到 3 之间: ${String(lane.rearSlots)}`);
     } else {
       totalDeployableSlots += lane.rearSlots;
-      if (p.mode === 'classic' && lane.rearSlots !== 1) {
-        errors.push('经典模式每路后排必须固定为 1 格。');
-      }
+    }
+  }
+
+  if (p.mode === 'classic') {
+    const expectedClassicShape: readonly { readonly frontSlots: number; readonly rearSlots: number }[] = [
+      { frontSlots: 2, rearSlots: 1 },
+      { frontSlots: 3, rearSlots: 2 },
+      { frontSlots: 2, rearSlots: 1 },
+    ];
+    const sortedClassic = [...p.lanes]
+      .filter((l): l is Record<string, unknown> => typeof l === 'object' && l !== null)
+      .sort((a, b) => Number(a.laneOrder) - Number(b.laneOrder));
+    const matchesClassicShape =
+      sortedClassic.length === 3 &&
+      expectedClassicShape.every(
+        (exp, idx) =>
+          sortedClassic[idx]?.laneOrder === idx &&
+          sortedClassic[idx]?.frontSlots === exp.frontSlots &&
+          sortedClassic[idx]?.rearSlots === exp.rearSlots,
+      );
+    if (!matchesClassicShape) {
+      errors.push('经典模式必须为三路 21 / 32 / 21 布局（L1: 前2后1, L2: 前3后2, L3: 前2后1）。');
     }
   }
 
