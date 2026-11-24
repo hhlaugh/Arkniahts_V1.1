@@ -433,7 +433,7 @@ export function PlayerHandDock({
         ref={handTrayRef}
         onWheel={handleTrayWheel}
         onScroll={() => onHoverCard(null)}
-        className={`relative z-10 flex items-center gap-1.5 sm:gap-2.5 pt-1.5 sm:pt-2.5 pb-1.5 sm:pb-2 px-2.5 sm:px-4 snap-x min-h-[120px] sm:min-h-[154px] lg:min-h-[168px] ${
+        className={`relative z-10 flex items-center gap-1.5 sm:gap-2.5 pt-2.5 sm:pt-3 pb-1.5 sm:pb-2 px-2.5 sm:px-4 snap-x min-h-[124px] sm:min-h-[158px] lg:min-h-[172px] ${
           draggingCardId ? 'overflow-hidden touch-none' : 'overflow-x-auto overscroll-x-contain'
         }`}
       >

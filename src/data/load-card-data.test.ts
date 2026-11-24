@@ -97,4 +97,56 @@ describe('loadDemoData', () => {
     const result = loadDemoData();
     expect(summarizeValidation(result.issues)).toEqual({ errors: 0, warnings: 0 });
   });
+
+  it('unifies keyword_tokens with 【词条】 in rules_text_zh across all 108 cards', async () => {
+    const { extractCardKeywords } = await import('./keywords');
+    const cards = loadDemoData().cards as Array<{
+      card_id: string;
+      card_name_zh: string;
+      card_type: string;
+      rules_text_zh?: string;
+      keyword_tokens?: string;
+      damage_type?: string;
+      intercept_eligible?: boolean;
+      floating?: boolean;
+      taunt_scope?: string;
+    }>;
+
+    for (const card of cards) {
+      const rules = card.rules_text_zh ?? '';
+      const tokens = (card.keyword_tokens ?? '')
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      for (const token of tokens) {
+        expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【${token}】`).toContain(`【${token}】`);
+      }
+
+      if (card.card_type === 'operator') {
+        if (card.damage_type === 'arts') {
+          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【法术攻击】`).toContain('【法术攻击】');
+        }
+        if (card.intercept_eligible === false) {
+          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【伏击】`).toContain('【伏击】');
+        }
+        if (card.floating === true) {
+          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【浮空】`).toContain('【浮空】');
+        }
+        if (card.taunt_scope && card.taunt_scope !== 'none') {
+          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【嘲讽】`).toContain('【嘲讽】');
+        }
+      }
+    }
+
+    const meyer = loadDemoData().validCards.find((c) => c.card_id === 'OP-SUP-006')!;
+    const meyerKeywords = extractCardKeywords(meyer).map((k) => k.keyword);
+    expect(meyerKeywords).toContain('法术攻击');
+    expect(meyerKeywords).toContain('召唤');
+
+    const manticore = loadDemoData().validCards.find((c) => c.card_id === 'OP-SPE-006')!;
+    const manticoreKeywords = extractCardKeywords(manticore).map((k) => k.keyword);
+    expect(manticoreKeywords).toContain('伏击');
+    expect(manticoreKeywords).toContain('压制');
+  });
 });

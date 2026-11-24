@@ -1931,6 +1931,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         onExit={effectiveOnExit ? () => setConfirmDialog('exit') : undefined}
         animSpeedMode={combatAnim.speedMode}
         onCycleAnimSpeed={combatAnim.cycleSpeedMode}
+        activeAnimPhase={activeBeat?.phase ?? null}
         enemyBaseDamageDelta={activeBeat?.baseDamage.enemy ?? null}
         disableMotion={combatAnim.effectiveDisabled}
         onOpenSettings={onOpenSettings}

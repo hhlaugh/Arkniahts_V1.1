@@ -123,6 +123,8 @@ export const CLASS_LABEL: Readonly<Record<string, string>> = {
   specialist: '特种',
   tactic: '战术',
   support: '支援',
+  facility: '设施',
+  equipment: '装备',
 };
 
 export const CLASS_COLOR: Readonly<Record<string, string>> = {
@@ -136,6 +138,8 @@ export const CLASS_COLOR: Readonly<Record<string, string>> = {
   specialist: '#ec4899',// pink
   tactic: '#a855f7',   // purple
   support: '#64748b',  // slate
+  facility: '#f59e0b', // amber
+  equipment: '#06b6d4',// cyan
 };
 
 export function getCustomDecks(): DeckDefinition[] {

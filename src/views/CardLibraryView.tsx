@@ -43,7 +43,18 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
     return getCardPresentation(inspectCard.card_id);
   }, [inspectCard.card_id]);
 
-  const classLabelZh = CLASS_LABEL[inspectPresentation.profession] ?? inspectPresentation.profession;
+  const inspectClassKey =
+    inspectCard.card_type === 'support' && inspectCard.support_subtype === 'facility'
+      ? 'facility'
+      : inspectCard.card_type === 'support' && inspectCard.support_subtype === 'equipment'
+        ? 'equipment'
+        : inspectPresentation.profession;
+  const classLabelZh =
+    inspectClassKey === 'facility'
+      ? '🏗️ 设施'
+      : inspectClassKey === 'equipment'
+        ? '🔧 装备'
+        : CLASS_LABEL[inspectClassKey] ?? inspectClassKey;
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -80,14 +91,21 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
         const matchesSkill = uiDef.active_skill_text_zh?.toLowerCase().includes(query) ?? false;
         const matchesRules = uiDef.rules_text_zh?.toLowerCase().includes(query) ?? false;
         const matchesTags = uiDef.synergy_tags?.toLowerCase().includes(query) ?? false;
-        if (!matchesName && !matchesId && !matchesOpId && !matchesEn && !matchesSkill && !matchesRules && !matchesTags) {
+        const matchesArtsAlias =
+          query.includes('法伤') &&
+          (uiDef.damage_type === 'arts' || (uiDef.rules_text_zh ?? '').includes('法术攻击'));
+        if (!matchesName && !matchesId && !matchesOpId && !matchesEn && !matchesSkill && !matchesRules && !matchesTags && !matchesArtsAlias) {
           return false;
         }
       }
 
       // 2. Class Filter
-      if (selectedClass !== 'all' && p.profession !== selectedClass) {
-        return false;
+      if (selectedClass !== 'all') {
+        if (selectedClass === 'facility' || selectedClass === 'equipment') {
+          if (card.card_type !== 'support' || card.support_subtype !== selectedClass) return false;
+        } else if (p.profession !== selectedClass) {
+          return false;
+        }
       }
 
       // 3. Rarity Filter
@@ -142,7 +160,7 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
 
         {/* Rarity & Class Overlay */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <Badge variant="class" value={inspectPresentation.profession}>
+          <Badge variant="class" value={inspectClassKey}>
             {classLabelZh}
           </Badge>
           <Badge variant="rarity" value={inspectPresentation.rarity} />
@@ -365,6 +383,8 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
                 { id: 'specialist', label: '特种' },
                 { id: 'tactic', label: '战术' },
                 { id: 'support', label: '支援' },
+                { id: 'facility', label: '设施' },
+                { id: 'equipment', label: '装备' },
               ].map((c) => (
                 <button
                   key={c.id}

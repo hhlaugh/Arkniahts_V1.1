@@ -27,6 +27,7 @@ export interface CardFrameProps {
   readonly showOwnership?: boolean;
   readonly onClick?: (e?: React.MouseEvent<HTMLDivElement>) => void;
   readonly onActionClick?: () => void;
+  readonly onRemoveClick?: () => void;
   readonly onInspectClick?: () => void;
   readonly actionLabel?: string;
   readonly draggable?: boolean;
@@ -206,6 +207,7 @@ export function CardFrame({
   showOwnership = false,
   onClick,
   onActionClick,
+  onRemoveClick,
   onInspectClick,
   actionLabel,
   draggable = false,
@@ -227,8 +229,20 @@ export function CardFrame({
   const p = presentation ?? getCardPresentation(cardId);
   const rarity = p.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
-  const classColor = CLASS_COLOR[p.profession] ?? '#94a3b8';
-  const classLabelZh = CLASS_LABEL[p.profession] ?? p.profession;
+  const supportSubtype =
+    definition?.card_type === 'support' ? (definition.support_subtype || '') : '';
+  const isFacility = supportSubtype === 'facility';
+  const isEquipment = supportSubtype === 'equipment';
+  const classColor = isFacility
+    ? '#f59e0b'
+    : isEquipment
+      ? '#06b6d4'
+      : CLASS_COLOR[p.profession] ?? '#94a3b8';
+  const classLabelZh = isFacility
+    ? '🏗️ 设施'
+    : isEquipment
+      ? '🔧 装备'
+      : CLASS_LABEL[p.profession] ?? p.profession;
 
   const cost = definition?.cost ?? 0;
   const isOperator = (definition?.card_type ?? (p.profession !== 'tactic' && p.profession !== 'support')) === 'operator';
@@ -272,6 +286,7 @@ export function CardFrame({
       aria-label={`${nameZh}，${classLabelZh}，${rarity}星，费用${cost}`}
       data-rarity={String(rarity)}
       data-state={visualState}
+      data-support-subtype={supportSubtype || undefined}
       data-interactive={isClickable ? 'true' : 'false'}
       draggable={draggable && !disabled}
       onDragStart={onDragStart}
@@ -290,7 +305,11 @@ export function CardFrame({
       onClick={disabled ? undefined : (e) => onClick?.(e)}
       onKeyDown={handleKeyDown}
       className={`card-frame touch-gesture-surface group relative flex flex-col justify-between text-slate-100 select-none overflow-hidden transition-all duration-150 border ${
-        isClickable ? 'cursor-pointer hover:-translate-y-1.5 hover:border-amber-400/55' : ''
+        isClickable
+          ? 'cursor-pointer hover:-translate-y-1.5 hover:border-amber-400/75 hover:shadow-[0_10px_24px_rgba(0,0,0,0.65)] hover:z-20'
+          : variant === 'hand' || variant === 'compact'
+            ? 'hover:-translate-y-1 hover:border-sky-400/60 hover:shadow-[0_8px_18px_rgba(0,0,0,0.55)] hover:z-20'
+            : ''
       } ${holding ? 'ring-2 ring-amber-400/80 border-amber-400' : ''} ${sizeClasses} ${className}`}
       style={{
         clipPath: CORNER_CUTS.md,
@@ -375,10 +394,16 @@ export function CardFrame({
           )}
         </div>
 
-        {/* 职业标志与星级 */}
+        {/* 职业标志 / 支援类型与星级 */}
         <div className="flex flex-col items-end gap-0.5">
           <span
-            className="text-[9px] font-bold px-1.5 py-0.2 tracking-wider border-r-2 bg-[#0b0f14]/85 text-slate-100"
+            className={`text-[9px] font-bold px-1.5 py-0.2 tracking-wider border-r-2 ${
+              isFacility
+                ? 'bg-amber-950/92 text-amber-200 border border-amber-500/65'
+                : isEquipment
+                  ? 'bg-cyan-950/92 text-cyan-200 border border-cyan-500/65'
+                  : 'bg-[#0b0f14]/85 text-slate-100'
+            }`}
             style={{ borderRightColor: classColor }}
           >
             {classLabelZh}
@@ -469,10 +494,57 @@ export function CardFrame({
             </div>
           )}
 
+          {/* 支援卡显著标识：设施（占格·HP） vs 装备（附着·限1件） */}
+          {!isOperator && definition && (
+            <>
+              {isFacility && (
+                <div className={`flex items-center justify-between gap-1 ${variant === 'hand' || variant === 'compact' ? 'text-[8px] sm:text-[10px]' : 'text-[10px]'} font-mono tabular-nums leading-none`}>
+                  <span className="px-1 py-0.5 bg-amber-950/85 border border-amber-500/60 text-amber-200 font-bold truncate">
+                    {variant === 'hand' || variant === 'compact' ? '占格·设施' : `占格设施·${definition.facility_duration ?? 3}回`}
+                  </span>
+                  <span className="px-1 py-0.5 bg-[#0e1c17] border border-emerald-500/50 text-emerald-300 font-bold shrink-0">
+                    {variant === 'compact' ? `♥${definition.hp ?? 3}` : `HP ${definition.hp ?? 3}`}
+                  </span>
+                </div>
+              )}
+              {isEquipment && (
+                <div className={`flex items-center justify-between gap-1 ${variant === 'hand' || variant === 'compact' ? 'text-[8px] sm:text-[10px]' : 'text-[10px]'} font-mono leading-none`}>
+                  <span className="px-1 py-0.5 bg-cyan-950/85 border border-cyan-500/60 text-cyan-200 font-bold truncate">
+                    {variant === 'hand' || variant === 'compact' ? '附着·装备' : '干员装备·附着'}
+                  </span>
+                  {variant !== 'hand' && variant !== 'compact' && (
+                    <span className="text-[9px] text-cyan-300/90 shrink-0">限装1件</span>
+                  )}
+                </div>
+              )}
+              {definition.card_type === 'tactic' && (variant === 'deck' || variant === 'preview') && (
+                <div className="flex items-center justify-between text-[10px] font-mono leading-none">
+                  <span className="px-1 py-0.5 bg-purple-950/75 border border-purple-500/45 text-purple-200 font-bold">
+                    战术指令 · 一次性
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
           {/* 卡组编辑 / 图鉴操作区 */}
-          {variant === 'deck' && (inDeckCount !== undefined || onActionClick || onInspectClick) && (
+          {variant === 'deck' && (inDeckCount !== undefined || onActionClick || onRemoveClick || onInspectClick) && (
             <div className="flex items-center justify-between gap-1 pt-1 mt-0.5 border-t border-slate-800/90">
               <div className="flex items-center gap-1">
+                {onRemoveClick && inDeckCount !== undefined && inDeckCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveClick();
+                    }}
+                    className="px-1.5 py-0.5 text-[11px] font-bold bg-[#232d3f] hover:bg-rose-900/80 text-slate-100 border border-slate-500/80 cursor-pointer transition leading-none"
+                    title="从卡组移出一张"
+                    aria-label={`减少一张 ${nameZh}`}
+                  >
+                    -
+                  </button>
+                )}
                 {inDeckCount !== undefined && (
                   <span
                     className={`text-[10px] font-mono font-bold px-1.5 py-0.5 border leading-none ${

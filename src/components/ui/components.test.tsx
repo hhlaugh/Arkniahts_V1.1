@@ -166,4 +166,125 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
     // 已持有的 3★ 干员显示持有徽标
     expect(html).toContain('持有×2');
   });
+
+  it('CardFrame & DeckEditorView: 卡组目录支持不点开详情直接减少携带数量(-)', async () => {
+    const htmlWithRemove = renderToString(
+      <CardFrame
+        cardId={'OP-VAN-001' as CardId}
+        definition={{
+          card_id: 'OP-VAN-001' as CardId,
+          card_name_zh: '芬',
+          card_type: 'operator',
+          cost: 2 as Cost,
+          rarity: 3,
+          atk: 3,
+          hp: 12 as HpValue,
+          effect_trigger: 'none',
+          effect_json: { trigger: 'none', actions: [] },
+        }}
+        variant="deck"
+        inDeckCount={1}
+        maxInDeckCount={2}
+        onActionClick={() => {}}
+        onRemoveClick={() => {}}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(htmlWithRemove).toContain('aria-label="减少一张 芬"');
+    expect(htmlWithRemove).toContain('1/2');
+
+    const htmlZeroCount = renderToString(
+      <CardFrame
+        cardId={'OP-VAN-001' as CardId}
+        definition={{
+          card_id: 'OP-VAN-001' as CardId,
+          card_name_zh: '芬',
+          card_type: 'operator',
+          cost: 2 as Cost,
+          rarity: 3,
+          atk: 3,
+          hp: 12 as HpValue,
+          effect_trigger: 'none',
+          effect_json: { trigger: 'none', actions: [] },
+        }}
+        variant="deck"
+        inDeckCount={0}
+        maxInDeckCount={2}
+        onActionClick={() => {}}
+        onRemoveClick={() => {}}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(htmlZeroCount).not.toContain('aria-label="减少一张 芬"');
+
+    const { DeckEditorView } = await import('../../views/DeckEditorView');
+    const { setDeckMode } = await import('../../data/player-collection');
+    setDeckMode('free');
+    const editorHtml = renderToString(<DeckEditorView onBack={() => {}} />).replace(/<!-- -->/g, '');
+    // 目录内已编入卡组的卡牌直接渲染 "-" 减量按钮，同时提供设施/装备独立筛选芯片
+    expect(editorHtml).toContain('title="从卡组移出一张"');
+    expect(editorHtml).toContain('>设施</button>');
+    expect(editorHtml).toContain('>装备</button>');
+  });
+
+  it('支援卡区分: 设施(占格·HP) 与 装备(附着·限装1件) 在 CardFrame 与预览浮层中显著区分', async () => {
+    const { DEMO_CARDS, PRESET_DECKS } = await import('../../client/gameData');
+    const { createInitialGameState } = await import('../../game/engine');
+    const { CardPreviewPopover } = await import('../battle/CardPreviewPopover');
+
+    const facilityDef = DEMO_CARDS.find((c) => c.card_type === 'support' && c.support_subtype === 'facility')!;
+    const equipmentDef = DEMO_CARDS.find((c) => c.card_type === 'support' && c.support_subtype === 'equipment')!;
+
+    const facilityHtml = renderToString(
+      <CardFrame cardId={facilityDef.card_id} definition={facilityDef} variant="deck" />,
+    ).replace(/<!-- -->/g, '');
+    expect(facilityHtml).toContain('data-support-subtype="facility"');
+    expect(facilityHtml).toContain('🏗️ 设施');
+    expect(facilityHtml).toContain('占格设施');
+    expect(facilityHtml).toContain(`HP ${facilityDef.hp ?? 3}`);
+
+    const equipmentHtml = renderToString(
+      <CardFrame cardId={equipmentDef.card_id} definition={equipmentDef} variant="deck" />,
+    ).replace(/<!-- -->/g, '');
+    expect(equipmentHtml).toContain('data-support-subtype="equipment"');
+    expect(equipmentHtml).toContain('🔧 装备');
+    expect(equipmentHtml).toContain('干员装备·附着');
+    expect(equipmentHtml).toContain('限装1件');
+
+    const state = createInitialGameState({
+      decks: { player_a: PRESET_DECKS[0], player_b: PRESET_DECKS[1] },
+      cards: DEMO_CARDS,
+      seed: 123,
+    });
+    const instA = Object.values(state.card_instances)[0];
+    const previewState = {
+      ...state,
+      card_definitions: {
+        ...state.card_definitions,
+        [facilityDef.card_id]: facilityDef,
+        [equipmentDef.card_id]: equipmentDef,
+      },
+      card_instances: {
+        ...state.card_instances,
+        'fac-inst': { ...instA, card_instance_id: 'fac-inst' as never, card_id: facilityDef.card_id },
+        'eqp-inst': { ...instA, card_instance_id: 'eqp-inst' as never, card_id: equipmentDef.card_id },
+      },
+    };
+
+    const facilityPopover = renderToString(
+      <CardPreviewPopover
+        state={previewState}
+        hovered={{ instanceId: 'fac-inst' as never, rect: { left: 100, top: 200, right: 180, bottom: 300, width: 80, height: 100 } }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(facilityPopover).toContain('🏗️ 支援 · 设施');
+    expect(facilityPopover).toContain('场地设施 · 占格部署');
+
+    const equipmentPopover = renderToString(
+      <CardPreviewPopover
+        state={previewState}
+        hovered={{ instanceId: 'eqp-inst' as never, rect: { left: 100, top: 200, right: 180, bottom: 300, width: 80, height: 100 } }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(equipmentPopover).toContain('🔧 支援 · 装备');
+    expect(equipmentPopover).toContain('干员装备 · 附着强化');
+  });
 });

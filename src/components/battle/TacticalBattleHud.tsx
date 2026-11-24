@@ -2,6 +2,7 @@ import React from 'react';
 import type { GameState, PlayerId } from '../../game/types';
 import { Button } from '../ui/Button';
 import type { NetworkStatus } from '../../views/BattleView';
+import type { PresentationBeat } from './combatPresentation';
 import { DEFAULT_ANIMATION_SPEED_MODE, type AnimationSpeedMode } from './combatPresentation';
 import { ScenicBannerLayer } from '../ui/ScenicBackdrop';
 import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
@@ -23,9 +24,79 @@ interface TacticalBattleHudProps {
   readonly onExit?: () => void;
   readonly animSpeedMode?: AnimationSpeedMode;
   readonly onCycleAnimSpeed?: () => void;
+  readonly activeAnimPhase?: PresentationBeat['phase'] | null;
   readonly enemyBaseDamageDelta?: number | null;
   readonly disableMotion?: boolean;
   readonly onOpenSettings?: () => void;
+}
+
+export type TurnPhaseStepKey = 'mulligan' | 'turn_start' | 'deploy' | 'combat' | 'pending' | 'turn_end' | 'finished';
+
+export interface TurnPhaseDisplayInfo {
+  readonly turnOwnerLabel: string;
+  readonly phaseKey: TurnPhaseStepKey;
+  readonly phaseLabel: string;
+  readonly isAllyTurn: boolean;
+}
+
+export function getTurnPhaseDisplay({
+  state,
+  actor,
+  bottomPlayer,
+  hasPending,
+  isHotseat = false,
+  activeAnimPhase = null,
+}: {
+  readonly state: GameState;
+  readonly actor: PlayerId;
+  readonly bottomPlayer: PlayerId;
+  readonly hasPending: boolean;
+  readonly isHotseat?: boolean;
+  readonly activeAnimPhase?: PresentationBeat['phase'] | null;
+}): TurnPhaseDisplayInfo {
+  const isAllyTurn = actor === bottomPlayer;
+
+  const turnOwnerLabel =
+    state.phase === 'finished'
+      ? '对局结束'
+      : isHotseat
+        ? actor === 'player_a'
+          ? '玩家 A 回合'
+          : '玩家 B 回合'
+        : isAllyTurn
+          ? '你的回合'
+          : '敌方回合';
+
+  if (activeAnimPhase === 'strike' || activeAnimPhase === 'impact' || state.phase === 'combat') {
+    return {
+      turnOwnerLabel,
+      phaseKey: 'combat',
+      phaseLabel: '作战阶段',
+      isAllyTurn,
+    };
+  }
+  if (hasPending) {
+    return {
+      turnOwnerLabel,
+      phaseKey: 'pending',
+      phaseLabel: '待选支援',
+      isAllyTurn,
+    };
+  }
+  switch (state.phase) {
+    case 'action':
+      return { turnOwnerLabel, phaseKey: 'deploy', phaseLabel: '部署阶段', isAllyTurn };
+    case 'turn_start':
+      return { turnOwnerLabel, phaseKey: 'turn_start', phaseLabel: '准备阶段', isAllyTurn };
+    case 'turn_end':
+      return { turnOwnerLabel, phaseKey: 'turn_end', phaseLabel: '回合结算', isAllyTurn };
+    case 'mulligan':
+      return { turnOwnerLabel, phaseKey: 'mulligan', phaseLabel: '起手调度', isAllyTurn };
+    case 'finished':
+      return { turnOwnerLabel, phaseKey: 'finished', phaseLabel: '战局结束', isAllyTurn };
+    default:
+      return { turnOwnerLabel, phaseKey: 'turn_end', phaseLabel: '结算中', isAllyTurn };
+  }
 }
 
 const SPEED_LABEL: Record<AnimationSpeedMode, { short: string; title: string }> = {
@@ -35,11 +106,17 @@ const SPEED_LABEL: Record<AnimationSpeedMode, { short: string; title: string }> 
   off: { short: '关', title: '战斗动效：已关闭（点击恢复 0.5x 初始速度）' },
 };
 
+const FLOW_STEPS: readonly { readonly key: 'turn_start' | 'deploy' | 'combat'; readonly label: string }[] = [
+  { key: 'turn_start', label: '准备' },
+  { key: 'deploy', label: '部署' },
+  { key: 'combat', label: '作战' },
+];
+
 /**
  * 顶部战局与敌方阵地 HUD (TacticalBattleHud)
  * 采用响应式 CSS Grid 三分区布局：
- * - 桌面端：`grid-cols-[1fr_auto_1fr]` 让敌方基地状态精确居中对齐上方棋盘，左右分列回合信息与系统控制
- * - 移动端：`grid-cols-[1fr_auto]` 首行紧凑展示回合与系统控制，次行全宽展示敌方基地 HP/DP/手牌余量，绝不挤出或遮挡战场
+ * - 桌面端：`grid-cols-[1fr_auto_1fr]` 让敌方基地状态精确居中对齐上方棋盘，左右分列回合/阶段信息与系统控制
+ * - 移动端：`grid-cols-[1fr_auto]` 首行紧凑展示回合/阶段与系统控制，次行全宽展示敌方基地 HP/DP/手牌余量，绝不挤出或遮挡战场
  */
 export function TacticalBattleHud({
   state,
@@ -58,6 +135,7 @@ export function TacticalBattleHud({
   onExit,
   animSpeedMode = DEFAULT_ANIMATION_SPEED_MODE,
   onCycleAnimSpeed,
+  activeAnimPhase = null,
   enemyBaseDamageDelta = null,
   disableMotion = false,
   onOpenSettings,
@@ -66,38 +144,47 @@ export function TacticalBattleHud({
   const isAllyTurn = actor === bottomPlayer;
   const isEnemyTurn = actor === topPlayer;
 
+  const turnPhaseInfo = getTurnPhaseDisplay({
+    state,
+    actor,
+    bottomPlayer,
+    hasPending,
+    isHotseat,
+    activeAnimPhase,
+  });
+
   const hudShiftCls = disableMotion
     ? ''
     : isEnemyTurn
       ? 'anim-hud-turn-shift anim-hud-turn-shift-enemy'
       : 'anim-hud-turn-shift anim-hud-turn-shift-ally';
 
-  const phaseBadge = hasPending ? (
-    <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-amber-500/18 text-amber-300 border border-amber-500/60 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
-      待选支援
-    </span>
-  ) : state.phase === 'action' ? (
-    isHotseat ? (
-      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-emerald-500/18 text-emerald-300 border border-emerald-500/60 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
-        <span className="w-1 h-2.5 bg-emerald-400" />
-        <span>{actor === 'player_a' ? '玩家 A 行动' : '玩家 B 行动'}</span>
-      </span>
-    ) : isAllyTurn ? (
-      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-sky-500/18 text-sky-200 border border-sky-400/65 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
-        <span className="w-1 h-2.5 bg-sky-400" />
-        <span>我方回合</span>
-      </span>
-    ) : (
-      <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-rose-500/18 text-rose-200 border border-rose-500/65 font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1.5 whitespace-nowrap">
-        <span className="w-1 h-2.5 bg-rose-400" />
-        <span>敌方回合</span>
-      </span>
-    )
-  ) : (
-    <span className="board-chamfer-sm px-2 sm:px-2.5 py-0.5 bg-slate-800/90 text-slate-300 border border-slate-600/80 font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap">
-      结算中
-    </span>
-  );
+  const ownerBadgeCls =
+    state.phase === 'finished'
+      ? 'bg-slate-800/90 text-slate-200 border-slate-500/70'
+      : isHotseat
+        ? 'bg-emerald-500/18 text-emerald-200 border-emerald-400/65'
+        : isAllyTurn
+          ? 'bg-sky-500/18 text-sky-200 border-sky-400/70'
+          : 'bg-rose-500/18 text-rose-200 border-rose-500/65';
+
+  const ownerDotCls =
+    state.phase === 'finished'
+      ? 'bg-slate-400'
+      : isHotseat
+        ? 'bg-emerald-400'
+        : isAllyTurn
+          ? 'bg-sky-400'
+          : 'bg-rose-400';
+
+  const phaseBadgeCls =
+    turnPhaseInfo.phaseKey === 'combat'
+      ? 'bg-rose-950/90 text-rose-200 border-rose-500/70'
+      : turnPhaseInfo.phaseKey === 'pending'
+        ? 'bg-cyan-950/90 text-cyan-200 border-cyan-400/70'
+        : turnPhaseInfo.phaseKey === 'deploy'
+          ? 'bg-amber-500/18 text-amber-200 border-amber-400/70'
+          : 'bg-slate-800/90 text-slate-200 border-slate-600/80';
 
   const enemyHit = enemyBaseDamageDelta !== null && enemyBaseDamageDelta > 0;
   const enemyMaxBaseHp = 20;
@@ -122,8 +209,12 @@ export function TacticalBattleHud({
         aria-hidden="true"
         className="pointer-events-none absolute bottom-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-cyan-400/20 via-cyan-300/65 to-amber-400/50 z-20"
       />
-      {/* 1. 左区：PRTS 官方菱形徽记 + 回合轮次与阶段状态 */}
-      <div className="relative z-10 flex items-center gap-1 sm:gap-2 min-w-0 justify-self-start">
+      {/* 1. 左区：PRTS 官方菱形徽记 + 固定回合归属与阶段指示器 */}
+      <div
+        data-testid="battle-turn-phase-header"
+        aria-label={`第 ${state.turn_number} 回合 · ${turnPhaseInfo.turnOwnerLabel} · ${turnPhaseInfo.phaseLabel}`}
+        className="relative z-10 flex items-center gap-1 sm:gap-1.5 min-w-0 justify-self-start"
+      >
         <img
           src="./assets/arknights/logos/prts_diamond.png"
           alt="PRTS"
@@ -138,9 +229,51 @@ export function TacticalBattleHud({
         </div>
 
         <div className="shrink-0 overflow-hidden">
-          <div key={`${actor}-${state.phase}-${hasPending}`} className={hudShiftCls}>
-            {phaseBadge}
+          <div
+            key={`${actor}-${turnPhaseInfo.phaseKey}-${hasPending}`}
+            className={`flex items-center gap-1 ${hudShiftCls}`}
+          >
+            <span
+              data-testid="hud-turn-owner-badge"
+              className={`board-chamfer-sm px-1.5 sm:px-2 py-0.5 border font-bold text-[10px] sm:text-xs tracking-wider inline-flex items-center gap-1 whitespace-nowrap ${ownerBadgeCls}`}
+            >
+              <span className={`w-1 h-2.5 shrink-0 ${ownerDotCls}`} aria-hidden="true" />
+              <span>{turnPhaseInfo.turnOwnerLabel}</span>
+            </span>
+
+            <span
+              data-testid="hud-phase-badge"
+              className={`board-chamfer-sm px-1.5 sm:px-2 py-0.5 border font-bold text-[10px] sm:text-xs tracking-wider whitespace-nowrap ${phaseBadgeCls}`}
+            >
+              {turnPhaseInfo.phaseLabel}
+            </span>
           </div>
+        </div>
+
+        {/* 桌面宽屏紧凑阶段流程条（准备 › 部署 › 作战） */}
+        <div
+          aria-hidden="true"
+          className="hidden xl:inline-flex items-center gap-1 ml-1 px-2 py-0.5 bg-[#121722]/90 border border-[#253145] text-[10px] font-mono shrink-0"
+        >
+          {FLOW_STEPS.map((step, idx) => {
+            const isStepActive = turnPhaseInfo.phaseKey === step.key;
+            return (
+              <React.Fragment key={step.key}>
+                {idx > 0 && <span className="text-slate-600">›</span>}
+                <span
+                  className={
+                    isStepActive
+                      ? step.key === 'combat'
+                        ? 'text-rose-300 font-black'
+                        : 'text-amber-300 font-black'
+                      : 'text-slate-500'
+                  }
+                >
+                  {step.label}
+                </span>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {networkStatus?.isOnline ? (

@@ -46,12 +46,28 @@ const PROFESSION_FILTERS = [
   { id: 'specialist', label: '特种' },
   { id: 'tactic', label: '战术' },
   { id: 'support', label: '支援' },
+  { id: 'facility', label: '设施' },
+  { id: 'equipment', label: '装备' },
 ] as const;
 
 type TraitFilter = 'all' | 'melee' | 'ranged' | 'front_only' | 'back_only' | 'floating';
 type SortMode = 'rarity-desc' | 'cost-asc' | 'cost-desc' | 'atk-desc' | 'hp-desc' | 'name';
 
-function getCardClassInfo(card: UiCardDefinition | { card_type: string; class?: string }) {
+function getCardClassInfo(card: UiCardDefinition | { card_type: string; class?: string; support_subtype?: string }) {
+  if (card.card_type === 'support' && card.support_subtype === 'facility') {
+    return {
+      key: 'facility',
+      label: '设施',
+      color: CLASS_COLOR.facility ?? '#f59e0b',
+    };
+  }
+  if (card.card_type === 'support' && card.support_subtype === 'equipment') {
+    return {
+      key: 'equipment',
+      label: '装备',
+      color: CLASS_COLOR.equipment ?? '#06b6d4',
+    };
+  }
   const c = (card.card_type === 'operator' && card.class ? card.class : card.card_type) || 'vanguard';
   return {
     key: c,
@@ -77,6 +93,7 @@ interface DeckCatalogCardItemProps {
   readonly disabled: boolean;
   readonly actionLabel: string;
   readonly onAdd: (cardId: CardId) => void;
+  readonly onRemove: (cardId: CardId) => void;
   readonly onHoverInspect: (card: UiCardDefinition) => void;
   readonly onLongPressInspect: (card: UiCardDefinition) => void;
 }
@@ -90,6 +107,7 @@ function DeckCatalogCardItem({
   disabled,
   actionLabel,
   onAdd,
+  onRemove,
   onHoverInspect,
   onLongPressInspect,
 }: DeckCatalogCardItemProps) {
@@ -135,6 +153,7 @@ function DeckCatalogCardItem({
           }
         }}
         onActionClick={() => onAdd(uiCard.card_id)}
+        onRemoveClick={() => onRemove(uiCard.card_id)}
         onInspectClick={() => onLongPressInspect(uiCard)}
         actionLabel={actionLabel}
         className="flex-1"
@@ -284,14 +303,21 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
         const matchesRules = (uiCard.rules_text_zh ?? '').toLowerCase().includes(query);
         const matchesSkill = (uiCard.active_skill_text_zh ?? '').toLowerCase().includes(query);
         const matchesTags = (uiCard.synergy_tags ?? '').toLowerCase().includes(query);
-        if (!matchesName && !matchesEn && !matchesId && !matchesRules && !matchesSkill && !matchesTags) {
+        const matchesArtsAlias =
+          query.includes('法伤') &&
+          (uiCard.damage_type === 'arts' || (uiCard.rules_text_zh ?? '').includes('法术攻击'));
+        if (!matchesName && !matchesEn && !matchesId && !matchesRules && !matchesSkill && !matchesTags && !matchesArtsAlias) {
           return false;
         }
       }
 
       if (selectedClass !== 'all') {
-        const cClass = uiCard.card_type === 'operator' ? uiCard.class : uiCard.card_type;
-        if (cClass !== selectedClass) return false;
+        if (selectedClass === 'facility' || selectedClass === 'equipment') {
+          if (uiCard.card_type !== 'support' || uiCard.support_subtype !== selectedClass) return false;
+        } else {
+          const cClass = uiCard.card_type === 'operator' ? uiCard.class : uiCard.card_type;
+          if (cClass !== selectedClass) return false;
+        }
       }
 
       if (selectedCost !== 'all') {
@@ -981,6 +1007,7 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                     disabled={isMaxed && inDeckCount === 0}
                     actionLabel={actionLabel}
                     onAdd={addCard}
+                    onRemove={removeCard}
                     onHoverInspect={(c) => setInspectCard(c)}
                     onLongPressInspect={(c) => {
                       setInspectCard(c);
@@ -1023,6 +1050,22 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                   <div className="flex gap-3 text-xs font-mono pt-0.5">
                     <span className="text-rose-400 font-bold">ATK {activeInspect.atk ?? 0}</span>
                     <span className="text-emerald-400 font-bold">HP {activeInspect.hp ?? 0}</span>
+                  </div>
+                )}
+                {activeInspect.card_type === 'support' && (
+                  <div className="text-[11px] font-mono pt-0.5">
+                    {activeInspect.support_subtype === 'facility' ? (
+                      <span className="text-amber-300 font-bold">
+                        🏗️ 场地设施（占格部署 · {activeInspect.hp ?? 3} HP · {activeInspect.facility_duration ?? 3} 回合）
+                      </span>
+                    ) : (
+                      <span className="text-cyan-300 font-bold">🔧 干员装备（附着友方 · 每干员限装 1 件）</span>
+                    )}
+                  </div>
+                )}
+                {activeInspect.card_type === 'tactic' && (
+                  <div className="text-[11px] font-mono pt-0.5 text-purple-300 font-bold">
+                    战术指令（一次性效果 · 结算进弃牌堆）
                   </div>
                 )}
               </div>

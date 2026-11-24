@@ -27,7 +27,7 @@ const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: strin
   压制: { category: '减益', brief: '使目标下一次普通攻击的攻击力 -1（最低为 0），该次攻击结算后移除。' },
   治疗: { category: '恢复', brief: '立即恢复目标 1 点生命（【治疗】N 恢复 N 点），不超过最大生命且不恢复护盾。' },
   鼓舞: { category: '成长', brief: '使目标攻击力永久 +1（【鼓舞】N 则 +N），持续至单位离场。' },
-  法术攻击: { category: '攻击', brief: '普通攻击造成等量法术伤害，无视目标【掩护】效果（仍受护盾吸收）。' },
+  法术攻击: { category: '攻击', brief: '普通攻击造成等量法术伤害（法伤），无视目标【掩护】效果（仍受护盾吸收）。' },
   强攻: { category: '攻击', brief: '普通攻击可同时攻击同路最多 2 名合法敌方单位。' },
   收割: { category: '攻击', brief: '攻击范围内所有合法敌人并每命中 1 名治疗自身，但无法成为友方治疗目标。' },
   领主: { category: '特性', brief: '前排或后排皆可部署，且在任意阵位均具备远程索敌能力。' },
@@ -177,6 +177,15 @@ export function extractCardKeywords(
   }
   if (definition.intercept_eligible === false && definition.card_type === 'operator') {
     pushKeyword('伏击');
+  }
+  if (definition.operator_subclass_zh === '领主') {
+    pushKeyword('领主');
+  }
+  if (definition.operator_subclass_zh === '强攻手') {
+    pushKeyword('强攻');
+  }
+  if (definition.operator_subclass_zh === '处决者') {
+    pushKeyword('快速再部署');
   }
   if (definition.skill_effects?.some((block) => block.effects.some((eff) => eff.op === 'pay_upkeep'))) {
     pushKeyword('维护');

@@ -204,8 +204,20 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
   const presentation = getCardPresentation(instance.card_id);
   const rarity = presentation.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
-  const classColor = CLASS_COLOR[presentation.profession] ?? '#94a3b8';
-  const classLabelZh = CLASS_LABEL[presentation.profession] ?? presentation.profession;
+  const supportSubtype =
+    definition.card_type === 'support' ? (definition.support_subtype || '') : '';
+  const isFacilityDef = supportSubtype === 'facility';
+  const isEquipmentDef = supportSubtype === 'equipment';
+  const classColor = isFacilityDef
+    ? '#f59e0b'
+    : isEquipmentDef
+      ? '#06b6d4'
+      : CLASS_COLOR[presentation.profession] ?? '#94a3b8';
+  const classLabelZh = isFacilityDef
+    ? '🏗️ 支援 · 设施'
+    : isEquipmentDef
+      ? '🔧 支援 · 装备'
+      : CLASS_LABEL[presentation.profession] ?? presentation.profession;
 
   const isBoardUnit = instance.zone === 'board';
   const entityKind = isBoardUnit ? getEntityKind(state, instance) : null;
@@ -272,16 +284,34 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
       ? formatCellLabel(state.board_profile, instance.lane, instance.position, instance.slot_index)
       : null;
 
+  const damageTypeLabel =
+    isOperator && attackProfile?.mode !== 'support' && definition.class !== 'medic'
+      ? definition.damage_type === 'arts'
+        ? '法术'
+        : '物理'
+      : null;
+  const redeployBaseLabel =
+    isOperator && typeof definition.redeploy_cd_base === 'number' && definition.redeploy_cd_base > 0
+      ? `再部署${definition.redeploy_cd_base}回`
+      : null;
+  const operatorMetaParts = [
+    attackModeLabel,
+    damageTypeLabel,
+    deployRuleLabel,
+    definition.floating ? '浮空' : null,
+    redeployBaseLabel,
+  ].filter(Boolean);
+
   const cardTypeLabel =
-    entityKind === 'facility' || definition.support_subtype === 'facility'
-      ? '场地设施'
+    entityKind === 'facility' || isFacilityDef
+      ? '场地设施 · 占格部署'
       : isSummon
         ? '召唤单位'
         : definition.card_type === 'tactic'
-          ? '战术指令'
-          : definition.card_type === 'support'
-            ? '支援装备'
-            : `${attackModeLabel} · ${deployRuleLabel}`;
+          ? '战术指令 · 一次性'
+          : isEquipmentDef
+            ? '干员装备 · 附着强化'
+            : operatorMetaParts.join(' · ');
 
   const centerSubLabel =
     isSummon
@@ -387,10 +417,16 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
                 )}
               </div>
 
-              {/* 右上角：职业与稀有度星级 */}
+              {/* 右上角：职业 / 支援子类与稀有度星级 */}
               <div className="absolute top-2 right-2 flex flex-col items-end gap-0.5">
                 <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 bg-[#0a0e14]/90 text-slate-100 border-r-2 leading-none"
+                  className={`text-[10px] font-bold px-1.5 py-0.5 border-r-2 leading-none ${
+                    isFacilityDef
+                      ? 'bg-amber-950/92 text-amber-200 border border-amber-500/65'
+                      : isEquipmentDef
+                        ? 'bg-cyan-950/92 text-cyan-200 border border-cyan-500/65'
+                        : 'bg-[#0a0e14]/90 text-slate-100'
+                  }`}
                   style={{ borderRightColor: classColor }}
                 >
                   {classLabelZh}
@@ -517,6 +553,25 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
                     <span className="text-[9px] text-slate-400 leading-none">/{entityStats.maxHp}</span>
                   </div>
                 </>
+              ) : isFacilityDef ? (
+                <>
+                  <span className="text-[10px] font-bold text-amber-200 bg-amber-950/80 border border-amber-500/55 px-1.5 py-0.5">
+                    🏗️ 占格部署 · 持续{definition.facility_duration ?? 3}回合
+                  </span>
+                  <div
+                    data-testid="card-hp-badge"
+                    className="flex items-baseline gap-1 px-2.5 py-1 bg-[#0e1f19] border border-emerald-500/75 shadow-md shrink-0"
+                    style={{ clipPath: 'polygon(14% 0, 100% 0, 100% 72%, 86% 100%, 0 100%, 0 28%)' }}
+                  >
+                    <span className="text-[9px] font-bold text-emerald-300/85">HP</span>
+                    <span className="text-sm font-black leading-none text-emerald-200">{definition.hp ?? 3}</span>
+                  </div>
+                </>
+              ) : isEquipmentDef ? (
+                <div className="w-full flex items-center justify-between px-1.5 py-1 bg-cyan-950/70 border border-cyan-500/50 text-[10px] font-bold text-cyan-200">
+                  <span>🔧 附着友方单位（限装 1 件）</span>
+                  <span className="text-amber-300">{definition.cost} CP</span>
+                </div>
               ) : (
                 <div className="w-full flex items-center justify-between px-1 py-0.5 text-[10px] font-bold text-slate-300 border-t border-[#222c3a]">
                   <span>{cardTypeLabel}</span>

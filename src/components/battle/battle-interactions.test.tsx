@@ -21,6 +21,7 @@ import {
 } from './CardPreviewPopover';
 import { PlayerHandDock } from './PlayerHandDock';
 import { TacticalDetailPanel } from './TacticalDetailPanel';
+import { TacticalBattleHud, getTurnPhaseDisplay } from './TacticalBattleHud';
 import { KeywordGlossary } from '../cards/KeywordGlossary';
 import { extractCardKeywords } from '../../data/keywords';
 import {
@@ -890,5 +891,139 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     );
     expect(embeddedDetailHtml).toContain('取消选中');
     expect(embeddedDetailHtml).not.toContain('战术参数与指令');
+  });
+
+  it('固定顶栏回合与阶段指示 + 手牌悬停完整属性展示: 明确展示「你的回合」「部署阶段」「作战阶段」与完整面板数值', () => {
+    const baseState = createActionPhaseState(512);
+    const actor = baseState.active_player_id;
+    const opponent = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    expect(
+      getTurnPhaseDisplay({
+        state: baseState,
+        actor,
+        bottomPlayer: actor,
+        hasPending: false,
+        isHotseat: false,
+      }),
+    ).toMatchObject({
+      turnOwnerLabel: '你的回合',
+      phaseKey: 'deploy',
+      phaseLabel: '部署阶段',
+    });
+
+    expect(
+      getTurnPhaseDisplay({
+        state: baseState,
+        actor: opponent,
+        bottomPlayer: actor,
+        hasPending: false,
+        isHotseat: false,
+      }),
+    ).toMatchObject({
+      turnOwnerLabel: '敌方回合',
+      phaseKey: 'deploy',
+      phaseLabel: '部署阶段',
+    });
+
+    expect(
+      getTurnPhaseDisplay({
+        state: baseState,
+        actor,
+        bottomPlayer: actor,
+        hasPending: false,
+        activeAnimPhase: 'strike',
+      }),
+    ).toMatchObject({
+      turnOwnerLabel: '你的回合',
+      phaseKey: 'combat',
+      phaseLabel: '作战阶段',
+    });
+
+    const hudDeployHtml = renderToString(
+      <TacticalBattleHud
+        state={baseState}
+        actor={actor}
+        bottomPlayer={actor}
+        topPlayer={opponent}
+        hasPending={false}
+        isHotseat={false}
+        showLog={false}
+        onToggleLog={() => {}}
+        showDetail={false}
+        onToggleDetail={() => {}}
+      />,
+    );
+    expect(hudDeployHtml).toContain('data-testid="battle-turn-phase-header"');
+    expect(hudDeployHtml).toContain('data-testid="hud-turn-owner-badge"');
+    expect(hudDeployHtml).toContain('data-testid="hud-phase-badge"');
+    expect(hudDeployHtml).toContain('你的回合');
+    expect(hudDeployHtml).toContain('部署阶段');
+
+    const hudCombatHtml = renderToString(
+      <TacticalBattleHud
+        state={baseState}
+        actor={actor}
+        bottomPlayer={actor}
+        topPlayer={opponent}
+        hasPending={false}
+        isHotseat={false}
+        activeAnimPhase="strike"
+        showLog={false}
+        onToggleLog={() => {}}
+        showDetail={false}
+        onToggleDetail={() => {}}
+      />,
+    );
+    expect(hudCombatHtml).toContain('作战阶段');
+
+    // 手牌悬停抬升反馈与完整属性（物理/法术、部署位置、再部署 CD、ATK/HP、技能描述）
+    const dockHtml = renderToString(
+      <PlayerHandDock
+        state={baseState}
+        bottomPlayer={actor}
+        actor={actor}
+        canAct={false}
+        isActionPhase
+        hasPending={false}
+        isHotseat={false}
+        isMobile={false}
+        layoutMode="bottom"
+        selection={null}
+        draggingCardId={null}
+        onHandCardClick={() => {}}
+        onLongPressCard={() => {}}
+        onHoverCard={() => {}}
+        onDragStartCard={() => {}}
+        onDragEndCard={() => {}}
+        onEndActionPhase={() => {}}
+      />,
+    );
+    expect(dockHtml).toContain('hover:-translate-y-1');
+
+    const handOpId = baseState.players[actor].hand.find(
+      (id) => baseState.card_definitions[baseState.card_instances[id].card_id]?.card_type === 'operator',
+    )!;
+    const handOpDef = baseState.card_definitions[baseState.card_instances[handOpId].card_id] as UiCardDefinition;
+    const handPopoverHtml = renderToString(
+      <CardPreviewPopover
+        state={baseState}
+        hovered={{
+          instanceId: handOpId,
+          rect: { left: 200, top: 620, right: 316, bottom: 774, width: 116, height: 154 },
+        }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(handPopoverHtml).toContain(handOpDef.card_name_zh);
+    expect(handPopoverHtml).toContain('data-testid="card-atk-badge"');
+    expect(handPopoverHtml).toContain('data-testid="card-hp-badge"');
+    expect(handPopoverHtml).toContain(`>${handOpDef.atk ?? 0}<`);
+    expect(handPopoverHtml).toContain(`>${handOpDef.hp ?? 0}<`);
+    if (handOpDef.rules_text_zh) {
+      expect(handPopoverHtml).toContain(handOpDef.rules_text_zh);
+    }
+    if (typeof handOpDef.redeploy_cd_base === 'number' && handOpDef.redeploy_cd_base > 0) {
+      expect(handPopoverHtml).toContain(`再部署${handOpDef.redeploy_cd_base}回`);
+    }
   });
 });
