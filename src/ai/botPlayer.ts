@@ -293,7 +293,9 @@ export class BotPlayer {
     const instance = state.card_instances[action.card_instance_id];
     const definition = instance ? state.card_definitions[instance.card_id] : undefined;
     if (!definition) return -1;
-    if (definition.card_type === 'support') return this.scoreSupport(state, action, definition);
+    if (definition.card_type === 'support' || definition.card_type === 'facility') {
+      return this.scoreSupport(state, action, definition);
+    }
 
     const target = action.target_instance_id ? state.card_instances[action.target_instance_id] : undefined;
     const targetDef = target ? state.card_definitions[target.card_id] : undefined;
@@ -368,12 +370,12 @@ export class BotPlayer {
   }
 
   private scoreSupport(state: GameState, action: Extract<GameAction, { type: 'play_card' }>, definition: CardDefinition): number {
-    if (definition.support_subtype === 'facility') {
+    if (definition.card_type === 'facility' || definition.support_subtype === 'facility') {
       // 后排格位优先放置设施，避免占用前排阻挡格位
       const rowBonus = action.target_position === 'back' ? 0.8 : -0.4;
       return 1.8 + rowBonus - definition.cost * 0.55;
     }
-    if (definition.support_subtype === 'equipment') {
+    if (definition.card_type === 'support') {
       const target = action.target_instance_id ? state.card_instances[action.target_instance_id] : undefined;
       if (!target?.operator_combat) return -1;
       // 尽量不浪费已经装有同档装备的单位，优先前排或高攻输出位

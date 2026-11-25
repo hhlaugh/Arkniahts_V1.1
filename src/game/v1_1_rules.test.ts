@@ -12,7 +12,8 @@ import {
   validateBoardProfile,
 } from './board';
 import { resolveCombat } from './combat';
-import { resolveDamagePipeline } from './combat-primitives';
+import { applyStatusToInstance, grantShieldToEntity, healEntity, resolveDamagePipeline } from './combat-primitives';
+import { executeEffectOps } from './effects';
 import { advancePhase, createInitialGameState, mulligan, reduceGameAction } from './engine';
 import { enumerateLegalActions } from './legal-actions';
 import { isInterceptEligible, selectOrdinaryAttackTargets } from './range';
@@ -152,7 +153,7 @@ function placeBoardUnit(
         lane,
         position,
         slot_index: slotIndex,
-        entity_kind: def.support_subtype === 'facility' ? 'facility' : 'operator',
+        entity_kind: def.card_type === 'facility' || def.support_subtype === 'facility' ? 'facility' : 'operator',
         operator_combat: {
           current_hp: ((overrides.current_hp ?? def.hp ?? 3) as HpValue),
           current_atk_modifiers: overrides.current_atk_modifiers ?? [],
@@ -163,7 +164,7 @@ function placeBoardUnit(
           equipped_package: overrides.equipped_package ?? null,
         },
         operator_lifecycle:
-          def.support_subtype === 'facility'
+          def.card_type === 'facility' || def.support_subtype === 'facility'
             ? undefined
             : {
                 redeploy_cd_remaining: 0,
@@ -174,7 +175,7 @@ function placeBoardUnit(
                 once_per_game_flags: {},
               },
         facility_state:
-          def.support_subtype === 'facility'
+          def.card_type === 'facility' || def.support_subtype === 'facility'
             ? {
                 remaining_turns: def.facility_duration ?? 3,
                 disabled_until_owner_turn: null,
@@ -199,14 +200,15 @@ function setCp(state: GameState, playerId: PlayerId, cp: number, cap = 10): Game
 }
 
 describe('V1.1 规范全量验收测试', () => {
-  it('1. 数据层：108 张卡（72 干员 + 24 战术 + 12 支援）+ 38 关键词 + 无超 8 费卡 + 零校验错误', () => {
+  it('1. 数据层：108 张卡（72 干员 + 24 战术 + 6 设施 + 6 支援）+ 34 关键词 + 无超 8 费卡 + 零校验错误', () => {
     expect(loaded.validCards).toHaveLength(108);
     expect(loaded.validCards.filter((c) => c.card_type === 'operator')).toHaveLength(72);
     expect(loaded.validCards.filter((c) => c.card_type === 'tactic')).toHaveLength(24);
-    expect(loaded.validCards.filter((c) => c.card_type === 'support')).toHaveLength(12);
+    expect(loaded.validCards.filter((c) => c.card_type === 'facility')).toHaveLength(6);
+    expect(loaded.validCards.filter((c) => c.card_type === 'support')).toHaveLength(6);
     expect(loaded.validCards.every((c) => c.cost <= 8)).toBe(true);
     expect(summarizeValidation(loaded.issues)).toEqual({ errors: 0, warnings: 0 });
-    expect(keywordsJson).toHaveLength(38);
+    expect(keywordsJson).toHaveLength(34);
   });
 
   it('2. 动态 BoardProfile：支持经典三路 21/32/21、单路与 5 路自定义，拒绝非法路线/格数', () => {
@@ -269,7 +271,7 @@ describe('V1.1 规范全量验收测试', () => {
     }));
     expect(selectOrdinaryAttackTargets(s, s.card_instances[atkId]!).map((u) => u.card_instance_id)).toEqual([tauntId]);
 
-    // 多路 3 格下检验同位置伊桑 / 狮蝎低索敌（先打正常目标而非隐匿单位）
+    // 多路 3 格下检验伊桑 / 狮蝎伏击客规则：不拦截但可被攻击，非集火下优先级等同基本分（仅伏击客时直击基地），集火可命中，且仅压制最高攻敌方单位
     const wide = createCustomBoardProfile([{ frontSlots: 3, rearSlots: 2 }]);
     let w = startGame(12, { boardProfile: wide });
     const wActor = w.active_player_id;
@@ -279,11 +281,48 @@ describe('V1.1 规范全量验收测试', () => {
     let otherFrontId: CardInstanceId;
     ({ state: w, id: wAttacker } = placeBoardUnit(w, wActor, 'OP-GUA-001', 'L1', 'front', 1));
     ({ state: w, id: ethanId } = placeBoardUnit(w, wEnemy, 'OP-SPE-004', 'L1', 'front', 1));
-    ({ state: w, id: otherFrontId } = placeBoardUnit(w, wEnemy, 'OP-VAN-001', 'L1', 'front', 2));
     expect(isInterceptEligible(w, w.card_instances[ethanId]!)).toBe(false);
+    // 1) 仅有伏击客且未集火 -> 返回空目标并直接攻击敌方基地基本分
+    expect(selectOrdinaryAttackTargets(w, w.card_instances[wAttacker]!)).toEqual([]);
+    const baseBefore = w.players[wEnemy].base_points;
+    const directBaseRes = resolveCombat({ ...w, phase: 'combat' });
+    expect(directBaseRes.players[wEnemy].base_points).toBe(baseBefore - 2);
+    expect(directBaseRes.card_instances[ethanId]?.operator_combat?.current_hp).toBe(3);
+
+    // 2) 对伏击客下达集火指令 -> 可直接攻击伏击客
+    const focusedEthan = reduceGameAction(w, wActor, { type: 'set_focus_target', target_instance_id: ethanId }).value;
+    expect(selectOrdinaryAttackTargets(focusedEthan, focusedEthan.card_instances[wAttacker]!).map((u) => u.card_instance_id)).toEqual([ethanId]);
+
+    // 3) 场上同时存在常规可拦截单位与伏击客且未集火 -> 优先打常规目标而非伏击客
+    ({ state: w, id: otherFrontId } = placeBoardUnit(w, wEnemy, 'OP-VAN-001', 'L1', 'front', 2));
     expect(isInterceptEligible(w, w.card_instances[otherFrontId]!)).toBe(true);
-    // 槽位 1 是伊桑（隐匿不拦截），槽位 2 是芬 -> 选中芬
     expect(selectOrdinaryAttackTargets(w, w.card_instances[wAttacker]!).map((u) => u.card_instance_id)).toEqual([otherFrontId]);
+
+    // 4) 伊桑（OP-SPE-004）多目标攻击后仅压制实际受伤目标中攻击力最高的 1 名敌方单位
+    let ethanTest = startGame(13, { boardProfile: wide });
+    const eActor = ethanTest.active_player_id;
+    const eEnemy: PlayerId = eActor === 'player_a' ? 'player_b' : 'player_a';
+    let eLowAtk: CardInstanceId;
+    let eHighAtk: CardInstanceId;
+    ({ state: ethanTest } = placeBoardUnit(ethanTest, eActor, 'OP-SPE-004', 'L1', 'front', 1));
+    ({ state: ethanTest, id: eLowAtk } = placeBoardUnit(ethanTest, eEnemy, 'OP-DEF-003', 'L1', 'front', 1, { current_hp: 6 as HpValue })); // atk 1
+    ({ state: ethanTest, id: eHighAtk } = placeBoardUnit(ethanTest, eEnemy, 'OP-GUA-002', 'L1', 'front', 2, { current_hp: 5 as HpValue })); // atk 3
+    const afterEthanCombat = resolveCombat({ ...ethanTest, phase: 'combat' });
+    expect(afterEthanCombat.card_instances[eHighAtk]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(true);
+    expect(afterEthanCombat.card_instances[eLowAtk]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(false);
+
+    // 5) 狮蝎（OP-SPE-006）战斗开始时仅压制同路攻击力最高的 1 名敌方单位
+    let manticoreTest = startGame(14, { boardProfile: wide });
+    const mActor = manticoreTest.active_player_id;
+    const mEnemy: PlayerId = mActor === 'player_a' ? 'player_b' : 'player_a';
+    let mLowAtk: CardInstanceId;
+    let mHighAtk: CardInstanceId;
+    ({ state: manticoreTest } = placeBoardUnit(manticoreTest, mActor, 'OP-SPE-006', 'L1', 'front', 1));
+    ({ state: manticoreTest, id: mLowAtk } = placeBoardUnit(manticoreTest, mEnemy, 'OP-VAN-001', 'L1', 'front', 1, { current_hp: 6 as HpValue })); // atk 2
+    ({ state: manticoreTest, id: mHighAtk } = placeBoardUnit(manticoreTest, mEnemy, 'OP-GUA-005', 'L1', 'front', 2, { current_hp: 6 as HpValue })); // atk 3
+    const afterManticoreCombat = resolveCombat({ ...manticoreTest, phase: 'combat' });
+    expect(afterManticoreCombat.card_instances[mHighAtk]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(true);
+    expect(afterManticoreCombat.card_instances[mLowAtk]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(false);
   });
 
   it('4. 统一伤害顺序（易伤 -> 掩护减半 -> 护盾 -> 生命）与幽灵鲨不死、连击/群攻/直线/溅射/连锁', () => {
@@ -407,15 +446,17 @@ describe('V1.1 规范全量验收测试', () => {
     expect(upkeepTurn.value.combat_log.some((e) => e.cause === 'upkeep_unpaid')).toBe(true);
   });
 
-  it('6. 设施（3 HP 占格、失效暂停效果但继续计时、3 回合到期销毁）与装备（单槽覆盖、向下钳位 HP）', () => {
+  it('6. 设施（可前/后排占格、不受治疗/增益/减益/位移影响、每回合自身扣 1 HP 至归零销毁）与装备规则', () => {
     let s = startGame(41);
     const actor = s.active_player_id;
     const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
     s = setCp(s, actor, 10, 10);
 
-    // 己方部署前线掩体（DEMO-SUP-V2-001）
+    // 己方部署前线掩体（DEMO-SUP-V2-001）于后排 + 战术通讯终端（DEMO-SUP-V2-002）于前排
     let facId: CardInstanceId;
+    let frontFacId: CardInstanceId;
     ({ state: s, id: facId } = giveHandCard(s, actor, 'DEMO-SUP-V2-001'));
+    ({ state: s, id: frontFacId } = giveHandCard(s, actor, 'DEMO-SUP-V2-002'));
     s = reduceGameAction(s, actor, {
       type: 'play_card',
       card_instance_id: facId,
@@ -423,10 +464,57 @@ describe('V1.1 规范全量验收测试', () => {
       target_position: 'back',
       target_slot_index: 1,
     }).value;
+    s = reduceGameAction(s, actor, {
+      type: 'play_card',
+      card_instance_id: frontFacId,
+      target_lane: 'L2',
+      target_position: 'front',
+      target_slot_index: 1,
+    }).value;
     expect(s.card_instances[facId].zone).toBe('board');
+    expect(s.card_instances[facId].position).toBe('back');
     expect(s.card_instances[facId].operator_combat?.current_hp).toBe(3);
+    expect(s.card_instances[frontFacId].zone).toBe('board');
+    expect(s.card_instances[frontFacId].position).toBe('front');
 
-    // 敌方打出设施破坏（DEMO-TAC-V2-020）使之失效
+    // 设施免疫治疗、护盾、状态（掩护/压制/冻结/易伤）、属性增益及位移
+    let damagedFac = resolveDamagePipeline(s, {
+      targetId: facId,
+      rawDamage: 1,
+      damageType: 'physical',
+      isBasicAttack: true,
+    }).state;
+    expect(damagedFac.card_instances[facId].operator_combat?.current_hp).toBe(2);
+
+    const healed = healEntity(damagedFac, facId, 2);
+    expect(healed.actualHeal).toBe(0);
+    expect(healed.state.card_instances[facId].operator_combat?.current_hp).toBe(2);
+
+    const shielded = grantShieldToEntity(healed.state, facId, 2);
+    expect(shielded.card_instances[facId].operator_combat?.shield).toBe(0);
+
+    let statusBlocked = applyStatusToInstance(shielded, facId, 'cover', 1);
+    statusBlocked = applyStatusToInstance(statusBlocked, facId, 'suppressed', 1);
+    statusBlocked = applyStatusToInstance(statusBlocked, facId, 'freeze', 1);
+    statusBlocked = applyStatusToInstance(statusBlocked, facId, 'vulnerable', 1);
+    expect(statusBlocked.card_instances[facId].operator_combat?.statuses).toEqual([]);
+
+    const statBuffed = executeEffectOps(
+      statusBlocked,
+      [{ op: 'increase_attack_permanently', target: 'selected_friendly_unit', amount: 2 }],
+      { sourceId: facId, sourceName: '测试', actorId: actor, selectedTargetId: facId },
+    ).state;
+    expect(statBuffed.card_instances[facId].operator_combat?.permanent_atk_bonus ?? 0).toBe(0);
+
+    // 前排设施不可被 push_unit 位移至后排
+    const pushRes = executeEffectOps(
+      statBuffed,
+      [{ op: 'push_unit', target: 'selected_enemy_operator' }],
+      { sourceId: facId, sourceName: '推击测试', actorId: enemy, selectedTargetId: frontFacId },
+    ).state;
+    expect(pushRes.card_instances[frontFacId].position).toBe('front');
+
+    // 敌方打出设施破坏（DEMO-TAC-V2-020）使 facId 失效
     let breakId: CardInstanceId;
     ({ state: s, id: breakId } = giveHandCard(s, enemy, 'DEMO-TAC-V2-020'));
     s = setCp({ ...s, active_player_id: enemy }, enemy, 5, 5);
@@ -437,16 +525,36 @@ describe('V1.1 规范全量验收测试', () => {
     }).value;
     expect(s.card_instances[facId].facility_state?.disabled_until_owner_turn).not.toBeNull();
 
-    // 轮到原控制者回合开始：失效期间暂停触发效果，不产生 pending_effect_choices，且 remaining_turns 仍倒计时 3 -> 2
-    const nextStart = advancePhase({
+    // 回合开始：失效期间暂停触发效果，且每回合自身扣除 1 HP（3 -> 2 -> 1 -> 0 摧毁进弃牌堆）
+    const turn1 = advancePhase({
       ...s,
       phase: 'turn_start',
       active_player_id: actor,
       turn_start_prepared: false,
     });
-    if (!nextStart.ok) throw new Error(nextStart.reason);
-    expect(nextStart.value.pending_effect_choices).toHaveLength(0);
-    expect(nextStart.value.card_instances[facId].facility_state?.remaining_turns).toBe(2);
+    if (!turn1.ok) throw new Error(turn1.reason);
+    expect(turn1.value.pending_effect_choices).toHaveLength(0);
+    expect(turn1.value.card_instances[facId].operator_combat?.current_hp).toBe(2);
+    expect(turn1.value.card_instances[frontFacId].operator_combat?.current_hp).toBe(2);
+
+    const turn2 = advancePhase({
+      ...turn1.value,
+      phase: 'turn_start',
+      active_player_id: actor,
+      turn_start_prepared: false,
+    });
+    if (!turn2.ok) throw new Error(turn2.reason);
+    expect(turn2.value.card_instances[facId].operator_combat?.current_hp).toBe(1);
+
+    const turn3 = advancePhase({
+      ...turn2.value,
+      phase: 'turn_start',
+      active_player_id: actor,
+      turn_start_prepared: false,
+    });
+    if (!turn3.ok) throw new Error(turn3.reason);
+    expect(turn3.value.card_instances[facId].zone).toBe('discard');
+    expect(turn3.value.combat_log.some((e) => e.target_instance_id === facId && e.cause === 'self_hp_loss')).toBe(true);
   });
 
   it('7. 召唤物：米波/幻影/医疗无人机（2回合销毁）/麦哲伦（选机台）/手动召回与本体离场清除', () => {

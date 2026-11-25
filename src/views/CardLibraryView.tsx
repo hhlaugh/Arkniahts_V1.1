@@ -18,9 +18,10 @@ import { OperatorPortrait } from '../components/cards/OperatorPortrait';
 interface CardLibraryViewProps {
   readonly onBack: () => void;
   readonly onOpenDeckEditor?: () => void;
+  readonly onOpenRules?: () => void;
 }
 
-export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewProps) {
+export function CardLibraryView({ onBack, onOpenDeckEditor, onOpenRules }: CardLibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
@@ -44,16 +45,16 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
   }, [inspectCard.card_id]);
 
   const inspectClassKey =
-    inspectCard.card_type === 'support' && inspectCard.support_subtype === 'facility'
+    inspectCard.card_type === 'facility' || (inspectCard.card_type === 'support' && inspectCard.support_subtype === 'facility')
       ? 'facility'
-      : inspectCard.card_type === 'support' && inspectCard.support_subtype === 'equipment'
-        ? 'equipment'
+      : inspectCard.card_type === 'support'
+        ? 'support'
         : inspectPresentation.profession;
   const classLabelZh =
     inspectClassKey === 'facility'
       ? '🏗️ 设施'
-      : inspectClassKey === 'equipment'
-        ? '🔧 装备'
+      : inspectClassKey === 'support'
+        ? '🔧 支援'
         : CLASS_LABEL[inspectClassKey] ?? inspectClassKey;
 
   const hasActiveFilters =
@@ -93,7 +94,7 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
         const matchesTags = uiDef.synergy_tags?.toLowerCase().includes(query) ?? false;
         const matchesArtsAlias =
           query.includes('法伤') &&
-          (uiDef.damage_type === 'arts' || (uiDef.rules_text_zh ?? '').includes('法术攻击'));
+          (uiDef.damage_type === 'arts' || (uiDef.rules_text_zh ?? '').includes('法伤'));
         if (!matchesName && !matchesId && !matchesOpId && !matchesEn && !matchesSkill && !matchesRules && !matchesTags && !matchesArtsAlias) {
           return false;
         }
@@ -101,8 +102,10 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
 
       // 2. Class Filter
       if (selectedClass !== 'all') {
-        if (selectedClass === 'facility' || selectedClass === 'equipment') {
-          if (card.card_type !== 'support' || card.support_subtype !== selectedClass) return false;
+        if (selectedClass === 'facility') {
+          if (card.card_type !== 'facility' && card.support_subtype !== 'facility') return false;
+        } else if (selectedClass === 'support') {
+          if (card.card_type !== 'support' || card.support_subtype === 'facility') return false;
         } else if (p.profession !== selectedClass) {
           return false;
         }
@@ -202,10 +205,10 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
             <span>
               {inspectCard.card_type === 'tactic'
                 ? '战术指令（一次性效果，结算后进入弃牌堆）'
-                : inspectCard.support_subtype === 'facility'
-                  ? '场地设施（部署占格 · 3 HP · 可被敌方攻击与技能命中）'
-                  : inspectCard.support_subtype === 'equipment'
-                    ? '干员装备（附着友方干员 · 每单位限装 1 件）'
+                : inspectCard.card_type === 'facility' || inspectCard.support_subtype === 'facility'
+                  ? '场地设施（前后排占格 · 3 HP · 每回合自身 -1 HP · 不受治疗/增益/减益/位移影响）'
+                  : inspectCard.card_type === 'support'
+                    ? '支援装备（附着友方干员 · 每单位限装 1 件）'
                     : '支援卡'}
             </span>
           </div>
@@ -307,12 +310,17 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
               罗德岛战术卡牌图鉴
             </h1>
             <span className="text-[11px] font-mono text-slate-400 hidden sm:inline tabular-nums">
-              · {DEMO_CARDS.length} 张卡牌（72 干员 · 24 战术 · 12 支援）· 账户 {accountName} 已收录 {ownedSpeciesCount}/{DEMO_CARDS.length}
+              · {DEMO_CARDS.length} 张卡牌（72 干员 · 24 战术 · 6 设施 · 6 支援）· 账户 {accountName} 已收录 {ownedSpeciesCount}/{DEMO_CARDS.length}
             </span>
           </div>
         </div>
 
         <div className="relative z-10 flex items-center gap-2">
+          {onOpenRules && (
+            <Button variant="secondary" size="sm" onClick={onOpenRules} className="text-xs px-2.5 sm:px-3">
+              📖 规则说明
+            </Button>
+          )}
           {onOpenDeckEditor && (
             <Button variant="primary" size="sm" cornerCut onClick={onOpenDeckEditor} className="text-xs px-2.5 sm:px-3">
               前往编制卡组
@@ -382,9 +390,8 @@ export function CardLibraryView({ onBack, onOpenDeckEditor }: CardLibraryViewPro
                 { id: 'supporter', label: '辅助' },
                 { id: 'specialist', label: '特种' },
                 { id: 'tactic', label: '战术' },
-                { id: 'support', label: '支援' },
                 { id: 'facility', label: '设施' },
-                { id: 'equipment', label: '装备' },
+                { id: 'support', label: '支援' },
               ].map((c) => (
                 <button
                   key={c.id}

@@ -238,6 +238,98 @@ b { color: #fff; }
   100% { opacity: 0; transform: translateX(135%) skewX(-14deg); }
 }
 
+@keyframes facilityDecayPulse {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  26% { transform: translate3d(0, 3px, 0) scale(0.985); }
+  62% { transform: translate3d(0, -1px, 0) scale(1.006); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes facilityDecayRing {
+  0% { opacity: 0.92; transform: scale(0.97); }
+  55% { opacity: 0.56; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+@keyframes facilityDecaySweep {
+  0% { opacity: 0; transform: translate3d(0, -100%, 0); }
+  32% { opacity: 0.85; }
+  100% { opacity: 0; transform: translate3d(0, 120%, 0); }
+}
+
+@keyframes facilityCriticalBreath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.96; }
+}
+
+@keyframes facilityHpCutSlice {
+  0% {
+    opacity: 0.96;
+    transform: scaleX(1);
+    filter: brightness(1.35);
+  }
+  38% {
+    opacity: 0.92;
+    transform: scaleX(0.76);
+    filter: brightness(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes facilityHpSimSlice {
+  0% {
+    opacity: 0.28;
+    transform: scaleX(1);
+    filter: brightness(1);
+  }
+  30% {
+    opacity: 0.96;
+    transform: scaleX(1);
+    filter: brightness(1.38);
+  }
+  78% {
+    opacity: 0.88;
+    transform: scaleX(0.14);
+    filter: brightness(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes facilityPipDrain {
+  0%, 100% {
+    opacity: 0.52;
+    transform: scaleY(0.84);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.08);
+  }
+}
+
+@keyframes facilityPipShatter {
+  0% {
+    opacity: 1;
+    transform: scale(1.12);
+    filter: brightness(1.35);
+  }
+  45% {
+    opacity: 0.85;
+    transform: translateY(-1px) scale(0.92);
+  }
+  100% {
+    opacity: 0.35;
+    transform: translateY(1px) scale(0.75);
+  }
+}
+
 @keyframes turnBannerSlide {
   0% {
     opacity: 0;
@@ -347,6 +439,26 @@ b { color: #fff; }
 .anim-cell-hit-shake { animation: cellHitShake 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-skill-wave { animation: skillWaveRing calc(0.40s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
 .anim-skill-sweep { animation: skillEnergySweep calc(0.38s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-facility-decay { animation: facilityDecayPulse calc(0.56s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-facility-decay-ring { animation: facilityDecayRing calc(0.58s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-facility-decay-sweep { animation: facilityDecaySweep calc(0.58s * var(--combat-anim-scale, 2)) ease-out both; }
+.anim-facility-critical { animation: facilityCriticalBreath 1.8s ease-in-out infinite; }
+.anim-facility-hp-cut {
+  transform-origin: left center;
+  animation: facilityHpCutSlice calc(0.58s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-facility-hp-sim {
+  transform-origin: left center;
+  animation: facilityHpSimSlice calc(0.62s * var(--combat-anim-scale, 2)) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-facility-pip-drain {
+  transform-origin: bottom center;
+  animation: facilityPipDrain 1.7s ease-in-out infinite;
+}
+.anim-facility-pip-shatter {
+  transform-origin: center;
+  animation: facilityPipShatter calc(0.54s * var(--combat-anim-scale, 2)) ease-out both;
+}
 .anim-turn-banner {
   animation: turnBannerSlide calc(0.52s * var(--combat-anim-scale, 2)) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -896,6 +1008,14 @@ b { color: #fff; }
   .anim-cell-hit-shake,
   .anim-skill-wave,
   .anim-skill-sweep,
+  .anim-facility-decay,
+  .anim-facility-decay-ring,
+  .anim-facility-decay-sweep,
+  .anim-facility-critical,
+  .anim-facility-hp-cut,
+  .anim-facility-hp-sim,
+  .anim-facility-pip-drain,
+  .anim-facility-pip-shatter,
   .anim-turn-banner,
   .anim-turn-banner-sweep,
   .anim-turn-banner-rail,
@@ -947,6 +1067,12 @@ b { color: #fff; }
 [data-combat-vfx="off"] .anim-skill-burst,
 [data-combat-vfx="off"] .anim-skill-wave,
 [data-combat-vfx="off"] .anim-skill-sweep,
+[data-combat-vfx="off"] .anim-facility-decay-ring,
+[data-combat-vfx="off"] .anim-facility-decay-sweep,
+[data-combat-vfx="off"] .anim-facility-hp-cut,
+[data-combat-vfx="off"] .anim-facility-hp-sim,
+[data-combat-vfx="off"] .anim-facility-pip-drain,
+[data-combat-vfx="off"] .anim-facility-pip-shatter,
 [data-combat-vfx="off"] .anim-deploy-rarity-5,
 [data-combat-vfx="off"] .anim-deploy-rarity-6,
 [data-combat-vfx="off"] .gacha-burst-5,

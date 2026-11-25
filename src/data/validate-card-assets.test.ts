@@ -5,11 +5,21 @@ import cardPoolJson from './card-pool.json';
 import type { CardId } from '../game/types';
 
 describe('Phase 0.5: 最低限度数据层与表现层契约校验', () => {
-  it('所有 108 张官方卡牌均已在 CARD_PRESENTATION_MAP 建立表现映射', () => {
+  it('所有 108 张官方卡牌均已在 CARD_PRESENTATION_MAP 建立表现映射且无美术素材复用', () => {
     const report = validateCardPresentationIntegrity();
     expect(report.totalCardsInPool).toBe(108);
     expect(report.unmappedCardIds).toHaveLength(0);
+    expect(report.missingAssetCardIds).toHaveLength(0);
+    expect(report.duplicatePortraitCardIds).toHaveLength(0);
+    expect(report.duplicateAvatarCardIds).toHaveLength(0);
     expect(report.isValid).toBe(true);
+
+    const tacticFacilityAndSupport = Array.from(CARD_PRESENTATION_MAP.values()).filter(
+      (p) => p.profession === 'tactic' || p.profession === 'facility' || p.profession === 'support',
+    );
+    expect(tacticFacilityAndSupport).toHaveLength(36);
+    expect(new Set(tacticFacilityAndSupport.map((p) => p.assets.portrait)).size).toBe(36);
+    expect(new Set(tacticFacilityAndSupport.map((p) => p.assets.avatar)).size).toBe(36);
   });
 
   it('验证 Card ID 稳定性与唯一性，预设卡组均为 20 张', () => {

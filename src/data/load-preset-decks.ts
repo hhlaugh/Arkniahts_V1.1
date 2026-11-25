@@ -72,7 +72,7 @@ export function computeDeckCostProfile(
       typeCounts.operator += qty;
     } else if (def.card_type === 'tactic') {
       typeCounts.tactic += qty;
-    } else if (def.support_subtype === 'facility') {
+    } else if (def.card_type === 'facility' || def.support_subtype === 'facility') {
       typeCounts.facility += qty;
     } else {
       typeCounts.equipment += qty;
@@ -91,7 +91,7 @@ export function computeDeckCostProfile(
 /**
  * 解析并校验《Arknight V1.1 官方预设卡组（20张）》JSON 数据包。
  * - 强校验：cardId 必须存在于主卡池；每套展开恰好 20 张；单卡与同名上限均为 2；costCP 与主卡池一致。
- * - 预设类别配比（13干员/5战术/1设施/1装备）仅作预设元数据核对与展示，不作为全局构筑限制。
+ * - 预设类别配比（13干员/5战术/1设施/1支援）仅作预设元数据核对与展示，不作为全局构筑限制。
  */
 export function loadOfficialPresetDecks(
   cardPool: readonly CardDefinition[],

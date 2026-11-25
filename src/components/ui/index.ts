@@ -11,3 +11,4 @@ export * from './OrundumIcon';
 export * from './RhodesWatermark';
 export * from './ScenicBackdrop';
 export * from './SettingsModal';
+export * from './RulesSupplementModal';

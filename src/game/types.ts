@@ -13,7 +13,7 @@ export type SpCost = number & { readonly [identifierBrand]: 'SpCost' };
 export type BasePoints = number & { readonly [identifierBrand]: 'BasePoints' };
 export type HpValue = number & { readonly [identifierBrand]: 'HpValue' };
 
-export type CardType = 'operator' | 'tactic' | 'support';
+export type CardType = 'operator' | 'tactic' | 'support' | 'facility';
 export type AttackType = 'melee' | 'ranged';
 export type AttackMode = 'melee' | 'ranged' | 'support';
 export type DamageType = 'physical' | 'arts' | 'none';

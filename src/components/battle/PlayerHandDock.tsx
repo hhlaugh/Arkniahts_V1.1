@@ -218,7 +218,7 @@ export function PlayerHandDock({
                 const canDragCard =
                   !isMobile &&
                   canInteractHand &&
-                  (def?.card_type === 'operator' || (def?.card_type === 'support' && def?.support_subtype === 'facility'));
+                  (def?.card_type === 'operator' || def?.card_type === 'facility' || (def?.card_type === 'support' && def?.support_subtype === 'facility'));
                 return (
                   <CardView
                     key={id}
@@ -447,7 +447,7 @@ export function PlayerHandDock({
             const canDragCard =
               !isMobile &&
               canInteractHand &&
-              (def?.card_type === 'operator' || (def?.card_type === 'support' && def?.support_subtype === 'facility'));
+              (def?.card_type === 'operator' || def?.card_type === 'facility' || (def?.card_type === 'support' && def?.support_subtype === 'facility'));
             return (
               <div key={id} className="snap-start shrink-0 first:ml-auto last:mr-auto">
                 <CardView

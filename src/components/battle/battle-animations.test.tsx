@@ -583,4 +583,182 @@ describe('Phase 6: 战斗轻量动画与视觉反馈测试', () => {
     // TacticalBattleHud 回合徽章亦带平滑滑入切换类
     expect(hudHtml).toContain('anim-hud-turn-shift');
   });
+
+  it('设施每回合寿命扣除: buildPresentationBeats 生成 facility_decay 专属节拍，UnitView 渲染扣除动效与末回合寿命提醒', () => {
+    const ctrl = createStartedController(6060);
+    const baseState = ctrl.getSnapshot().state;
+    const actor = baseState.active_player_id;
+
+    const facHandId = Object.keys(baseState.card_instances).find((id) => {
+      const inst = baseState.card_instances[id as CardInstanceId];
+      const def = baseState.card_definitions[inst.card_id];
+      return def?.card_type === 'facility' || (def?.card_type === 'support' && def.support_subtype === 'facility');
+    }) as CardInstanceId | undefined;
+    expect(facHandId).toBeDefined();
+
+    const facPrevInst = {
+      ...baseState.card_instances[facHandId!],
+      controller_id: actor,
+      zone: 'board' as const,
+      board_half: actor,
+      lane: 'center' as const,
+      position: 'back' as const,
+      slot_index: 1,
+      operator_combat: {
+        current_hp: 3 as HpValue,
+        current_atk_modifiers: [],
+        current_sp: 0 as SpValue,
+        shield: 0,
+        statuses: [],
+        equipment_ids: [],
+      },
+    };
+    const facAfterDecayInst = {
+      ...facPrevInst,
+      operator_combat: {
+        ...facPrevInst.operator_combat,
+        current_hp: 2 as HpValue,
+      },
+    };
+    const prevWithFac = {
+      ...baseState,
+      card_instances: { ...baseState.card_instances, [facHandId!]: facPrevInst },
+    };
+    const nextWithFac = {
+      ...baseState,
+      state_version: baseState.state_version + 1,
+      card_instances: { ...baseState.card_instances, [facHandId!]: facAfterDecayInst },
+    };
+
+    const decayBeats = buildPresentationBeats({
+      prevState: prevWithFac,
+      nextState: nextWithFac,
+      newEvents: [
+        {
+          sequence: 99,
+          type: 'damage_resolved',
+          action_type: 'facility_self_hp_loss',
+          source_instance_id: facHandId!,
+          target_instance_id: facHandId!,
+          source_player_id: actor,
+          target_player_id: actor,
+          amount: 1,
+          absorbed: 0,
+          detail: '场地设施回合开始自损 1 点 HP（剩余 2/3）',
+        },
+      ],
+      prevPositions: captureBoardPositions(prevWithFac),
+      bottomPlayer: actor,
+      speedMode: 'normal',
+    });
+
+    expect(decayBeats).toHaveLength(1);
+    expect(decayBeats[0]!.facilityDecayUnits[facHandId!]).toBe(true);
+    expect(decayBeats[0]!.hitUnits[facHandId!]).toBeUndefined();
+    expect(decayBeats[0]!.floatingPopups[0]?.kind).toBe('facility_decay');
+    expect(decayBeats[0]!.floatingPopups[0]?.label).toContain('寿命 -1 HP');
+
+    const decayUnitHtml = renderToString(
+      <UnitView
+        state={nextWithFac}
+        instance={facAfterDecayInst}
+        highlight="none"
+        animState={{
+          facilityDecay: true,
+          floatingPopups: decayBeats[0]!.floatingPopups,
+          disableMotion: false,
+        }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(decayUnitHtml).toContain('data-facility-decay="true"');
+    expect(decayUnitHtml).toContain('anim-facility-decay');
+    expect(decayUnitHtml).toContain('data-testid="facility-decay-fx"');
+    expect(decayUnitHtml).toContain('data-testid="facility-hp-cut-fx"');
+    expect(decayUnitHtml).toContain('anim-facility-hp-cut');
+    expect(decayUnitHtml).toContain('anim-facility-pip-shatter');
+    expect(decayUnitHtml).toContain('data-testid="facility-lifetime-bar"');
+    expect(decayUnitHtml).toContain('HP削减 -1');
+    expect(decayUnitHtml).toContain('寿命 2/3');
+    expect(decayUnitHtml).toContain('⏳ 寿命 -1 HP');
+
+    // 回合结束时模拟设施自动扣除 1 HP 的 CSS 视觉反馈
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+    const turnEndNextState: GameState = {
+      ...prevWithFac,
+      active_player_id: enemy,
+      turn_number: prevWithFac.turn_number + 1,
+      state_version: prevWithFac.state_version + 1,
+    };
+    const turnEndBeats = buildPresentationBeats({
+      prevState: prevWithFac,
+      nextState: turnEndNextState,
+      newEvents: [],
+      prevPositions: captureBoardPositions(prevWithFac),
+      bottomPlayer: actor,
+      speedMode: 'normal',
+    });
+    const turnEndSimBeat = turnEndBeats.find((b) => b.phase === 'turn');
+    expect(turnEndSimBeat).toBeDefined();
+    expect(turnEndSimBeat!.facilityTurnEndSimUnits[facHandId!]).toBe(true);
+    expect(turnEndSimBeat!.floatingPopups.some((p) => p.label.includes('-1 HP'))).toBe(true);
+
+    const turnEndSimHtml = renderToString(
+      <UnitView
+        state={turnEndNextState}
+        instance={facPrevInst}
+        highlight="none"
+        animState={{
+          facilityTurnEndSim: true,
+          floatingPopups: turnEndSimBeat!.floatingPopups,
+          disableMotion: false,
+        }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(turnEndSimHtml).toContain('data-facility-hp-sim="true"');
+    expect(turnEndSimHtml).toContain('data-testid="facility-hp-cut-fx"');
+    expect(turnEndSimHtml).toContain('anim-facility-hp-sim');
+    expect(turnEndSimHtml).toContain('⏳ 回合末 -1 HP');
+
+    // 1 HP 末回合寿命预警
+    const facCriticalInst = {
+      ...facPrevInst,
+      operator_combat: {
+        ...facPrevInst.operator_combat,
+        current_hp: 1 as HpValue,
+      },
+    };
+    const criticalHtml = renderToString(
+      <UnitView
+        state={{
+          ...nextWithFac,
+          card_instances: { ...baseState.card_instances, [facHandId!]: facCriticalInst },
+        }}
+        instance={facCriticalInst}
+        highlight="none"
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(criticalHtml).toContain('data-facility-critical="true"');
+    expect(criticalHtml).toContain('⚠ 末回合');
+    expect(criticalHtml).toContain('下回销毁');
+    expect(criticalHtml).toContain('anim-facility-critical');
+    expect(criticalHtml).toContain('anim-facility-pip-drain');
+
+    // 关闭动效时应移除动画类但保留寿命刻度条
+    const staticCriticalHtml = renderToString(
+      <UnitView
+        state={{
+          ...nextWithFac,
+          card_instances: { ...baseState.card_instances, [facHandId!]: facCriticalInst },
+        }}
+        instance={facCriticalInst}
+        highlight="none"
+        animState={{ facilityDecay: true, facilityTurnEndSim: true, disableMotion: true }}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(staticCriticalHtml).not.toContain('anim-facility-decay');
+    expect(staticCriticalHtml).not.toContain('anim-facility-hp-cut');
+    expect(staticCriticalHtml).not.toContain('anim-facility-hp-sim');
+    expect(staticCriticalHtml).not.toContain('anim-facility-critical');
+    expect(staticCriticalHtml).toContain('⚠ 末回合');
+  });
 });

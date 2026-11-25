@@ -21,7 +21,7 @@
       "archetype": "先锋经济 / 前期抢节奏",
       "difficulty": "入门",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "以先锋的补给和击杀回费尽早建立场面，再以速射狙击、强攻近卫和低费特种完成节奏转换。",
+      "description": "以先锋的补给和击杀补给尽早建立场面，再以速射狙击、强攻近卫和低费特种完成节奏转换。",
       "strengths": "前期展开能力强；补给来源多；低费牌比例高，能灵活利用每回合重置的CP。",
       "weaknesses": "高强度持续治疗和厚重防线较少；先锋被压制或击倒后，经济优势会明显下降。",
       "gamePlan": "优先部署芬、翎羽或红豆建立前线；桃金娘、极境和德克萨斯提供额外CP或控制。空降部署与后勤调度台用于降低后续部署成本，能天使与幽灵鲨承担中期输出。",
@@ -84,7 +84,7 @@
           "operatorClass": "van",
           "subclass": "冲锋手",
           "synergyTags": "先锋;补刀",
-          "abilityText": "【击杀回费】：杀敌后，【补给】。"
+          "abilityText": "击倒敌人后，【补给】。"
         },
         {
           "cardId": "OP-VAN-003",
@@ -108,7 +108,7 @@
           "operatorClass": "van",
           "subclass": "冲锋手",
           "synergyTags": "先锋;部署伤害",
-          "abilityText": "杀敌后，自身【鼓舞】。"
+          "abilityText": "击倒敌人后，自身【鼓舞】（每场战斗最多2次）。"
         },
         {
           "cardId": "OP-VAN-006",
@@ -144,7 +144,7 @@
           "operatorClass": "van",
           "subclass": "冲锋手",
           "synergyTags": "先锋;补给;爆发",
-          "abilityText": "【先锋支援】：战斗开始，友方先锋本场首次攻击【集火】。"
+          "abilityText": "战斗开始，所有友方先锋本场首次攻击【集火】。"
         },
         {
           "cardId": "OP-GUA-006",
@@ -156,7 +156,7 @@
           "operatorClass": "gua",
           "subclass": "强攻手",
           "synergyTags": "近卫;免死",
-          "abilityText": "【强攻】同路最多2名敌人；【不屈】：每场对局首次被击倒，保留1点生命并自身【鼓舞】2。"
+          "abilityText": "【强攻】；【不屈】（每场对局首次被击倒时保留1点生命，并自身【鼓舞】2）。"
         },
         {
           "cardId": "OP-SNI-001",
@@ -228,7 +228,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "先手;集火",
-          "abilityText": "指定一名友军先于普通攻击队列攻击一次，并【集火】2；其本回合不再普通攻击。"
+          "abilityText": "指定一名友军立即普通攻击一次并【集火】2；其本回合不再参与常规攻击。"
         },
         {
           "cardId": "DEMO-TAC-V2-021",
@@ -258,13 +258,13 @@
           "cardId": "DEMO-SUP-V2-006",
           "name": "后勤调度台",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 4,
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "设施;经济",
-          "abilityText": "每回合首次部署时，费用-1（最低为0）。"
+          "abilityText": "每回合首次部署干员时，费用-1（最低为0）。"
         },
         {
           "cardId": "DEMO-SUP-V2-009",
@@ -276,7 +276,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;集火",
-          "abilityText": "对一名友方单位使用：其攻击力+2，并获得【源石增幅模块】装备效果；攻击前若目标已受伤，本次攻击【集火】。"
+          "abilityText": "附着友方单位：攻击力+2；攻击前若目标已受伤，本次攻击【集火】。"
         }
       ]
     },
@@ -402,7 +402,7 @@
           "operatorClass": "def",
           "subclass": "哨戒铁卫",
           "synergyTags": "重装;守护;压制",
-          "abilityText": "【反击】：受伤后，对伤害来源造成1点伤害。"
+          "abilityText": "【反击】：每回合一次，受伤后对伤害来源造成1点伤害。"
         },
         {
           "cardId": "OP-DEF-007",
@@ -516,8 +516,8 @@
           "cardId": "DEMO-SUP-V2-001",
           "name": "前线掩体",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 2,
           "operatorClass": "",
           "subclass": "",
@@ -534,7 +534,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;守护",
-          "abilityText": "对一名友方单位使用：【守护】3，并获得【复合装甲】装备效果（最大生命+1）。"
+          "abilityText": "附着友方单位：【守护】3，最大生命+1。"
         }
       ]
     },
@@ -600,7 +600,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;压制",
-          "abilityText": "【法术攻击】；攻击后，若目标实际损失生命，【寒冷】目标（可叠加触发【冻结】）。"
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【寒冷】目标。"
         },
         {
           "cardId": "OP-SUP-002",
@@ -612,7 +612,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;鼓舞;跨路",
-          "abilityText": "【法术攻击】；部署时，【治疗】同路一名受伤友军；【压制】同路敌方前位。"
+          "abilityText": "【法伤】；部署时，【治疗】同路一名受伤友军，并【压制】同路敌方前位。"
         },
         {
           "cardId": "OP-SUP-003",
@@ -624,7 +624,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;集火",
-          "abilityText": "【法术攻击】；战斗开始，【压制】同路所有敌人。"
+          "abilityText": "【法伤】；战斗开始，【压制】同路所有敌人。"
         },
         {
           "cardId": "OP-SUP-004",
@@ -636,7 +636,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;压制",
-          "abilityText": "【法术攻击】；攻击后，若目标实际损失生命，【寒冷】目标；若目标已寒冷，则【冻结】目标。"
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【寒冷】目标。"
         },
         {
           "cardId": "OP-SUP-005",
@@ -648,7 +648,7 @@
           "operatorClass": "sup",
           "subclass": "削弱者",
           "synergyTags": "辅助;压制",
-          "abilityText": "【法术攻击】；战斗开始，【寒冷】同路生命最高的敌人；若目标已寒冷，则【冻结】目标。"
+          "abilityText": "【法伤】；战斗开始，【寒冷】同路生命最高的敌人。"
         },
         {
           "cardId": "OP-SUP-007",
@@ -660,7 +660,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;治疗;压制;跨路",
-          "abilityText": "【法术攻击】；回合开始，【治疗】同路一名受伤友军；【压制】同路一名敌人。"
+          "abilityText": "【法伤】；回合开始，【治疗】同路一名受伤友军，并【压制】同路一名敌人。"
         },
         {
           "cardId": "OP-SUP-008",
@@ -672,7 +672,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;集火;压制连携",
-          "abilityText": "【法术攻击】；战斗开始，【压制】【脆弱】同路及邻路所有敌人。"
+          "abilityText": "【法伤】；战斗开始，【压制】并【脆弱】同路及邻路所有敌人。"
         },
         {
           "cardId": "OP-CAS-003",
@@ -684,7 +684,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;反护盾",
-          "abilityText": "【法术攻击】；攻击后，若目标实际损失生命，【脆弱】目标。"
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【脆弱】目标。"
         },
         {
           "cardId": "OP-CAS-004",
@@ -696,7 +696,7 @@
           "operatorClass": "cas",
           "subclass": "链术师",
           "synergyTags": "术士;压制;跨路",
-          "abilityText": "【法术攻击】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
+          "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
         },
         {
           "cardId": "OP-SNI-004",
@@ -774,8 +774,8 @@
           "cardId": "DEMO-SUP-V2-003",
           "name": "观察哨",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -792,7 +792,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;跨路;射程",
-          "abilityText": "对一名友方单位使用：其获得【战术目镜】装备效果；普通攻击范围固定为同路及直接相邻路线，不改变技能范围。"
+          "abilityText": "附着友方单位：普通攻击范围固定为同路及相邻路线（不改变技能范围）。"
         }
       ]
     },
@@ -913,7 +913,7 @@
           "operatorClass": "sni",
           "subclass": "速射手",
           "synergyTags": "狙击;补刀",
-          "abilityText": "自身具有【剧毒】。"
+          "abilityText": "【剧毒】。"
         },
         {
           "cardId": "OP-SNI-007",
@@ -925,7 +925,7 @@
           "operatorClass": "sni",
           "subclass": "神射手",
           "synergyTags": "狙击;后排猎杀",
-          "abilityText": "【越位】，优先攻击后位。"
+          "abilityText": "【越位】。"
         },
         {
           "cardId": "OP-SNI-008",
@@ -961,7 +961,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;反护盾",
-          "abilityText": "【法术攻击】；【越位】，优先攻击拥有护盾的敌人。"
+          "abilityText": "【法伤】；【越位】，优先攻击有护盾的敌人。"
         },
         {
           "cardId": "OP-CAS-004",
@@ -973,7 +973,7 @@
           "operatorClass": "cas",
           "subclass": "链术师",
           "synergyTags": "术士;压制;跨路",
-          "abilityText": "【法术攻击】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
+          "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
         },
         {
           "cardId": "OP-DEF-002",
@@ -1039,8 +1039,8 @@
           "cardId": "DEMO-SUP-V2-005",
           "name": "电子干扰塔",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -1057,7 +1057,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;后排",
-          "abilityText": "对一名友方单位使用：其获得【狙击瞄准镜】装备效果；攻击后位目标时，本次攻击攻击力+1。"
+          "abilityText": "附着友方单位：攻击后排目标时，本次攻击攻击力+1。"
         }
       ]
     },
@@ -1118,7 +1118,7 @@
           "operatorClass": "sup",
           "subclass": "召唤师",
           "synergyTags": "辅助;召唤",
-          "abilityText": "【法术攻击】；部署时，【召唤】同路机械水獭（攻击1、生命2）；水獭被摧毁时，对同路敌人造成1点伤害。"
+          "abilityText": "【法伤】；部署时，【召唤】同路机械水獭（攻击1、生命2）；被摧毁时，对同路敌人造成1点伤害。"
         },
         {
           "cardId": "OP-SUP-009",
@@ -1130,7 +1130,7 @@
           "operatorClass": "sup",
           "subclass": "召唤师",
           "synergyTags": "辅助;召唤",
-          "abilityText": "【法术攻击】；部署时，选择【召唤】攻击无人机（攻击2、生命2）或支援无人机（生命2；回合结束【治疗】同路友军）。"
+          "abilityText": "【法伤】；部署时，选择【召唤】攻击无人机（攻击2、生命2）或支援无人机（生命2，回合结束【治疗】同路友军）。"
         },
         {
           "cardId": "OP-MED-006",
@@ -1154,7 +1154,7 @@
           "operatorClass": "med",
           "subclass": "群愈师",
           "synergyTags": "医疗;掩护;跨路",
-          "abilityText": "【群疗】；部署时，【召唤】鸟笼（生命2，具有【嘲讽】，吸引同路普通攻击）。"
+          "abilityText": "【群疗】；部署时，【召唤】同路鸟笼（生命2，【嘲讽】）。"
         },
         {
           "cardId": "OP-SPE-008",
@@ -1166,7 +1166,7 @@
           "operatorClass": "spe",
           "subclass": "处决者",
           "synergyTags": "特种;召唤",
-          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；影子被摧毁时，对同路一名敌人造成1点伤害。"
+          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；被摧毁时，对同路一名敌人造成1点伤害。"
         },
         {
           "cardId": "OP-DEF-002",
@@ -1226,7 +1226,7 @@
           "operatorClass": "sup",
           "subclass": "凝滞师",
           "synergyTags": "辅助;鼓舞;跨路",
-          "abilityText": "【法术攻击】；部署时，【治疗】同路一名受伤友军；【压制】同路敌方前位。"
+          "abilityText": "【法伤】；部署时，【治疗】同路一名受伤友军，并【压制】同路敌方前位。"
         },
         {
           "cardId": "OP-SPE-003",
@@ -1304,8 +1304,8 @@
           "cardId": "DEMO-SUP-V2-004",
           "name": "战地维修站",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -1322,7 +1322,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;治疗",
-          "abilityText": "对一名友方单位使用：其获得【急救组件】装备效果；每个控制者回合首次受到实际生命损失后，【治疗】自身。"
+          "abilityText": "附着友方单位：每回合首次受到实际生命损失后，【治疗】自身。"
         }
       ]
     },
@@ -1424,7 +1424,7 @@
           "operatorClass": "spe",
           "subclass": "伏击客",
           "synergyTags": "特种;压制",
-          "abilityText": "【伏击】同路最多2名敌人；攻击后，【压制】实际受伤目标。"
+          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；攻击后，【压制】受伤目标中攻击力最高的一名敌方单位。"
         },
         {
           "cardId": "OP-SPE-006",
@@ -1436,7 +1436,7 @@
           "operatorClass": "spe",
           "subclass": "伏击客",
           "synergyTags": "特种;突袭",
-          "abilityText": "【伏击】同路最多2名敌人；战斗开始，【压制】同路所有敌人。"
+          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；战斗开始，【压制】同路攻击力最高的一名敌方单位。"
         },
         {
           "cardId": "OP-SPE-007",
@@ -1460,7 +1460,7 @@
           "operatorClass": "spe",
           "subclass": "处决者",
           "synergyTags": "特种;召唤",
-          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；影子被摧毁时，对同路一名敌人造成1点伤害。"
+          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；被摧毁时，对同路一名敌人造成1点伤害。"
         },
         {
           "cardId": "OP-SPE-003",
@@ -1496,7 +1496,7 @@
           "operatorClass": "sni",
           "subclass": "神射手",
           "synergyTags": "狙击;后排猎杀",
-          "abilityText": "【越位】，优先攻击后位。"
+          "abilityText": "【越位】。"
         },
         {
           "cardId": "OP-DEF-008",
@@ -1562,8 +1562,8 @@
           "cardId": "DEMO-SUP-V2-003",
           "name": "观察哨",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -1580,17 +1580,17 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;攻击",
-          "abilityText": "对一名友方单位使用：其获得【强袭组件】装备效果（攻击力+2，最大生命-1，最低为1）。"
+          "abilityText": "附着友方单位：攻击力+2，最大生命-1（最低为1）。"
         }
       ]
     },
     {
       "deckId": "PRESET-07",
       "name": "法术破甲",
-      "archetype": "法术攻击 / 脆弱 / 护盾突破",
+      "archetype": "法伤 / 脆弱 / 护盾突破",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "利用法术攻击无视掩护但仍受护盾吸收的规则，配合破盾、脆弱和单体爆发处理高防护目标。",
+      "description": "利用法伤无视掩护但仍受护盾吸收的规则，配合破盾、脆弱和单体爆发处理高防护目标。",
       "strengths": "对掩护依赖型防御有效；具备连锁、溅射、贯穿和法术爆发等多种攻击形式。",
       "weaknesses": "法术伤害仍受护盾吸收；核心术师较依赖站位和前排保护；费用曲线中高费牌较多。",
       "gamePlan": "先以史都华德、夜烟、卡达和阿米娅建立低费术法输出；远山、艾雅法拉与伊芙利特负责范围伤害，月见夜和史尔特尔提供近卫侧的法术输出。先用清障行动或破甲弹处理掩护与护盾，再集中攻击。",
@@ -1646,7 +1646,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;反护盾",
-          "abilityText": "【法术攻击】；【越位】，优先攻击拥有护盾的敌人。"
+          "abilityText": "【法伤】；【越位】，优先攻击有护盾的敌人。"
         },
         {
           "cardId": "OP-CAS-002",
@@ -1658,7 +1658,7 @@
           "operatorClass": "cas",
           "subclass": "扩散术师",
           "synergyTags": "术士;击杀;跨路",
-          "abilityText": "【法术攻击】；命中主目标后，对同路另一名敌人造成1点【溅射】伤害。"
+          "abilityText": "【法伤】；命中主目标后，对同路另一名敌人造成1点【溅射】伤害。"
         },
         {
           "cardId": "OP-CAS-003",
@@ -1670,7 +1670,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;反护盾",
-          "abilityText": "【法术攻击】；攻击后，若目标实际损失生命，【脆弱】目标。"
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【脆弱】目标。"
         },
         {
           "cardId": "OP-CAS-004",
@@ -1682,7 +1682,7 @@
           "operatorClass": "cas",
           "subclass": "链术师",
           "synergyTags": "术士;压制;跨路",
-          "abilityText": "【法术攻击】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
+          "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
         },
         {
           "cardId": "OP-CAS-005",
@@ -1694,7 +1694,7 @@
           "operatorClass": "cas",
           "subclass": "扩散术师",
           "synergyTags": "术士;压制;范围",
-          "abilityText": "【法术攻击】；本场首次攻击，对同路所有敌人造成1点额外【范围伤害】。"
+          "abilityText": "【法伤】；本场首次攻击后，对同路所有敌人额外造成1点法术伤害。"
         },
         {
           "cardId": "OP-CAS-006",
@@ -1706,7 +1706,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;满血",
-          "abilityText": "【法术攻击】；本场首次攻击，【集火】2。"
+          "abilityText": "【法伤】；本场首次攻击，【集火】2。"
         },
         {
           "cardId": "OP-CAS-007",
@@ -1718,7 +1718,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;部署伤害",
-          "abilityText": "【法术攻击】；攻击后，若目标实际损失生命，【压制】目标；若目标已被压制，改为【集火】。"
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【压制】目标；若目标已被压制，改为【集火】。"
         },
         {
           "cardId": "OP-CAS-008",
@@ -1730,7 +1730,7 @@
           "operatorClass": "cas",
           "subclass": "中坚术师",
           "synergyTags": "术士;溅射",
-          "abilityText": "【法术攻击】；每场战斗一次，对同路所有敌人造成2点法术伤害。"
+          "abilityText": "【法伤】；每场战斗一次，战斗开始对同路所有敌人造成2点法术伤害。"
         },
         {
           "cardId": "OP-CAS-009",
@@ -1742,7 +1742,7 @@
           "operatorClass": "cas",
           "subclass": "轰击术师",
           "synergyTags": "术士;光环",
-          "abilityText": "【法术攻击】；【贯穿】同路所有敌人；命中目标【脆弱】。"
+          "abilityText": "【法伤】；【贯穿】同路所有敌人；命中目标【脆弱】。"
         },
         {
           "cardId": "OP-GUA-002",
@@ -1754,7 +1754,7 @@
           "operatorClass": "gua",
           "subclass": "领主",
           "synergyTags": "近卫;击杀",
-          "abilityText": "【领主】；【法术攻击】。"
+          "abilityText": "【领主】；【法伤】。"
         },
         {
           "cardId": "OP-GUA-009",
@@ -1766,7 +1766,7 @@
           "operatorClass": "gua",
           "subclass": "术战者",
           "synergyTags": "近卫;血线;终结",
-          "abilityText": "【法术攻击】；部署时，【鼓舞】3；战斗结束，失去2点生命。"
+          "abilityText": "【法伤】；部署时，【鼓舞】3；战斗结束，失去2点生命。"
         },
         {
           "cardId": "DEMO-TAC-V2-005",
@@ -1802,7 +1802,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "反护盾;反装备",
-          "abilityText": "移除一名敌人的【掩护】；若没有掩护，移除1点护盾；两者都没有时，移除其装备。"
+          "abilityText": "移除一名敌人的【掩护】；若无【掩护】，改为移除1点护盾；两者皆无时，改为移除其装备。"
         },
         {
           "cardId": "DEMO-TAC-V2-018",
@@ -1820,8 +1820,8 @@
           "cardId": "DEMO-SUP-V2-005",
           "name": "电子干扰塔",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -1838,7 +1838,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;集火",
-          "abilityText": "对一名友方单位使用：其攻击力+2，并获得【源石增幅模块】装备效果；攻击前若目标已受伤，本次攻击【集火】。"
+          "abilityText": "附着友方单位：攻击力+2；攻击前若目标已受伤，本次攻击【集火】。"
         }
       ]
     },
@@ -1899,7 +1899,7 @@
           "operatorClass": "sni",
           "subclass": "速射手",
           "synergyTags": "狙击;补刀",
-          "abilityText": "自身具有【剧毒】。"
+          "abilityText": "【剧毒】。"
         },
         {
           "cardId": "OP-GUA-008",
@@ -1935,7 +1935,7 @@
           "operatorClass": "def",
           "subclass": "哨戒铁卫",
           "synergyTags": "重装;守护;压制",
-          "abilityText": "【反击】：受伤后，对伤害来源造成1点伤害。"
+          "abilityText": "【反击】：每回合一次，受伤后对伤害来源造成1点伤害。"
         },
         {
           "cardId": "OP-DEF-004",
@@ -1983,7 +1983,7 @@
           "operatorClass": "spe",
           "subclass": "伏击客",
           "synergyTags": "特种;压制",
-          "abilityText": "【伏击】同路最多2名敌人；攻击后，【压制】实际受伤目标。"
+          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；攻击后，【压制】受伤目标中攻击力最高的一名敌方单位。"
         },
         {
           "cardId": "OP-SPE-006",
@@ -1995,7 +1995,7 @@
           "operatorClass": "spe",
           "subclass": "伏击客",
           "synergyTags": "特种;突袭",
-          "abilityText": "【伏击】同路最多2名敌人；战斗开始，【压制】同路所有敌人。"
+          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；战斗开始，【压制】同路攻击力最高的一名敌方单位。"
         },
         {
           "cardId": "OP-GUA-005",
@@ -2019,7 +2019,7 @@
           "operatorClass": "sup",
           "subclass": "削弱者",
           "synergyTags": "辅助;压制",
-          "abilityText": "【法术攻击】；战斗开始，【寒冷】同路生命最高的敌人；若目标已寒冷，则【冻结】目标。"
+          "abilityText": "【法伤】；战斗开始，【寒冷】同路生命最高的敌人。"
         },
         {
           "cardId": "DEMO-TAC-V2-013",
@@ -2085,8 +2085,8 @@
           "cardId": "DEMO-SUP-V2-003",
           "name": "观察哨",
           "count": 1,
-          "cardType": "support",
-          "supportSubtype": "facility",
+          "cardType": "facility",
+          "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
@@ -2103,7 +2103,7 @@
           "operatorClass": "",
           "subclass": "",
           "synergyTags": "装备;治疗",
-          "abilityText": "对一名友方单位使用：其获得【急救组件】装备效果；每个控制者回合首次受到实际生命损失后，【治疗】自身。"
+          "abilityText": "附着友方单位：每回合首次受到实际生命损失后，【治疗】自身。"
         }
       ]
     }

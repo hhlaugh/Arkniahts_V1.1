@@ -478,6 +478,16 @@ function resolveTargets(state: GameState, targetSpec: unknown, ctx: EffectExecut
       return (ctx.damagedTargetIds ?? [])
         .map((id) => state.card_instances[id])
         .filter((u): u is CardInstance => Boolean(u && u.zone === 'board'));
+    case 'highest_attack_damaged_target': {
+      const candidates = (ctx.damagedTargetIds ?? [])
+        .map((id) => state.card_instances[id])
+        .filter((u): u is CardInstance => Boolean(u && u.zone === 'board' && isUnitInstance(state, u)));
+      if (candidates.length === 0) return [];
+      const sorted = [...candidates].sort(
+        (a, b) => getEntityStats(state, b).atk - getEntityStats(state, a).atk || compareBoardEntities(state.board_profile, a, b),
+      );
+      return [sorted[0]];
+    }
     case 'enemy_front_same_lane': {
       const front = allBoard.filter(
         (u) => u.controller_id !== actorId && isUnitInstance(state, u) && sameLane(u) && u.position === 'front',
@@ -514,6 +524,14 @@ function resolveTargets(state: GameState, targetSpec: unknown, ctx: EffectExecut
     case 'enemy_operator_highest_attack_global': {
       const top = selectHighestAttackEnemy(state, actorId);
       return top ? [top] : [];
+    }
+    case 'highest_attack_enemy_unit_same_lane': {
+      const candidates = allBoard.filter((u) => u.controller_id !== actorId && isUnitInstance(state, u) && sameLane(u));
+      if (candidates.length === 0) return [];
+      const sorted = [...candidates].sort(
+        (a, b) => getEntityStats(state, b).atk - getEntityStats(state, a).atk || compareBoardEntities(state.board_profile, a, b),
+      );
+      return [sorted[0]];
     }
     case 'another_enemy_same_lane': {
       const others = allBoard.filter(
@@ -1004,7 +1022,7 @@ export function executeEffectOps(
         const amount = Number(op.amount ?? 1);
         const maxTotal = typeof op.max_total === 'number' ? op.max_total : Number.POSITIVE_INFINITY;
         for (const t of targets) {
-          if (!t.operator_combat) continue;
+          if (!t.operator_combat || isFacilityInstance(state, t)) continue;
           const currentPerm = t.operator_combat.permanent_atk_bonus ?? 0;
           const actual = Math.min(amount, Math.max(0, maxTotal - currentPerm));
           if (actual <= 0) continue;
@@ -1042,7 +1060,7 @@ export function executeEffectOps(
           owner_id: ctx.actorId,
         };
         for (const t of targets) {
-          if (!t.operator_combat) continue;
+          if (!t.operator_combat || isFacilityInstance(state, t)) continue;
           state = updateInstance(state, t.card_instance_id, (i) => ({
             ...i,
             operator_combat: {
@@ -1083,7 +1101,7 @@ export function executeEffectOps(
           owner_id: ctx.actorId,
         };
         for (const t of targets) {
-          if (!t.operator_combat) continue;
+          if (!t.operator_combat || isFacilityInstance(state, t)) continue;
           state = updateInstance(state, t.card_instance_id, (i) => ({
             ...i,
             operator_combat: {
@@ -1111,7 +1129,7 @@ export function executeEffectOps(
           owner_id: ctx.actorId,
         };
         for (const t of targets) {
-          if (!t.operator_combat) continue;
+          if (!t.operator_combat || isFacilityInstance(state, t)) continue;
           state = updateInstance(state, t.card_instance_id, (i) => ({
             ...i,
             operator_combat: {
@@ -1206,7 +1224,7 @@ export function executeEffectOps(
         if (op.operation === 'swap_positions' && ctx.selectedTargetId && ctx.secondaryTargetId) {
           const a = state.card_instances[ctx.selectedTargetId];
           const b = state.card_instances[ctx.secondaryTargetId];
-          if (a && b && a.zone === 'board' && b.zone === 'board') {
+          if (a && b && a.zone === 'board' && b.zone === 'board' && !isFacilityInstance(state, a) && !isFacilityInstance(state, b)) {
             const aLane = a.lane;
             const aPos = a.position;
             const aSlot = a.slot_index;
@@ -1233,21 +1251,36 @@ export function executeEffectOps(
             });
           }
         } else {
-          // 暗索：牵引同路敌方后位 -> 同路敌方前位；若前位被占则交换
+          // 暗索：牵引同路敌方后位 -> 同路敌方前位；若前位被非设施单位占用则交换；设施不可移动/被位移
           const targets = resolveTargets(state, op.target, ctx);
           for (const enemyBack of targets) {
-            if (!enemyBack.lane) continue;
+            if (!enemyBack.lane || isFacilityInstance(state, enemyBack)) continue;
             const enemyController = enemyBack.controller_id;
             const lane = resolveLaneProfile(state.board_profile, enemyBack.lane);
             if (!lane || lane.frontSlots <= 0) continue;
             const desiredSlot = Math.min(enemyBack.slot_index ?? 1, lane.frontSlots);
             const occupant = findEntityAtCell(state, enemyController, lane.laneId, 'front', desiredSlot);
+            let moved = false;
             if (!occupant) {
               state = updateInstance(state, enemyBack.card_instance_id, (i) => ({
                 ...i,
                 position: 'front',
                 slot_index: desiredSlot,
               }));
+              moved = true;
+            } else if (isFacilityInstance(state, occupant)) {
+              // 设施不可被位移交换：尝试同路前排其他空位，无空位则不移动
+              for (let s = 1; s <= lane.frontSlots; s += 1) {
+                if (!isCellOccupied(state, enemyController, lane.laneId, 'front', s)) {
+                  state = updateInstance(state, enemyBack.card_instance_id, (i) => ({
+                    ...i,
+                    position: 'front',
+                    slot_index: s,
+                  }));
+                  moved = true;
+                  break;
+                }
+              }
             } else if (op.if_occupied === 'swap') {
               const oldSlot = enemyBack.slot_index ?? 1;
               state = updateInstance(state, enemyBack.card_instance_id, (i) => ({
@@ -1260,17 +1293,20 @@ export function executeEffectOps(
                 position: 'back',
                 slot_index: oldSlot,
               }));
+              moved = true;
             }
-            state = addCombatLog(state, {
-              type: 'unit_moved',
-              source_instance_id: ctx.sourceId,
-              target_instance_id: enemyBack.card_instance_id,
-              source_player_id: ctx.actorId,
-              target_player_id: enemyController,
-              source_name: ctx.sourceName,
-              target_name: entityName(state, enemyBack),
-              detail: `【${ctx.sourceName}】将 ${playerLabel(enemyController)}【${entityName(state, enemyBack)}】牵引至前排！`,
-            });
+            if (moved) {
+              state = addCombatLog(state, {
+                type: 'unit_moved',
+                source_instance_id: ctx.sourceId,
+                target_instance_id: enemyBack.card_instance_id,
+                source_player_id: ctx.actorId,
+                target_player_id: enemyController,
+                source_name: ctx.sourceName,
+                target_name: entityName(state, enemyBack),
+                detail: `【${ctx.sourceName}】将 ${playerLabel(enemyController)}【${entityName(state, enemyBack)}】牵引至前排！`,
+              });
+            }
           }
         }
         break;
@@ -1279,7 +1315,7 @@ export function executeEffectOps(
       case 'push_unit': {
         const targets = resolveTargets(state, op.target, ctx);
         for (const frontEnemy of targets) {
-          if (!frontEnemy.lane) continue;
+          if (!frontEnemy.lane || isFacilityInstance(state, frontEnemy)) continue;
           const enemyController = frontEnemy.controller_id;
           const lane = resolveLaneProfile(state.board_profile, frontEnemy.lane);
           if (!lane || lane.rearSlots <= 0) {
@@ -1329,7 +1365,7 @@ export function executeEffectOps(
       case 'move_unit': {
         const targets = resolveTargets(state, op.target, ctx);
         for (const unit of targets) {
-          if (!unit.lane || !unit.position) continue;
+          if (!unit.lane || !unit.position || isFacilityInstance(state, unit)) continue;
           const unitDef = defOf(state, unit);
           if (op.destination === 'any_other_empty_cell_same_lane') {
             const lane = resolveLaneProfile(state.board_profile, unit.lane);
@@ -1786,9 +1822,9 @@ export function validateTacticOrSupportPlay(
   const target = opts.targetId ? state.card_instances[opts.targetId] : undefined;
   const secondary = opts.secondaryTargetId ? state.card_instances[opts.secondaryTargetId] : undefined;
 
-  if (cardDef.card_type === 'support' && cardDef.support_subtype === 'equipment') {
+  if (cardDef.card_type === 'support' && cardDef.support_subtype !== 'facility') {
     if (!target || !isUnitInstance(state, target) || target.controller_id !== actorId) {
-      return { ok: false, reason: '装备必须指定一名自己控制的在场单位（干员或召唤物，设施不可装备）。' };
+      return { ok: false, reason: '支援装备必须指定一名自己控制的在场单位（干员或召唤物，设施不可装备）。' };
     }
     return { ok: true };
   }

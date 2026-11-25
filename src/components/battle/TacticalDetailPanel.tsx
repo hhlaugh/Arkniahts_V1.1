@@ -242,9 +242,14 @@ export function TacticalDetailPanel({
                 />
 
                 {entityKind === 'facility' ? (
-                  <div className="flex items-center justify-between text-[11px] font-mono text-amber-300 pt-1">
-                    <span>状态：{facilityDisabled ? '⏸ 已瘫痪（效果暂停）' : '⚙ 正常运行中'}</span>
-                    <span>剩余 {selectedInstance.facility_state?.remaining_turns ?? 1} 回合</span>
+                  <div className="space-y-1 pt-1 text-[11px] font-mono">
+                    <div className="flex items-center justify-between text-amber-300">
+                      <span>状态：{facilityDisabled ? '⏸ 已瘫痪（效果暂停）' : '⚙ 正常运行中'}</span>
+                      <span>每回合自身 -1 HP</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      特性：不受治疗/增益/减益 · 不可移动或被位移
+                    </div>
                   </div>
                 ) : (
                   <div className="pt-1">

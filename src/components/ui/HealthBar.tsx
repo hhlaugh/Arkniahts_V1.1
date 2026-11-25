@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+export interface HealthBarHpCutPreview {
+  readonly mode: 'decay' | 'turn_end_sim';
+  readonly currentHp: number;
+  readonly maxHp: number;
+}
+
 export interface HealthBarProps {
   readonly currentHp: number;
   readonly maxHp: number;
@@ -8,6 +14,7 @@ export interface HealthBarProps {
   readonly compact?: boolean;
   readonly showNumbers?: boolean;
   readonly disableMotion?: boolean;
+  readonly hpCutPreview?: HealthBarHpCutPreview;
   readonly className?: string;
 }
 
@@ -19,6 +26,7 @@ export function HealthBar({
   compact = false,
   showNumbers = true,
   disableMotion = false,
+  hpCutPreview,
   className = '',
 }: HealthBarProps) {
   const safeMax = Math.max(1, maxHp);
@@ -105,6 +113,30 @@ export function HealthBar({
             backgroundColor: hpColor,
           }}
         />
+
+        {/* Facility -1 HP CSS Reduction Slice */}
+        {!disableMotion && hpCutPreview && hpCutPreview.maxHp > 0 && (() => {
+          const cutMax = Math.max(1, hpCutPreview.maxHp);
+          const sliceWidthPct = Math.min(100, (1 / cutMax) * 100);
+          const sliceLeftPct =
+            hpCutPreview.mode === 'decay'
+              ? Math.min(100 - sliceWidthPct, Math.max(0, (hpCutPreview.currentHp / cutMax) * 100))
+              : Math.min(100 - sliceWidthPct, Math.max(0, ((hpCutPreview.currentHp - 1) / cutMax) * 100));
+          return (
+            <div
+              data-testid="facility-hp-cut-fx"
+              data-cut-mode={hpCutPreview.mode}
+              aria-hidden="true"
+              className={`absolute top-0 bottom-0 z-25 pointer-events-none bg-gradient-to-r from-amber-300 via-orange-400 to-rose-500 border-l border-amber-100/90 ${
+                hpCutPreview.mode === 'decay' ? 'anim-facility-hp-cut' : 'anim-facility-hp-sim'
+              }`}
+              style={{
+                left: `${sliceLeftPct}%`,
+                width: `${sliceWidthPct}%`,
+              }}
+            />
+          );
+        })()}
 
         {/* Shield Overlay Fill */}
         {shield > 0 && (

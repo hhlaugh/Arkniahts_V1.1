@@ -25,6 +25,7 @@ interface StartViewProps {
   readonly onLibrary?: () => void;
   readonly onRecruitment: () => void;
   readonly onOpenSettings?: () => void;
+  readonly onOpenRules?: () => void;
   readonly onLogout?: () => void;
 }
 
@@ -36,6 +37,7 @@ export function StartView({
   onLibrary,
   onRecruitment,
   onOpenSettings,
+  onOpenRules,
   onLogout,
 }: StartViewProps) {
   const [accounts, setAccounts] = useState<AccountSummary[]>(() => listAccounts());
@@ -144,7 +146,19 @@ export function StartView({
             <span className="text-slate-400">
               收录 {ownedSpeciesCount}/{DEMO_CARDS.length}
             </span>
-            <Badge variant="rarity" value={6}>v0.8 规则</Badge>
+            {onOpenRules ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenRules}
+                aria-label="打开游戏规则补充说明"
+                className="text-[11px] font-mono px-2.5 py-1"
+              >
+                📖 规则说明
+              </Button>
+            ) : (
+              <Badge variant="rarity" value={6}>v1.1 规则</Badge>
+            )}
             {onOpenSettings && (
               <Button
                 variant="secondary"

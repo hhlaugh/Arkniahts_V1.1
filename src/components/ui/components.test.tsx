@@ -219,19 +219,19 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
     const { setDeckMode } = await import('../../data/player-collection');
     setDeckMode('free');
     const editorHtml = renderToString(<DeckEditorView onBack={() => {}} />).replace(/<!-- -->/g, '');
-    // 目录内已编入卡组的卡牌直接渲染 "-" 减量按钮，同时提供设施/装备独立筛选芯片
+    // 目录内已编入卡组的卡牌直接渲染 "-" 减量按钮，同时提供设施/支援独立筛选芯片
     expect(editorHtml).toContain('title="从卡组移出一张"');
     expect(editorHtml).toContain('>设施</button>');
-    expect(editorHtml).toContain('>装备</button>');
+    expect(editorHtml).toContain('>支援</button>');
   });
 
-  it('支援卡区分: 设施(占格·HP) 与 装备(附着·限装1件) 在 CardFrame 与预览浮层中显著区分', async () => {
+  it('卡牌类别区分: 设施(占格·HP) 与 支援(附着·限装1件) 在 CardFrame 与预览浮层中显著区分', async () => {
     const { DEMO_CARDS, PRESET_DECKS } = await import('../../client/gameData');
     const { createInitialGameState } = await import('../../game/engine');
     const { CardPreviewPopover } = await import('../battle/CardPreviewPopover');
 
-    const facilityDef = DEMO_CARDS.find((c) => c.card_type === 'support' && c.support_subtype === 'facility')!;
-    const equipmentDef = DEMO_CARDS.find((c) => c.card_type === 'support' && c.support_subtype === 'equipment')!;
+    const facilityDef = DEMO_CARDS.find((c) => c.card_type === 'facility')!;
+    const equipmentDef = DEMO_CARDS.find((c) => c.card_type === 'support')!;
 
     const facilityHtml = renderToString(
       <CardFrame cardId={facilityDef.card_id} definition={facilityDef} variant="deck" />,
@@ -245,8 +245,8 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
       <CardFrame cardId={equipmentDef.card_id} definition={equipmentDef} variant="deck" />,
     ).replace(/<!-- -->/g, '');
     expect(equipmentHtml).toContain('data-support-subtype="equipment"');
-    expect(equipmentHtml).toContain('🔧 装备');
-    expect(equipmentHtml).toContain('干员装备·附着');
+    expect(equipmentHtml).toContain('🔧 支援');
+    expect(equipmentHtml).toContain('支援装备·附着');
     expect(equipmentHtml).toContain('限装1件');
 
     const state = createInitialGameState({
@@ -275,7 +275,7 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
         hovered={{ instanceId: 'fac-inst' as never, rect: { left: 100, top: 200, right: 180, bottom: 300, width: 80, height: 100 } }}
       />,
     ).replace(/<!-- -->/g, '');
-    expect(facilityPopover).toContain('🏗️ 支援 · 设施');
+    expect(facilityPopover).toContain('🏗️ 设施');
     expect(facilityPopover).toContain('场地设施 · 占格部署');
 
     const equipmentPopover = renderToString(
@@ -284,7 +284,46 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
         hovered={{ instanceId: 'eqp-inst' as never, rect: { left: 100, top: 200, right: 180, bottom: 300, width: 80, height: 100 } }}
       />,
     ).replace(/<!-- -->/g, '');
-    expect(equipmentPopover).toContain('🔧 支援 · 装备');
-    expect(equipmentPopover).toContain('干员装备 · 附着强化');
+    expect(equipmentPopover).toContain('🔧 支援');
+    expect(equipmentPopover).toContain('支援装备 · 附着强化');
+  });
+
+  it('RulesSupplementModal: 统一展示五大规则章节、设施/支援分离及词条图鉴（伏击与法伤并列呈现）', async () => {
+    const { RulesSupplementModal } = await import('./RulesSupplementModal');
+    const { StartView } = await import('../../views/StartView');
+
+    const rulesHtml = renderToString(
+      <RulesSupplementModal isOpen onClose={() => {}} />,
+    ).replace(/<!-- -->/g, '');
+    expect(rulesHtml).toContain('游戏规则补充说明');
+    expect(rulesHtml).toContain('全部规则');
+    expect(rulesHtml).toContain('回合与费用');
+    expect(rulesHtml).toContain('01. 胜负判定、构筑规范与抽牌机制');
+    expect(rulesHtml).toContain('02. 费用（CP）曲线与完整回合流程');
+    expect(rulesHtml).toContain('03. 三路棋盘结构、站位规则与索敌顺位');
+    expect(rulesHtml).toContain('04. 卡牌四大类别、主动撤离与位移交互');
+    expect(rulesHtml).toContain('05. 统一伤害管线与词条图鉴');
+    expect(rulesHtml).toContain('干员 · 战术 · 设施 · 支援');
+    expect(rulesHtml).toContain('基础 CP：3 → 4 → 5 → 6 → 7 → 8');
+    expect(rulesHtml).toContain('主动撤离不退还 CP（退款 0）');
+    expect(rulesHtml).toContain('设施（6 张）· 独立卡牌类别与寿命限制');
+    expect(rulesHtml).toContain('【法伤】');
+    expect(rulesHtml).toContain('【伏击】');
+    expect(rulesHtml).not.toContain('法术攻击');
+    expect(rulesHtml).not.toContain('伏击客机制');
+    expect(rulesHtml).not.toContain('data-testid="ambusher-priority-popover"');
+
+    const startHtml = renderToString(
+      <StartView
+        onHotseat={() => {}}
+        onVsBot={() => {}}
+        onOnline={() => {}}
+        onDeckEditor={() => {}}
+        onRecruitment={() => {}}
+        onOpenRules={() => {}}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(startHtml).toContain('打开游戏规则补充说明');
+    expect(startHtml).toContain('📖 规则说明');
   });
 });

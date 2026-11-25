@@ -172,7 +172,7 @@ function expandDeck(playerId: PlayerId, deck: DeckDefinition, cardsById: Readonl
         card_id: entry.card_id,
         owner_id: playerId,
         controller_id: playerId,
-        entity_kind: definition.support_subtype === 'facility' ? 'facility' : 'operator',
+        entity_kind: definition.card_type === 'facility' || definition.support_subtype === 'facility' ? 'facility' : 'operator',
         board_half: null,
         lane: null,
         position: null,
@@ -701,7 +701,6 @@ function playFacilityCard(
 
   const instance = state.card_instances[cardInstanceId];
   const facilityHp = (definition.hp ?? 3) as HpValue;
-  const duration = definition.facility_duration ?? (definition.card_id === ('DEMO-SUP-V2-006' as CardId) ? 2 : 3);
 
   const placedFacility: CardInstance = {
     ...instance,
@@ -721,7 +720,7 @@ function playFacilityCard(
     },
     support_lifecycle: { turn_start_triggers: 0 },
     facility_state: {
-      remaining_turns: duration,
+      remaining_turns: facilityHp,
       disabled_until_owner_turn: null,
       pause_effects_when_disabled: true,
       continue_countdown_when_disabled: state.open_decision_config.disabledFacilityContinuesCountdown,
@@ -744,7 +743,7 @@ function playFacilityCard(
     position: pos,
     slot_index: slotIdx,
     amount: definition.cost,
-    detail: `${playerLabel(actorId)} 部署了设施【${definition.card_name_zh}】于 [${formatCellLabel(next.board_profile, laneId, pos, slotIdx)}]（${facilityHp} HP，持续 ${duration} 回合）。`,
+    detail: `${playerLabel(actorId)} 部署了设施【${definition.card_name_zh}】于 [${formatCellLabel(next.board_profile, laneId, pos, slotIdx)}]（${facilityHp} HP，每回合自身扣除 1 HP）。`,
   });
 
   if (definition.skill_effects?.some((b) => b.trigger === 'on_deploy')) {
@@ -770,7 +769,7 @@ function playCard(
     return { ok: false, value: state, reason: '干员卡请使用部署动作。' };
   }
 
-  if (definition.card_type === 'support' && definition.support_subtype === 'facility') {
+  if (definition.card_type === 'facility' || (definition.card_type === 'support' && definition.support_subtype === 'facility')) {
     return playFacilityCard(state, actorId, cardInstanceId, definition, action);
   }
 
@@ -812,9 +811,9 @@ function playCard(
     target_instance_id: action.target_instance_id,
     source_player_id: actorId,
     source_name: definition.card_name_zh,
-    action_type: definition.support_subtype === 'equipment' ? 'play_equipment' : 'play_tactic',
+    action_type: definition.card_type === 'support' ? 'play_equipment' : 'play_tactic',
     amount: definition.cost,
-    detail: `${playerLabel(actorId)} 使用了${definition.support_subtype === 'equipment' ? '装备卡' : '战术卡'}【${definition.card_name_zh}】（消耗 ${definition.cost} CP）。`,
+    detail: `${playerLabel(actorId)} 使用了${definition.card_type === 'support' ? '支援卡' : '战术卡'}【${definition.card_name_zh}】（消耗 ${definition.cost} CP）。`,
   });
 
   const blocks = definition.skill_effects ?? definition.effect_json?.v1_1_blocks ?? [];
@@ -1031,23 +1030,43 @@ function resolveTurnStart(state: GameState): GameState {
     }
   }
 
-  // 7. 设施寿命扣减节点（触发完 turn_start 效果后扣减；失效期间是否继续倒计时由 open_decision_config 决定）
+  // 7. 设施寿命自我损耗节点（触发完 turn_start 效果后，每回合扣除自身 1 点 HP；HP 归零时摧毁进弃牌堆）
   for (const facId of [...next.players[playerId].facility_ids]) {
     const fac = next.card_instances[facId];
-    if (!fac || fac.zone !== 'board' || !fac.facility_state) continue;
+    if (!fac || fac.zone !== 'board' || !fac.operator_combat || !fac.facility_state) continue;
     const disabled = isFacilityDisabled(next, fac);
     if (disabled && !next.open_decision_config.disabledFacilityContinuesCountdown) continue;
-    const nextTurns = fac.facility_state.remaining_turns - 1;
-    if (nextTurns <= 0) {
+    const nextHp = Math.max(0, fac.operator_combat.current_hp - 1);
+    next = updateInstance(next, facId, (f) => ({
+      ...f,
+      operator_combat: {
+        ...f.operator_combat!,
+        current_hp: nextHp as HpValue,
+        took_hp_damage_this_owner_turn: true,
+      },
+      facility_state: {
+        ...f.facility_state!,
+        remaining_turns: nextHp,
+      },
+    }));
+    next = addCombatLog(next, {
+      type: 'damage_resolved',
+      source_instance_id: facId,
+      target_instance_id: facId,
+      source_player_id: playerId,
+      target_player_id: playerId,
+      source_name: entityName(next, fac),
+      target_name: entityName(next, fac),
+      amount: 1,
+      action_type: 'facility_self_hp_loss',
+      detail: `${playerLabel(playerId)} 的设施【${entityName(next, fac)}】回合维护扣除自身 1 点 HP（剩余 ${nextHp} HP）。`,
+    });
+    if (nextHp <= 0) {
       next = removeEntityByDefeatOrDestroy(next, facId, {
-        cause: 'duration_expired',
+        cause: 'self_hp_loss',
         isEnemyKill: false,
+        triggerOnEntityDestroyed: triggerEntityDestroyedEffects,
       });
-    } else {
-      next = updateInstance(next, facId, (f) => ({
-        ...f,
-        facility_state: { ...f.facility_state!, remaining_turns: nextTurns },
-      }));
     }
   }
 

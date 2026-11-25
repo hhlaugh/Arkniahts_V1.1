@@ -54,7 +54,7 @@ export function normalizeStatusKind(kind: string): CardInstance['operator_combat
 export function getEntityKind(state: GameState, instance: CardInstance): EntityKind {
   if (instance.entity_kind) return instance.entity_kind;
   const def = state.card_definitions[instance.card_id];
-  if (def?.support_subtype === 'facility') return 'facility';
+  if (def?.card_type === 'facility' || def?.support_subtype === 'facility') return 'facility';
   if (instance.summon_state) return 'summon';
   return 'operator';
 }
@@ -83,7 +83,7 @@ export function canTriggerOwnEffects(state: GameState, instance: CardInstance): 
   if (instance.zone !== 'board') return false;
   const kind = getEntityKind(state, instance);
   if (kind === 'facility') {
-    return !isFacilityDisabled(state, instance) && !isFrozen(instance);
+    return !isFacilityDisabled(state, instance);
   }
   return !isFrozen(instance) && !isStunned(instance) && !isSilenced(instance);
 }
@@ -447,17 +447,19 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
 
   if (enemyEntities.length === 0) return [];
 
+  const focusId = state.players[attacker.controller_id]?.focus_target_id ?? null;
+  const focusedInScope = focusId ? enemyEntities.some((e) => e.card_instance_id === focusId) : false;
+
   // 若攻击范围内完全没有任何能拦截基地/承担前排阻挡的实体（如场上仅有孤立的被冻结单位、或仅有孤立的伊桑/狮蝎/鸟笼，不含设施），
-  // 且至少存在这些不拦截单位 -> 仍不拦截基地攻击（返回空数组使主攻击直击基地）
+  // 且我方未对其中单位下达集火指令 -> 不拦截基地攻击（返回空数组使主攻击直击基地）
   const hasAnyBaseBlocker = enemyEntities.some((e) => canEntityBlockBaseAttack(state, e));
-  if (!hasAnyBaseBlocker) {
+  if (!hasAnyBaseBlocker && !focusedInScope) {
     return [];
   }
 
   const priority = normalizeTargetPriority(String(profile.target_priority));
   // 嘲讽（含鸟笼）、设施（FAC-02）与多目标/贯穿始终参与候选；
-  // 单目标普通攻击下，仅具备拦截资格或已被我方集火锁定的干员/召唤物阻挡通道（伏击客/冻结单位不拦截）
-  const focusId = state.players[attacker.controller_id]?.focus_target_id ?? null;
+  // 伏击客（伊桑/狮蝎）不拦截但可被集火或多目标攻击命中；非集火指令下，被攻击优先级等同基地（低于一切可拦截/占位阻挡目标）
   const selectableEntities = enemyEntities.filter((e) => {
     const kind = getEntityKind(state, e);
     if (kind === 'facility') return true;
@@ -477,6 +479,11 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
     const aFocus = focusId && a.card_instance_id === focusId ? 0 : 1;
     const bFocus = focusId && b.card_instance_id === focusId ? 0 : 1;
     if (aFocus !== bFocus) return aFocus - bFocus;
+
+    // 非集火状态下，具有拦截资格/占格阻挡的实体（含设施）始终优先于不拦截的伏击客/冻结单位
+    const aBlocks = canEntityBlockBaseAttack(state, a) ? 0 : 1;
+    const bBlocks = canEntityBlockBaseAttack(state, b) ? 0 : 1;
+    if (aBlocks !== bBlocks) return aBlocks - bBlocks;
 
     return compareByTargetPriority(state, attacker, priority, a, b);
   });

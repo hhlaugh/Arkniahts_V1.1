@@ -18,6 +18,7 @@ import { RoomLobbyView } from './views/RoomLobbyView';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
 import { SettingsModal } from './components/ui/SettingsModal';
+import { RulesSupplementModal } from './components/ui/RulesSupplementModal';
 import { awardBattleReward, getActiveAccountName, getDeckMode } from './data/player-collection';
 import { getAuthSession, isAuthenticated, logoutAccount } from './data/auth-store';
 import { useAppSettings } from './data/app-settings';
@@ -42,6 +43,7 @@ export function App() {
   const [mode, setMode] = useState<Mode>('hotseat');
   const [controller, setController] = useState<LocalGameController | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const onlineController = useMemo(() => new OnlineMatchController(), []);
   const onlineSnapshot = useSyncExternalStore(onlineController.subscribe, onlineController.getSnapshot);
@@ -68,6 +70,11 @@ export function App() {
     setSettingsOpen(true);
   };
 
+  const handleOpenRules = () => {
+    playTacticalSfx('click');
+    setRulesOpen(true);
+  };
+
   const handleLogout = () => {
     onlineController.leaveRoom();
     setController(null);
@@ -92,6 +99,7 @@ export function App() {
       <CardLibraryView
         onBack={() => setScreen('title')}
         onOpenDeckEditor={() => setScreen('deckEditor')}
+        onOpenRules={handleOpenRules}
       />
     );
   } else if (screen === 'recruitment') {
@@ -102,7 +110,7 @@ export function App() {
       />
     );
   } else if (screen === 'deckEditor') {
-    content = <DeckEditorView onBack={() => setScreen('title')} />;
+    content = <DeckEditorView onBack={() => setScreen('title')} onOpenRules={handleOpenRules} />;
   } else if (screen === 'title') {
     content = (
       <StartView
@@ -128,6 +136,7 @@ export function App() {
           setScreen('recruitment');
         }}
         onOpenSettings={handleOpenSettings}
+        onOpenRules={handleOpenRules}
         onLogout={handleLogout}
       />
     );
@@ -137,6 +146,7 @@ export function App() {
         controller={onlineController}
         snapshot={onlineSnapshot}
         onOpenSettings={handleOpenSettings}
+        onOpenRules={handleOpenRules}
         onExit={() => {
           onlineController.leaveRoom();
           setScreen('title');
@@ -162,6 +172,7 @@ export function App() {
         mode={mode}
         botSeat="player_b"
         onOpenSettings={handleOpenSettings}
+        onOpenRules={handleOpenRules}
         onExit={() => {
           setController(null);
           setScreen('title');
@@ -180,6 +191,10 @@ export function App() {
         activeUsername={screen !== 'auth' ? getActiveAccountName() : activeSession?.username ?? null}
         onLogout={screen !== 'auth' ? handleLogout : undefined}
       />
+      <RulesSupplementModal
+        isOpen={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+      />
     </>
   );
 }
@@ -189,11 +204,12 @@ interface GameScreenProps {
   readonly mode: Mode;
   readonly botSeat: PlayerId;
   readonly onOpenSettings: () => void;
+  readonly onOpenRules: () => void;
   readonly onExit: () => void;
   readonly onRestart: () => void;
 }
 
-function GameScreen({ controller, mode, botSeat, onOpenSettings, onExit, onRestart }: GameScreenProps) {
+function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, onExit, onRestart }: GameScreenProps) {
   const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const state = snapshot.state;
   const [reward, setReward] = useState<BattleReward | null>(null);
@@ -328,6 +344,7 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onExit, onResta
       humanPlayer={mode === 'vs-bot' ? (botSeat === 'player_b' ? 'player_a' : 'player_b') : null}
       onExit={onExit}
       onOpenSettings={onOpenSettings}
+      onOpenRules={onOpenRules}
     />
   );
 }
@@ -336,10 +353,11 @@ interface OnlineScreenProps {
   readonly controller: OnlineMatchController;
   readonly snapshot: OnlineMatchSnapshot;
   readonly onOpenSettings: () => void;
+  readonly onOpenRules: () => void;
   readonly onExit: () => void;
 }
 
-function OnlineScreen({ controller, snapshot, onOpenSettings, onExit }: OnlineScreenProps) {
+function OnlineScreen({ controller, snapshot, onOpenSettings, onOpenRules, onExit }: OnlineScreenProps) {
   const [reward, setReward] = useState<BattleReward | null>(null);
   const rewardRoomRef = useRef<string | null>(null);
   const mySeat: PlayerId = snapshot.seat === 'host' ? 'player_a' : 'player_b';
@@ -439,6 +457,7 @@ function OnlineScreen({ controller, snapshot, onOpenSettings, onExit }: OnlineSc
           onExit();
         }}
         onOpenSettings={onOpenSettings}
+        onOpenRules={onOpenRules}
         networkStatus={{
           isOnline: true,
           roomCode: snapshot.roomCode ?? '',

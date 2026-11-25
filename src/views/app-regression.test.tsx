@@ -84,10 +84,11 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(presentation.totalCardsInPool).toBe(108);
     expect(presentation.totalMappedPresentations).toBe(108);
 
-    // 确认 V1.1 正式 72 干员 + 24 V2 战术 + 12 V2 支援，无旧版遗留测试卡
+    // 确认 V1.1 正式 72 干员 + 24 V2 战术 + 6 设施 + 6 支援，无旧版遗留测试卡
     expect(DEMO_CARDS.filter((c) => c.card_type === 'operator')).toHaveLength(72);
     expect(DEMO_CARDS.filter((c) => c.card_type === 'tactic')).toHaveLength(24);
-    expect(DEMO_CARDS.filter((c) => c.card_type === 'support')).toHaveLength(12);
+    expect(DEMO_CARDS.filter((c) => c.card_type === 'facility')).toHaveLength(6);
+    expect(DEMO_CARDS.filter((c) => c.card_type === 'support')).toHaveLength(6);
     expect(
       DEMO_CARDS.some(
         (c) =>

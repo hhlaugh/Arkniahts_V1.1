@@ -1,4 +1,4 @@
-import { getEntityMaxHp } from '../../game/range';
+import { getEntityKind, getEntityMaxHp, isFacilityDisabled } from '../../game/range';
 import type {
   BasePoints,
   CardInstance,
@@ -28,7 +28,7 @@ export interface UnitSlotLocation {
   readonly name: string;
 }
 
-export type FloatingPopupKind = 'damage' | 'shield' | 'heal' | 'sp' | 'skill' | 'deploy' | 'status';
+export type FloatingPopupKind = 'damage' | 'shield' | 'heal' | 'sp' | 'skill' | 'deploy' | 'status' | 'facility_decay';
 
 export interface FloatingPopup {
   readonly id: string;
@@ -75,6 +75,8 @@ export interface PresentationBeat {
   readonly attackingUnits: Readonly<Record<CardInstanceId, 'up' | 'down'>>;
   readonly hitUnits: Readonly<Record<CardInstanceId, boolean>>;
   readonly skillUnits: Readonly<Record<CardInstanceId, boolean>>;
+  readonly facilityDecayUnits: Readonly<Record<CardInstanceId, boolean>>;
+  readonly facilityTurnEndSimUnits: Readonly<Record<CardInstanceId, boolean>>;
   readonly laneStrikes: readonly LaneStrikeCue[];
   readonly floatingPopups: readonly FloatingPopup[];
   readonly ghostCues: readonly SlotGhostCue[];
@@ -89,6 +91,8 @@ export interface PresentationBeat {
 export interface UnitAnimationState {
   readonly deployed?: boolean;
   readonly hit?: boolean;
+  readonly facilityDecay?: boolean;
+  readonly facilityTurnEndSim?: boolean;
   readonly attackDirection?: 'up' | 'down' | null;
   readonly skillFlash?: boolean;
   readonly floatingPopups?: readonly FloatingPopup[];
@@ -363,6 +367,8 @@ interface MutableBeatBuilder {
   attackingUnits: Record<CardInstanceId, 'up' | 'down'>;
   hitUnits: Record<CardInstanceId, boolean>;
   skillUnits: Record<CardInstanceId, boolean>;
+  facilityDecayUnits: Record<CardInstanceId, boolean>;
+  facilityTurnEndSimUnits: Record<CardInstanceId, boolean>;
   laneStrikes: LaneStrikeCue[];
   floatingPopups: FloatingPopup[];
   ghostCues: SlotGhostCue[];
@@ -412,6 +418,8 @@ function createMutableBeat(
     attackingUnits: {},
     hitUnits: {},
     skillUnits: {},
+    facilityDecayUnits: {},
+    facilityTurnEndSimUnits: {},
     laneStrikes: [],
     floatingPopups: [],
     ghostCues: [],
@@ -432,6 +440,8 @@ function freezeBeat(builder: MutableBeatBuilder): PresentationBeat {
     attackingUnits: builder.attackingUnits,
     hitUnits: builder.hitUnits,
     skillUnits: builder.skillUnits,
+    facilityDecayUnits: builder.facilityDecayUnits,
+    facilityTurnEndSimUnits: builder.facilityTurnEndSimUnits,
     laneStrikes: builder.laneStrikes,
     floatingPopups: builder.floatingPopups,
     ghostCues: builder.ghostCues,
@@ -717,8 +727,24 @@ export function buildPresentationBeats(params: {
       if (cursor) applyEventToCursor(cursor, event, nextState);
       const loc = resolveLoc(event.target_instance_id);
       if (loc && event.target_instance_id) {
-        current.hitUnits[event.target_instance_id] = true;
         const dmg = event.amount ?? 0;
+        if (event.action_type === 'facility_self_hp_loss') {
+          current.facilityDecayUnits[event.target_instance_id] = true;
+          current.floatingPopups.push({
+            id: `pop-decay-${seqId}`,
+            kind: 'facility_decay',
+            label: `⏳ 寿命 -${dmg} HP`,
+            slotKey: makeSlotKey(loc.half, loc.lane, loc.position, loc.slotIndex),
+            unitId: event.target_instance_id,
+          });
+          if (dmg > 0) {
+            pushBeatAudioCue(current, 'hit');
+          }
+          current.durationMs = Math.max(current.durationMs, 640);
+          current.hasContent = true;
+          continue;
+        }
+        current.hitUnits[event.target_instance_id] = true;
         if (dmg > 0 || (event.absorbed ?? 0) === 0) {
           current.floatingPopups.push({
             id: `pop-dmg-${seqId}`,
@@ -868,6 +894,35 @@ export function buildPresentationBeats(params: {
       actor: nextState.active_player_id,
       turnNumber: nextState.turn_number,
     };
+    const alreadyDecayedIds = new Set<string>();
+    for (const beat of beats) {
+      for (const id of Object.keys(beat.facilityDecayUnits)) {
+        alreadyDecayedIds.add(id);
+      }
+    }
+    const endedPlayer = prevState.active_player_id;
+    for (const inst of Object.values(nextState.card_instances)) {
+      if (
+        inst.zone !== 'board' ||
+        inst.controller_id !== endedPlayer ||
+        getEntityKind(nextState, inst) !== 'facility' ||
+        alreadyDecayedIds.has(inst.card_instance_id) ||
+        isFacilityDisabled(nextState, inst)
+      ) {
+        continue;
+      }
+      const loc = resolveLoc(inst.card_instance_id);
+      if (!loc) continue;
+      bannerBeat.facilityTurnEndSimUnits[inst.card_instance_id] = true;
+      bannerBeat.floatingPopups.push({
+        id: `pop-fac-sim-${nextState.state_version}-${inst.card_instance_id}`,
+        kind: 'facility_decay',
+        label: '⏳ 寿命 -1 HP 预警',
+        slotKey: makeSlotKey(loc.half, loc.lane, loc.position, loc.slotIndex),
+        unitId: inst.card_instance_id,
+      });
+      bannerBeat.durationMs = Math.max(bannerBeat.durationMs, 640);
+    }
     pushBeatAudioCue(
       bannerBeat,
       nextState.active_player_id === bottomPlayer ? 'turn_ally' : 'turn_enemy',
@@ -920,6 +975,8 @@ export function buildPresentationBeats(params: {
       attackingUnits: Object.assign({}, ...tail.map((b) => b.attackingUnits)),
       hitUnits: Object.assign({}, ...tail.map((b) => b.hitUnits)),
       skillUnits: Object.assign({}, ...tail.map((b) => b.skillUnits)),
+      facilityDecayUnits: Object.assign({}, ...tail.map((b) => b.facilityDecayUnits)),
+      facilityTurnEndSimUnits: Object.assign({}, ...tail.map((b) => b.facilityTurnEndSimUnits)),
       laneStrikes: tail.flatMap((b) => b.laneStrikes),
       floatingPopups: mergedPopups,
       ghostCues: mergedGhosts,

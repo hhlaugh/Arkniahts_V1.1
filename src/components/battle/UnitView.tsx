@@ -43,6 +43,7 @@ const POPUP_COLORS: Record<FloatingPopupKind, string> = {
   skill: 'bg-[#0e1116]/95 text-amber-300 border-[#e5a52b] border-l-2',
   deploy: 'bg-[#0e1116]/92 text-amber-200 border-[#e5a52b]/80 border-l-2',
   status: 'bg-[#0e1116]/95 text-purple-300 border-purple-400/85 border-l-2',
+  facility_decay: 'bg-[#1a130b]/95 text-amber-200 border-amber-400/90',
 };
 
 const SUMMON_DISPLAY_NAMES: Readonly<Record<string, string>> = {
@@ -121,6 +122,10 @@ export function UnitView({
   const hasCornerBadge = isDragLocked || isTarget || isAttackTarget || isFocusTarget || canActivateSkill;
 
   const motionOff = Boolean(animState?.disableMotion);
+  const isFacilityDecay = Boolean(animState?.facilityDecay);
+  const isFacilityTurnEndSim = Boolean(animState?.facilityTurnEndSim) && entityKind === 'facility' && !facilityDisabled;
+  const isFacilityHpReductionActive = isFacilityDecay || isFacilityTurnEndSim;
+  const isFacilityCritical = entityKind === 'facility' && combat.current_hp === 1;
   const rarityDeployCls =
     !motionOff && rarity >= 6 ? ' anim-deploy-rarity-6' : !motionOff && rarity === 5 ? ' anim-deploy-rarity-5' : '';
   const tapShakeCls = !motionOff && tapCue ? ' anim-cell-hit-shake' : '';
@@ -129,13 +134,15 @@ export function UnitView({
     ? ''
     : animState?.hit
       ? 'anim-hit-shake'
-      : animState?.attackDirection === 'up'
-        ? 'anim-melee-lunge-up anim-attack-glow'
-        : animState?.attackDirection === 'down'
-          ? 'anim-melee-lunge-down anim-attack-glow'
-          : animState?.deployed
-            ? `anim-deploy-land${rarityDeployCls}`
-            : tapShakeCls.trim();
+      : isFacilityHpReductionActive
+        ? 'anim-facility-decay'
+        : animState?.attackDirection === 'up'
+          ? 'anim-melee-lunge-up anim-attack-glow'
+          : animState?.attackDirection === 'down'
+            ? 'anim-melee-lunge-down anim-attack-glow'
+            : animState?.deployed
+              ? `anim-deploy-land${rarityDeployCls}`
+              : tapShakeCls.trim();
 
   const floatingPopups = animState?.floatingPopups ?? [];
 
@@ -165,6 +172,9 @@ export function UnitView({
       data-entity-kind={entityKind}
       data-highlight={highlight}
       data-tap-cue={tapCue?.kind}
+      data-facility-decay={isFacilityDecay ? 'true' : undefined}
+      data-facility-hp-sim={isFacilityTurnEndSim ? 'true' : undefined}
+      data-facility-critical={isFacilityCritical ? 'true' : undefined}
       onPointerEnter={hoverHandlers.onPointerEnter}
       onPointerLeave={hoverHandlers.onPointerLeave}
       onPointerDown={(e) => {
@@ -189,7 +199,7 @@ export function UnitView({
         }
       }}
       className={`touch-gesture-surface group relative select-none cursor-pointer focus-visible:outline-none ${
-        isDragLocked ? 'scale-[1.02] z-30' : isSelected || isTarget || isAttackTarget || animState?.hit ? 'z-20' : showSkillFx || longPressHandlers.isHolding ? 'z-25' : isFocusTarget ? 'z-15' : ''
+        isDragLocked ? 'scale-[1.02] z-30' : isSelected || isTarget || isAttackTarget || animState?.hit || isFacilityHpReductionActive ? 'z-20' : showSkillFx || longPressHandlers.isHolding ? 'z-25' : isFocusTarget ? 'z-15' : ''
       } ${motionClass} w-full ${compact ? 'h-[54px]' : 'h-[58px] sm:h-[70px] lg:h-[82px]'}`}
     >
       {/* 硬朗尖锐外切角金属边框壳 */}
@@ -209,15 +219,19 @@ export function UnitView({
                       ? 'bg-amber-400/90'
                       : animState?.hit
                         ? 'bg-rose-400'
-                        : showSkillFx
-                          ? 'bg-cyan-300'
-                          : canActivateSkill
-                            ? 'bg-amber-400/70 group-hover:bg-amber-300'
-                            : entityKind === 'facility'
-                              ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
-                              : entityKind === 'summon'
-                                ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
-                                : 'bg-[#384556] group-hover:bg-[#7b8da6]'
+                        : isFacilityHpReductionActive
+                          ? 'bg-amber-400'
+                          : isFacilityCritical
+                            ? 'bg-rose-500/85'
+                            : showSkillFx
+                              ? 'bg-cyan-300'
+                              : canActivateSkill
+                                ? 'bg-amber-400/70 group-hover:bg-amber-300'
+                                : entityKind === 'facility'
+                                  ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
+                                  : entityKind === 'summon'
+                                    ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
+                                    : 'bg-[#384556] group-hover:bg-[#7b8da6]'
         }`}
       >
       {/* 内部裁切内容容器 */}
@@ -247,6 +261,34 @@ export function UnitView({
 
         {!motionOff && animState?.hit && (
           <div className="absolute inset-0 pointer-events-none z-20 anim-hit-flash border border-rose-300/80 bg-gradient-to-b from-rose-300/28 via-rose-500/18 to-transparent" />
+        )}
+
+        {!motionOff && isFacilityHpReductionActive && (
+          <>
+            <div
+              data-testid="facility-decay-fx"
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none z-25 border border-amber-400/90 bg-gradient-to-b from-amber-400/22 via-rose-500/12 to-transparent anim-facility-decay-ring"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-1/2 pointer-events-none z-25 bg-gradient-to-b from-amber-300/35 via-rose-400/15 to-transparent anim-facility-decay-sweep"
+            />
+            <span
+              data-testid="facility-hp-cut-badge"
+              aria-hidden="true"
+              className="absolute top-0.5 right-1 px-1 py-0.2 bg-[#1a120a]/95 border border-amber-400/85 text-amber-200 font-mono font-black text-[8px] pointer-events-none z-30"
+            >
+              {isFacilityDecay ? '⏳ -1 HP' : '⏳ 回合末 -1 HP'}
+            </span>
+          </>
+        )}
+
+        {!motionOff && isFacilityCritical && !isFacilityHpReductionActive && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none z-15 border border-rose-400/70 anim-facility-critical"
+          />
         )}
 
         {!motionOff && tapCue && tapCue.kind === 'tap' && (
@@ -342,17 +384,73 @@ export function UnitView({
             compact={compact}
             showNumbers
             disableMotion={motionOff}
+            hpCutPreview={
+              !motionOff && entityKind === 'facility' && isFacilityHpReductionActive
+                ? {
+                    mode: isFacilityDecay ? 'decay' : 'turn_end_sim',
+                    currentHp: combat.current_hp,
+                    maxHp,
+                  }
+                : undefined
+            }
           />
         </div>
 
         {/* 底部：数值或设施生命周期条 */}
         {entityKind === 'facility' ? (
-          <div className={`flex items-center justify-between ${compact ? 'text-[9px] px-1 py-[1px]' : 'text-[10px] sm:text-[11px] px-1 sm:px-1.5 py-[1px] sm:py-0.5'} font-mono tabular-nums bg-[#12161b] border border-[#2b353f] leading-none`}>
-            <span className="text-amber-300 font-bold">
-              {facilityDisabled ? '⏸ 暂停' : '⚙ 生效中'}
-            </span>
-            <span className="text-slate-300 font-bold">
-              余 {instance.facility_state?.remaining_turns ?? 1} 回
+          <div
+            data-testid="facility-lifetime-bar"
+            title={`场地设施寿命 ${combat.current_hp}/${maxHp}（每回合扣除 1 HP，归零摧毁）`}
+            className={`flex items-center justify-between gap-1 ${compact ? 'text-[9px] px-1 py-[1px]' : 'text-[10px] sm:text-[11px] px-1 sm:px-1.5 py-[1px] sm:py-0.5'} font-mono tabular-nums border leading-none ${
+              isFacilityCritical
+                ? 'bg-rose-950/85 border-rose-500/75 text-rose-200'
+                : isFacilityHpReductionActive
+                  ? 'bg-amber-950/85 border-amber-400/80 text-amber-200'
+                  : 'bg-[#12161b] border-[#2b353f] text-amber-300'
+            }`}
+          >
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="flex items-center gap-0.5 shrink-0" aria-hidden="true">
+                {Array.from({ length: Math.max(1, maxHp) }).map((_, idx) => {
+                  const filled = idx < combat.current_hp;
+                  const isNextCutPip = !facilityDisabled && filled && idx === combat.current_hp - 1;
+                  const isDecayedPip = isFacilityDecay && idx === combat.current_hp;
+                  const pipAnimCls = motionOff
+                    ? ''
+                    : isDecayedPip || (isFacilityTurnEndSim && isNextCutPip)
+                      ? 'anim-facility-pip-shatter'
+                      : isNextCutPip
+                        ? 'anim-facility-pip-drain'
+                        : '';
+                  return (
+                    <span
+                      key={idx}
+                      data-facility-pip={isNextCutPip ? 'next-cut' : isDecayedPip ? 'shattered' : filled ? 'filled' : 'empty'}
+                      className={`inline-block w-1.5 h-2 ${pipAnimCls} ${
+                        isDecayedPip
+                          ? 'bg-rose-400/80'
+                          : filled
+                            ? isFacilityCritical || (isFacilityTurnEndSim && isNextCutPip)
+                              ? 'bg-rose-400'
+                              : isNextCutPip
+                                ? 'bg-amber-300'
+                                : 'bg-amber-400'
+                            : 'bg-slate-700/85'
+                      }`}
+                    />
+                  );
+                })}
+              </span>
+              <span className={`font-bold truncate ${isFacilityCritical ? 'text-rose-200' : 'text-amber-300'}`}>
+                {isFacilityCritical
+                  ? '⚠ 末回合'
+                  : facilityDisabled
+                    ? '⏸ 暂停'
+                    : `寿命 ${combat.current_hp}/${maxHp}`}
+              </span>
+            </div>
+            <span className={`font-bold shrink-0 ${isFacilityHpReductionActive ? 'text-amber-200' : isFacilityCritical ? 'text-rose-300' : 'text-slate-300'}`}>
+              {isFacilityHpReductionActive ? 'HP削减 -1' : isFacilityCritical ? '下回销毁' : '每回-1'}
             </span>
           </div>
         ) : (

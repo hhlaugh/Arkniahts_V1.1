@@ -167,6 +167,7 @@ export function grantShieldToEntity(
 ): GameState {
   const target = state.card_instances[targetId];
   if (!target?.operator_combat || target.zone !== 'board' || amount <= 0) return state;
+  if (getEntityKind(state, target) === 'facility') return state;
   const shieldCap = state.open_decision_config?.shieldCap;
   const before = target.operator_combat.shield;
   const rawAfter = before + amount;
@@ -238,7 +239,7 @@ export function healEntity(
   if (hasCannotBeHealedTrait && !options.allowSelfHealOverride && options.sourceId !== targetId) {
     return { state, actualHeal: 0 };
   }
-  // 设施不成为常规治疗目标，除非是自身/明确指定设施治疗（V1.1 治疗卡均写友方单位，设施非单位）
+  // 设施不受治疗影响
   if (getEntityKind(state, target) === 'facility') {
     return { state, actualHeal: 0 };
   }
@@ -288,8 +289,9 @@ export function applyStatusToInstance(
   const target = state.card_instances[targetId];
   if (!target?.operator_combat || target.zone !== 'board') return state;
   const kind = normalizeStatusKind(rawKind) as StatusKind;
-  if (getEntityKind(state, target) === 'facility' && kind !== 'cover') {
-    // 设施通常不承受控制状态，仅掩护/失效可作用于其上；不过如若未来拓展保留兼容
+  if (getEntityKind(state, target) === 'facility') {
+    // 设施不受任何增益与减益状态影响
+    return state;
   }
   if (kind === 'grounded' && !isNativeFloating(state, target)) return state;
   if (duration < 1 && kind !== 'cover' && kind !== 'vulnerable' && kind !== 'suppressed') return state;

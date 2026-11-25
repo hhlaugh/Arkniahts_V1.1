@@ -161,7 +161,7 @@ export function getInvalidDeployReason(
   }
   const inst = state.card_instances[cardInstanceId];
   const def = inst ? state.card_definitions[inst.card_id] : undefined;
-  if (def?.card_type === 'support' && def.support_subtype === 'facility') {
+  if (def?.card_type === 'facility' || (def?.card_type === 'support' && def.support_subtype === 'facility')) {
     const result = reduceGameAction(state, actorId, {
       type: 'play_card',
       card_instance_id: cardInstanceId,
@@ -235,7 +235,7 @@ export function getInvalidCardReason(
     return firstReason ?? '当前无法部署该干员。';
   }
 
-  if (definition.card_type === 'support' && definition.support_subtype === 'facility') {
+  if (definition.card_type === 'facility' || (definition.card_type === 'support' && definition.support_subtype === 'facility')) {
     let firstReason: string | null = null;
     for (const position of POSITIONS) {
       for (const lane of sortedLanes(state.board_profile)) {

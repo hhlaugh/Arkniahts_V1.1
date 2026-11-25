@@ -32,6 +32,7 @@ import { useLongPress } from '../hooks/useLongPress';
 interface DeckEditorViewProps {
   readonly onBack: () => void;
   readonly initialDeckId?: string;
+  readonly onOpenRules?: () => void;
 }
 
 const PROFESSION_FILTERS = [
@@ -45,27 +46,26 @@ const PROFESSION_FILTERS = [
   { id: 'supporter', label: '辅助' },
   { id: 'specialist', label: '特种' },
   { id: 'tactic', label: '战术' },
-  { id: 'support', label: '支援' },
   { id: 'facility', label: '设施' },
-  { id: 'equipment', label: '装备' },
+  { id: 'support', label: '支援' },
 ] as const;
 
 type TraitFilter = 'all' | 'melee' | 'ranged' | 'front_only' | 'back_only' | 'floating';
 type SortMode = 'rarity-desc' | 'cost-asc' | 'cost-desc' | 'atk-desc' | 'hp-desc' | 'name';
 
 function getCardClassInfo(card: UiCardDefinition | { card_type: string; class?: string; support_subtype?: string }) {
-  if (card.card_type === 'support' && card.support_subtype === 'facility') {
+  if (card.card_type === 'facility' || card.support_subtype === 'facility') {
     return {
       key: 'facility',
       label: '设施',
       color: CLASS_COLOR.facility ?? '#f59e0b',
     };
   }
-  if (card.card_type === 'support' && card.support_subtype === 'equipment') {
+  if (card.card_type === 'support') {
     return {
-      key: 'equipment',
-      label: '装备',
-      color: CLASS_COLOR.equipment ?? '#06b6d4',
+      key: 'support',
+      label: '支援',
+      color: CLASS_COLOR.support ?? '#06b6d4',
     };
   }
   const c = (card.card_type === 'operator' && card.class ? card.class : card.card_type) || 'vanguard';
@@ -162,7 +162,7 @@ function DeckCatalogCardItem({
   );
 }
 
-export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
+export function DeckEditorView({ onBack, initialDeckId, onOpenRules }: DeckEditorViewProps) {
   const [customDecks, setCustomDecks] = useState<DeckDefinition[]>(() => getCustomDecks());
 
   const [currentDeck, setCurrentDeck] = useState<DeckDefinition>(() => {
@@ -235,7 +235,7 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
     setDeckMode(next);
     setDeckModeState(next);
     setOwned(getActiveCollection().owned);
-    showNotice(next === 'collection' ? '已切换到收录模式：只能使用已持有卡牌，同名张数受持有量限制' : '已切换到自由构筑：全量 108 张卡牌（72 干员 · 24 战术 · 12 支援）可用');
+    showNotice(next === 'collection' ? '已切换到收录模式：只能使用已持有卡牌，同名张数受持有量限制' : '已切换到自由构筑：全量 108 张卡牌（72 干员 · 24 战术 · 6 设施 · 6 支援）可用');
   };
 
   const validation = useMemo(
@@ -305,15 +305,17 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
         const matchesTags = (uiCard.synergy_tags ?? '').toLowerCase().includes(query);
         const matchesArtsAlias =
           query.includes('法伤') &&
-          (uiCard.damage_type === 'arts' || (uiCard.rules_text_zh ?? '').includes('法术攻击'));
+          (uiCard.damage_type === 'arts' || (uiCard.rules_text_zh ?? '').includes('法伤'));
         if (!matchesName && !matchesEn && !matchesId && !matchesRules && !matchesSkill && !matchesTags && !matchesArtsAlias) {
           return false;
         }
       }
 
       if (selectedClass !== 'all') {
-        if (selectedClass === 'facility' || selectedClass === 'equipment') {
-          if (uiCard.card_type !== 'support' || uiCard.support_subtype !== selectedClass) return false;
+        if (selectedClass === 'facility') {
+          if (uiCard.card_type !== 'facility' && uiCard.support_subtype !== 'facility') return false;
+        } else if (selectedClass === 'support') {
+          if (uiCard.card_type !== 'support' || uiCard.support_subtype === 'facility') return false;
         } else {
           const cClass = uiCard.card_type === 'operator' ? uiCard.class : uiCard.card_type;
           if (cClass !== selectedClass) return false;
@@ -740,6 +742,16 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
           >
             📖 预设详情
           </Button>
+          {onOpenRules && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenRules}
+              title="查看游戏规则补充说明（含伏击客与设施说明）"
+            >
+              📜 规则
+            </Button>
+          )}
 
           <Button variant="primary" size="sm" cornerCut onClick={handleSave}>
             保存卡组
@@ -1052,14 +1064,14 @@ export function DeckEditorView({ onBack, initialDeckId }: DeckEditorViewProps) {
                     <span className="text-emerald-400 font-bold">HP {activeInspect.hp ?? 0}</span>
                   </div>
                 )}
-                {activeInspect.card_type === 'support' && (
+                {(activeInspect.card_type === 'facility' || activeInspect.card_type === 'support') && (
                   <div className="text-[11px] font-mono pt-0.5">
-                    {activeInspect.support_subtype === 'facility' ? (
+                    {activeInspect.card_type === 'facility' || activeInspect.support_subtype === 'facility' ? (
                       <span className="text-amber-300 font-bold">
-                        🏗️ 场地设施（占格部署 · {activeInspect.hp ?? 3} HP · {activeInspect.facility_duration ?? 3} 回合）
+                        🏗️ 场地设施（前后排占格 · {activeInspect.hp ?? 3} HP · 每回合自身 -1 HP · 不受治疗/增益/减益/位移）
                       </span>
                     ) : (
-                      <span className="text-cyan-300 font-bold">🔧 干员装备（附着友方 · 每干员限装 1 件）</span>
+                      <span className="text-cyan-300 font-bold">🔧 支援装备（附着友方 · 每干员限装 1 件）</span>
                     )}
                   </div>
                 )}

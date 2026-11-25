@@ -15,29 +15,31 @@ export interface AssetValidationReport {
   readonly totalMappedPresentations: number;
   readonly unmappedCardIds: readonly string[];
   readonly missingAssetCardIds: readonly string[];
+  readonly duplicatePortraitCardIds: readonly string[];
+  readonly duplicateAvatarCardIds: readonly string[];
   readonly issues: readonly AssetValidationIssue[];
   readonly isValid: boolean;
 }
 
 /**
- * 校验卡牌表现层映射 (Card Presentation Manifest) 的完整性与一致性
+ * 校验卡牌表现层映射 (Card Presentation Manifest) 的完整性与唯一性
  */
 export function validateCardPresentationIntegrity(): AssetValidationReport {
   const issues: AssetValidationIssue[] = [];
   const cardIdsInPool = new Set<string>();
-  const cardTypesById = new Map<string, string>();
 
-  for (const rawCard of cardPoolJson as Array<{ card_id?: unknown; card_type?: unknown }>) {
+  for (const rawCard of cardPoolJson as Array<{ card_id?: unknown }>) {
     if (typeof rawCard.card_id === 'string') {
       cardIdsInPool.add(rawCard.card_id);
-      if (typeof rawCard.card_type === 'string') {
-        cardTypesById.set(rawCard.card_id, rawCard.card_type);
-      }
     }
   }
 
   const unmappedCardIds: string[] = [];
   const missingAssetCardIds: string[] = [];
+  const duplicatePortraitCardIds: string[] = [];
+  const duplicateAvatarCardIds: string[] = [];
+  const portraitOwnerByPath = new Map<string, string>();
+  const avatarOwnerByPath = new Map<string, string>();
 
   for (const id of cardIdsInPool) {
     const cardId = id as CardId;
@@ -62,15 +64,41 @@ export function validateCardPresentationIntegrity(): AssetValidationReport {
       });
     }
 
-    const isOperator = cardTypesById.get(id) === 'operator';
-    if (isOperator && (!presentation.assets.portrait || !presentation.assets.avatar)) {
+    if (!presentation.assets.portrait || !presentation.assets.avatar) {
       missingAssetCardIds.push(id);
       issues.push({
         cardId: id,
-        severity: 'warning',
+        severity: 'error',
         code: 'EMPTY_ASSET_PATH',
         message: `卡牌 ${id} 未指定完整的 portrait 或 avatar 资源路径。`,
       });
+      continue;
+    }
+
+    const existingPortraitOwner = portraitOwnerByPath.get(presentation.assets.portrait);
+    if (existingPortraitOwner) {
+      duplicatePortraitCardIds.push(id);
+      issues.push({
+        cardId: id,
+        severity: 'error',
+        code: 'DUPLICATE_PORTRAIT_ASSET',
+        message: `卡牌 ${id} 与 ${existingPortraitOwner} 复用了同一立绘资源 (${presentation.assets.portrait})。`,
+      });
+    } else {
+      portraitOwnerByPath.set(presentation.assets.portrait, id);
+    }
+
+    const existingAvatarOwner = avatarOwnerByPath.get(presentation.assets.avatar);
+    if (existingAvatarOwner) {
+      duplicateAvatarCardIds.push(id);
+      issues.push({
+        cardId: id,
+        severity: 'error',
+        code: 'DUPLICATE_AVATAR_ASSET',
+        message: `卡牌 ${id} 与 ${existingAvatarOwner} 复用了同一头像资源 (${presentation.assets.avatar})。`,
+      });
+    } else {
+      avatarOwnerByPath.set(presentation.assets.avatar, id);
     }
   }
 
@@ -79,6 +107,8 @@ export function validateCardPresentationIntegrity(): AssetValidationReport {
     totalMappedPresentations: CARD_PRESENTATION_MAP.size,
     unmappedCardIds,
     missingAssetCardIds,
+    duplicatePortraitCardIds,
+    duplicateAvatarCardIds,
     issues,
     isValid: issues.filter((i) => i.severity === 'error').length === 0,
   };

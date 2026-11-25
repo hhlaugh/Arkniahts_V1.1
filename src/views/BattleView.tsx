@@ -67,6 +67,7 @@ const SLOT_POPUP_STYLE: Record<FloatingPopupKind, string> = {
   skill: 'bg-[#0e1116]/95 text-amber-300 border-[#e5a52b] border-l-2',
   deploy: 'bg-[#0e1116]/92 text-amber-200 border-[#e5a52b]/80 border-l-2',
   status: 'bg-[#0e1116]/95 text-purple-300 border-purple-400/85 border-l-2',
+  facility_decay: 'bg-[#1a130b]/95 text-amber-200 border-amber-400/90',
 };
 
 const SUMMON_OPTION_LABELS: Readonly<Record<string, string>> = {
@@ -116,9 +117,10 @@ interface BattleViewProps {
   readonly networkStatus?: NetworkStatus | null;
   readonly onExit?: () => void;
   readonly onOpenSettings?: () => void;
+  readonly onOpenRules?: () => void;
 }
 
-export function BattleView({ snapshot, controller, onDispatch, humanPlayer = null, networkStatus = null, onExit, onOpenSettings }: BattleViewProps) {
+export function BattleView({ snapshot, controller, onDispatch, humanPlayer = null, networkStatus = null, onExit, onOpenSettings, onOpenRules }: BattleViewProps) {
   const state = snapshot.state;
   const actor = state.active_player_id;
   const canAct = !humanPlayer || actor === humanPlayer;
@@ -345,7 +347,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const activeHandCardId = draggingCardId ?? (selection && state.card_instances[selection]?.zone === 'hand' ? selection : null);
   const activeHandDef = activeHandCardId ? cardDefinitionOf(state, activeHandCardId) : undefined;
   const activeHandIsOperator = activeHandDef?.card_type === 'operator';
-  const activeHandIsFacility = activeHandDef?.card_type === 'support' && activeHandDef.support_subtype === 'facility';
+  const activeHandIsFacility = activeHandDef?.card_type === 'facility' || (activeHandDef?.card_type === 'support' && activeHandDef.support_subtype === 'facility');
 
   const selectedDeployActions = useMemo(
     () =>
@@ -635,7 +637,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       const selectedInst = state.card_instances[selection];
       const selectedDef = cardDefinitionOf(state, selection);
       if (selectedInst?.zone === 'hand' && selectedDef) {
-        if (selectedDef.card_type === 'operator' || (selectedDef.card_type === 'support' && selectedDef.support_subtype === 'facility')) {
+        if (selectedDef.card_type === 'operator' || selectedDef.card_type === 'facility' || (selectedDef.card_type === 'support' && selectedDef.support_subtype === 'facility')) {
           const reason = getInvalidDeployReason(state, actor, selection, half, lane, position, slotIndex);
           if (reason) {
             playTacticalSfx('alert');
@@ -952,7 +954,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     const vh = typeof window !== 'undefined' ? window.innerHeight : height;
     const aimPoint = computeTouchAimPoint(pointer, vw, vh);
     const cardDef = cardDefinitionOf(state, cardId);
-    const isFacilityCard = cardDef?.card_type === 'support' && cardDef.support_subtype === 'facility';
+    const isFacilityCard = cardDef?.card_type === 'facility' || (cardDef?.card_type === 'support' && cardDef.support_subtype === 'facility');
 
     const deployActionsForCard =
       canAct && isActionPhase && !hasPending
@@ -1584,6 +1586,8 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     const unitAnimState: UnitAnimationState = {
       deployed: Boolean(activeBeat?.deployedUnits[instance.card_instance_id] || isDeployedSlot),
       hit: Boolean(activeBeat?.hitUnits[instance.card_instance_id]),
+      facilityDecay: Boolean(activeBeat?.facilityDecayUnits[instance.card_instance_id]),
+      facilityTurnEndSim: Boolean(activeBeat?.facilityTurnEndSimUnits[instance.card_instance_id]),
       attackDirection: activeBeat?.attackingUnits[instance.card_instance_id] ?? null,
       skillFlash: Boolean(activeBeat?.skillUnits[instance.card_instance_id]),
       floatingPopups: slotPopups,
@@ -1935,6 +1939,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         enemyBaseDamageDelta={activeBeat?.baseDamage.enemy ?? null}
         disableMotion={combatAnim.effectiveDisabled}
         onOpenSettings={onOpenSettings}
+        onOpenRules={onOpenRules}
       />
 
       {/* 2. 系统提示与待决响应横幅区（无提示时自动折叠为 0px） */}

@@ -210,19 +210,20 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
       : basePresentation;
   const rarity = presentation.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
-  const supportSubtype =
-    definition.card_type === 'support' ? (definition.support_subtype || '') : '';
-  const isFacilityDef = supportSubtype === 'facility';
-  const isEquipmentDef = supportSubtype === 'equipment';
+  const isFacilityDef =
+    definition.card_type === 'facility' ||
+    (definition.card_type === 'support' && definition.support_subtype === 'facility');
+  const isEquipmentDef =
+    definition.card_type === 'support' && definition.support_subtype !== 'facility';
   const classColor = isFacilityDef
     ? '#f59e0b'
     : isEquipmentDef
       ? '#06b6d4'
       : CLASS_COLOR[presentation.profession] ?? '#94a3b8';
   const classLabelZh = isFacilityDef
-    ? '🏗️ 支援 · 设施'
+    ? '🏗️ 设施'
     : isEquipmentDef
-      ? '🔧 支援 · 装备'
+      ? '🔧 支援'
       : CLASS_LABEL[presentation.profession] ?? presentation.profession;
 
   const entityStats = isBoardUnit ? getEntityStats(state, instance) : null;
@@ -314,7 +315,7 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
         : definition.card_type === 'tactic'
           ? '战术指令 · 一次性'
           : isEquipmentDef
-            ? '干员装备 · 附着强化'
+            ? '支援装备 · 附着强化'
             : operatorMetaParts.join(' · ');
 
   const centerSubLabel =
@@ -543,7 +544,7 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
               ) : entityKind === 'facility' && liveCombat && entityStats ? (
                 <>
                   <span className="text-[10px] font-bold text-amber-300 pb-0.5 pl-0.5">
-                    {facilityDisabled ? '⏸ 已瘫痪' : '⚙ 生效中'} · 余{instance.facility_state?.remaining_turns ?? 1}回
+                    {facilityDisabled ? '⏸ 已瘫痪' : '⚙ 生效中'} · 每回-1HP
                   </span>
                   <div
                     data-testid="card-hp-badge"
@@ -560,7 +561,7 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
               ) : isFacilityDef ? (
                 <>
                   <span className="text-[10px] font-bold text-amber-200 bg-amber-950/80 border border-amber-500/55 px-1.5 py-0.5">
-                    🏗️ 占格部署 · 持续{definition.facility_duration ?? 3}回合
+                    🏗️ 前后排占格 · 每回-1HP
                   </span>
                   <div
                     data-testid="card-hp-badge"

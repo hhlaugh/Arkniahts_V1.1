@@ -137,7 +137,7 @@ export const CLASS_COLOR: Readonly<Record<string, string>> = {
   supporter: '#eab308',// yellow/gold
   specialist: '#ec4899',// pink
   tactic: '#a855f7',   // purple
-  support: '#64748b',  // slate
+  support: '#06b6d4',  // cyan
   facility: '#f59e0b', // amber
   equipment: '#06b6d4',// cyan
 };

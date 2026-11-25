@@ -145,7 +145,11 @@ export function CardTouchDragOverlay({
             </div>
           ) : (
             <div className="text-[9px] font-mono text-cyan-300 bg-[#0d1219] px-1 py-0.5 border border-cyan-800/70 truncate">
-              {definition.card_type === 'support' ? '支援装置' : '战术指令'}
+              {definition.card_type === 'facility' || definition.support_subtype === 'facility'
+                ? '场地设施'
+                : definition.card_type === 'support'
+                  ? '支援装备'
+                  : '战术指令'}
             </div>
           )}
         </div>

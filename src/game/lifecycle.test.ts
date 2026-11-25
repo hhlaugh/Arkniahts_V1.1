@@ -386,7 +386,7 @@ describe('V1.1 normal withdrawal and tactical return-to-hand', () => {
 });
 
 describe('V1.1 facilities, equipment override/clamp and redeploy cooldown', () => {
-  it('occupies a board cell for facilities, enforces 2-facility limit, disables via DEMO-TAC-V2-020, and expires to discard after 3 turns', () => {
+  it('occupies a board cell for facilities on front or back row, enforces 2-facility limit, disables via DEMO-TAC-V2-020, and loses 1 HP per turn until destroyed', () => {
     const state = freshActionState();
     const actor = state.active_player_id;
     const f1 = giveCard(state, actor, cardIds['DEMO-SUP-V2-001']);
@@ -415,13 +415,15 @@ describe('V1.1 facilities, equipment override/clamp and redeploy cooldown', () =
     });
     expect(blockedDeploy).toMatchObject({ ok: false });
 
+    // Deploy second facility onto front row
     const afterF2 = dispatch(op.state, actor, {
       type: 'play_card',
       card_instance_id: f2.cardInstanceId,
       target_lane: 'L2',
-      target_position: 'back',
+      target_position: 'front',
       target_slot_index: 1,
     });
+    expect(afterF2.card_instances[f2.cardInstanceId].position).toBe('front');
     expect(afterF2.players[actor].facility_ids).toHaveLength(2);
 
     const overLimit = reduceGameAction(afterF2, actor, {
@@ -432,6 +434,31 @@ describe('V1.1 facilities, equipment override/clamp and redeploy cooldown', () =
       target_slot_index: 1,
     });
     expect(overLimit).toMatchObject({ ok: false, value: afterF2 });
+
+    // Three owner turn starts deduct 1 HP each turn (3 -> 2 -> 1 -> 0 destroyed)
+    let cur = afterF2;
+    for (const expectedHp of [2, 1]) {
+      const step = advancePhase({
+        ...cur,
+        phase: 'turn_start',
+        active_player_id: actor,
+        turn_start_prepared: false,
+      });
+      if (!step.ok) throw new Error(step.reason);
+      cur = step.value;
+      expect(cur.card_instances[f1.cardInstanceId].operator_combat?.current_hp).toBe(expectedHp);
+      expect(cur.card_instances[f2.cardInstanceId].operator_combat?.current_hp).toBe(expectedHp);
+    }
+    const finalStep = advancePhase({
+      ...cur,
+      phase: 'turn_start',
+      active_player_id: actor,
+      turn_start_prepared: false,
+    });
+    if (!finalStep.ok) throw new Error(finalStep.reason);
+    expect(finalStep.value.card_instances[f1.cardInstanceId].zone).toBe('discard');
+    expect(finalStep.value.card_instances[f2.cardInstanceId].zone).toBe('discard');
+    expect(finalStep.value.players[actor].facility_ids).toHaveLength(0);
   });
 
   it('installs equipment package (card moves to discard), enforces 1-slot override with HP clamping, and clears on withdraw', () => {

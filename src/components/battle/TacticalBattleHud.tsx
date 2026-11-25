@@ -28,6 +28,7 @@ interface TacticalBattleHudProps {
   readonly enemyBaseDamageDelta?: number | null;
   readonly disableMotion?: boolean;
   readonly onOpenSettings?: () => void;
+  readonly onOpenRules?: () => void;
 }
 
 export type TurnPhaseStepKey = 'mulligan' | 'turn_start' | 'deploy' | 'combat' | 'pending' | 'turn_end' | 'finished';
@@ -139,6 +140,7 @@ export function TacticalBattleHud({
   enemyBaseDamageDelta = null,
   disableMotion = false,
   onOpenSettings,
+  onOpenRules,
 }: TacticalBattleHudProps) {
   const playerEnemy = state.players[topPlayer];
   const isAllyTurn = actor === bottomPlayer;
@@ -413,6 +415,19 @@ export function TacticalBattleHud({
         >
           🔍<span className="hidden lg:inline ml-1">档案</span>
         </Button>
+
+        {onOpenRules && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onOpenRules}
+            title="查看游戏规则补充说明（含伏击客优先级与设施寿命）"
+            aria-label="规则说明"
+            className="text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 min-h-[30px] min-w-[30px] sm:min-h-[28px] shrink-0 whitespace-nowrap text-slate-200 hover:text-amber-300"
+          >
+            📖<span className="hidden xl:inline ml-1">规则</span>
+          </Button>
+        )}
 
         {onOpenSettings && (
           <Button

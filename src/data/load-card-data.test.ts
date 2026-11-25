@@ -125,7 +125,7 @@ describe('loadDemoData', () => {
 
       if (card.card_type === 'operator') {
         if (card.damage_type === 'arts') {
-          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【法术攻击】`).toContain('【法术攻击】');
+          expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【法伤】`).toContain('【法伤】');
         }
         if (card.intercept_eligible === false) {
           expect(rules, `${card.card_id} ${card.card_name_zh} 缺少【伏击】`).toContain('【伏击】');
@@ -141,7 +141,7 @@ describe('loadDemoData', () => {
 
     const meyer = loadDemoData().validCards.find((c) => c.card_id === 'OP-SUP-006')!;
     const meyerKeywords = extractCardKeywords(meyer).map((k) => k.keyword);
-    expect(meyerKeywords).toContain('法术攻击');
+    expect(meyerKeywords).toContain('法伤');
     expect(meyerKeywords).toContain('召唤');
 
     const manticore = loadDemoData().validCards.find((c) => c.card_id === 'OP-SPE-006')!;

@@ -81,7 +81,7 @@ export function enumerateLegalActions(state: GameState, playerId: PlayerId): rea
       continue;
     }
 
-    if (definition.card_type === 'support' && definition.support_subtype === 'facility') {
+    if (definition.card_type === 'facility' || (definition.card_type === 'support' && definition.support_subtype === 'facility')) {
       for (const lane of lanes) {
         for (const position of POSITIONS) {
           const slots = slotCountForRow(lane, position);
@@ -99,7 +99,7 @@ export function enumerateLegalActions(state: GameState, playerId: PlayerId): rea
       continue;
     }
 
-    if (definition.card_type === 'support' && definition.support_subtype === 'equipment') {
+    if (definition.card_type === 'support') {
       for (const unit of ownEntities) {
         if (getEntityKind(state, unit) === 'facility') continue;
         candidates.push({

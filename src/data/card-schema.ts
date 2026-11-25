@@ -1,6 +1,6 @@
 import type { EffectActionType, EffectTrigger, StatusKind } from '../game/types';
 
-export const CARD_TYPES = ['operator', 'tactic', 'support'] as const;
+export const CARD_TYPES = ['operator', 'tactic', 'support', 'facility'] as const;
 export const LANES = ['L1', 'L2', 'L3'] as const;
 export const LEGACY_LANES = ['left', 'center', 'right'] as const;
 export const POSITIONS = ['front', 'back'] as const;

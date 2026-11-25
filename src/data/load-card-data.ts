@@ -282,7 +282,7 @@ function validateCardPool(raw: unknown): { issues: ValidationIssue[]; validCards
         issue(issues, 'INVALID_REFUND_RATIO', 'normal_withdrawal_refund_ratio 必须为 0 或 0.20–0.50。', id);
       }
     }
-    if (entry.card_type === 'support' && entry.support_subtype === 'facility') {
+    if (entry.card_type === 'facility' || (entry.card_type === 'support' && entry.support_subtype === 'facility')) {
       if (entry.hp !== undefined && entry.hp !== 3) {
         issue(issues, 'INVALID_FACILITY_HP', 'V1.1 设施统一要求 hp === 3。', id);
       }

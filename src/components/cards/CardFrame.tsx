@@ -229,10 +229,12 @@ export function CardFrame({
   const p = presentation ?? getCardPresentation(cardId);
   const rarity = p.rarity;
   const rarityTheme = RARITY_THEMES[rarity as keyof typeof RARITY_THEMES] ?? RARITY_THEMES[3];
-  const supportSubtype =
-    definition?.card_type === 'support' ? (definition.support_subtype || '') : '';
-  const isFacility = supportSubtype === 'facility';
-  const isEquipment = supportSubtype === 'equipment';
+  const isFacility =
+    definition?.card_type === 'facility' ||
+    (definition?.card_type === 'support' && definition?.support_subtype === 'facility');
+  const isEquipment =
+    definition?.card_type === 'support' && definition?.support_subtype !== 'facility';
+  const supportSubtype = isFacility ? 'facility' : isEquipment ? 'equipment' : '';
   const classColor = isFacility
     ? '#f59e0b'
     : isEquipment
@@ -241,11 +243,15 @@ export function CardFrame({
   const classLabelZh = isFacility
     ? '🏗️ 设施'
     : isEquipment
-      ? '🔧 装备'
+      ? '🔧 支援'
       : CLASS_LABEL[p.profession] ?? p.profession;
 
   const cost = definition?.cost ?? 0;
-  const isOperator = (definition?.card_type ?? (p.profession !== 'tactic' && p.profession !== 'support')) === 'operator';
+  const isOperator =
+    (definition?.card_type ??
+      (p.profession !== 'tactic' && p.profession !== 'support' && p.profession !== 'facility'
+        ? 'operator'
+        : p.profession)) === 'operator';
   const nameZh = definition?.card_name_zh ?? p.codeNameZh;
 
   const uiDef = definition as UiCardDefinition | undefined;
@@ -500,7 +506,7 @@ export function CardFrame({
               {isFacility && (
                 <div className={`flex items-center justify-between gap-1 ${variant === 'hand' || variant === 'compact' ? 'text-[8px] sm:text-[10px]' : 'text-[10px]'} font-mono tabular-nums leading-none`}>
                   <span className="px-1 py-0.5 bg-amber-950/85 border border-amber-500/60 text-amber-200 font-bold truncate">
-                    {variant === 'hand' || variant === 'compact' ? '占格·设施' : `占格设施·${definition.facility_duration ?? 3}回`}
+                    {variant === 'hand' || variant === 'compact' ? '占格·设施' : '占格设施·-1HP/回'}
                   </span>
                   <span className="px-1 py-0.5 bg-[#0e1c17] border border-emerald-500/50 text-emerald-300 font-bold shrink-0">
                     {variant === 'compact' ? `♥${definition.hp ?? 3}` : `HP ${definition.hp ?? 3}`}
@@ -510,7 +516,7 @@ export function CardFrame({
               {isEquipment && (
                 <div className={`flex items-center justify-between gap-1 ${variant === 'hand' || variant === 'compact' ? 'text-[8px] sm:text-[10px]' : 'text-[10px]'} font-mono leading-none`}>
                   <span className="px-1 py-0.5 bg-cyan-950/85 border border-cyan-500/60 text-cyan-200 font-bold truncate">
-                    {variant === 'hand' || variant === 'compact' ? '附着·装备' : '干员装备·附着'}
+                    {variant === 'hand' || variant === 'compact' ? '附着·支援' : '支援装备·附着'}
                   </span>
                   {variant !== 'hand' && variant !== 'compact' && (
                     <span className="text-[9px] text-cyan-300/90 shrink-0">限装1件</span>
