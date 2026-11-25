@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { updateAppSettings, useAppSettings } from '../data/app-settings';
-import { playCombatAudioCues } from '../audio/combatSfx';
+import { playCombatAudioCues, type CombatSfxKind } from '../audio/combatSfx';
 import type { CardInstanceId, CombatLogEvent, GameState, PlayerId } from '../game/types';
 import {
   buildPresentationBeats,
@@ -34,6 +34,7 @@ interface UseCombatAnimationsParams {
   readonly state: GameState;
   readonly logHistory: readonly CombatLogEvent[];
   readonly bottomPlayer: PlayerId;
+  readonly shouldSkipAudioCue?: (kind: CombatSfxKind) => boolean;
 }
 
 export interface CombatAnimationsHandle {
@@ -55,6 +56,7 @@ export function useCombatAnimations({
   state,
   logHistory,
   bottomPlayer,
+  shouldSkipAudioCue,
 }: UseCombatAnimationsParams): CombatAnimationsHandle {
   const prefersReducedMotion = usePrefersReducedMotion();
   const { animSpeedMode: speedMode } = useAppSettings();
@@ -65,6 +67,8 @@ export function useCombatAnimations({
   const prevPositionsRef = useRef<Map<CardInstanceId, UnitSlotLocation>>(captureBoardPositions(state));
   const timerRef = useRef<number | null>(null);
   const lastPlayedBeatIdRef = useRef<string | null>(null);
+  const shouldSkipAudioCueRef = useRef(shouldSkipAudioCue);
+  shouldSkipAudioCueRef.current = shouldSkipAudioCue;
 
   const effectiveDisabled = speedMode === 'off' || prefersReducedMotion;
 
@@ -118,14 +122,13 @@ export function useCombatAnimations({
     if (effectiveDisabled) {
       setQueue([]);
       if (newEvents.length > 0 || prevState.active_player_id !== state.active_player_id || prevState.turn_number !== state.turn_number) {
-        playCombatAudioCues(
-          collectImmediateCombatAudioCues({
-            prevState,
-            nextState: state,
-            newEvents,
-            bottomPlayer,
-          }),
-        );
+        const immediateCues = collectImmediateCombatAudioCues({
+          prevState,
+          nextState: state,
+          newEvents,
+          bottomPlayer,
+        }).filter((cue) => !shouldSkipAudioCueRef.current?.(cue.kind));
+        playCombatAudioCues(immediateCues);
       }
       return;
     }
@@ -171,7 +174,10 @@ export function useCombatAnimations({
 
     if (lastPlayedBeatIdRef.current !== activeBeat.id) {
       lastPlayedBeatIdRef.current = activeBeat.id;
-      playCombatAudioCues(activeBeat.audioCues);
+      const filteredCues = (activeBeat.audioCues ?? []).filter(
+        (cue) => !shouldSkipAudioCueRef.current?.(cue.kind),
+      );
+      playCombatAudioCues(filteredCues);
     }
 
     const duration = Math.max(80, activeBeat.durationMs);

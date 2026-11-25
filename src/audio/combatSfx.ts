@@ -9,6 +9,7 @@ export type CombatSfxKind =
   | 'strike_melee'
   | 'strike_ranged'
   | 'hit'
+  | 'damage_taken'
   | 'shield'
   | 'heal'
   | 'sp'
@@ -367,6 +368,40 @@ function scheduleCombatSfx(ctx: AudioContext, out: AudioNode, kind: CombatSfxKin
         filterStartFreq: 2600,
         filterEndFreq: 240,
         filterQ: 1.1,
+      });
+      break;
+    }
+
+    case 'damage_taken': {
+      // 己方受到伤害：护甲震颤低频闷响 + 警示短促下坠音
+      playTone(ctx, out, {
+        type: 'triangle',
+        startFreq: 210,
+        endFreq: 52,
+        startTime,
+        duration: 0.14,
+        gain: vol * 0.36,
+        attack: 0.002,
+      });
+      playTone(ctx, out, {
+        type: 'sawtooth',
+        startFreq: 520,
+        endFreq: 260,
+        startTime: startTime + 0.012,
+        duration: 0.08,
+        gain: vol * 0.12,
+        attack: 0.003,
+        filterType: 'lowpass',
+        filterStartFreq: 1200,
+      });
+      playNoise(ctx, out, {
+        startTime,
+        duration: 0.075,
+        gain: vol * 0.22,
+        filterType: 'bandpass',
+        filterStartFreq: 720,
+        filterEndFreq: 220,
+        filterQ: 1.3,
       });
       break;
     }

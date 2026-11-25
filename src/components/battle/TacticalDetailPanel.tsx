@@ -6,6 +6,7 @@ import type {
   CardInstanceId,
   GameAction,
   GameState,
+  PlayerId,
 } from '../../game/types';
 import { cardDefinitionOf } from '../cards/CardView';
 import { getCardPresentation, getSummonPresentation } from '../../data/card-presentation';
@@ -29,6 +30,7 @@ interface TacticalDetailPanelProps {
   readonly hasPending: boolean;
   readonly legalActions: readonly GameAction[];
   readonly onDispatch: (action: GameAction) => void;
+  readonly viewerPlayer?: PlayerId | null;
   readonly embedded?: boolean;
   readonly className?: string;
 }
@@ -47,6 +49,7 @@ export function TacticalDetailPanel({
   hasPending,
   legalActions,
   onDispatch,
+  viewerPlayer = null,
   embedded = false,
   className = '',
 }: TacticalDetailPanelProps) {
@@ -457,7 +460,19 @@ export function TacticalDetailPanel({
             <div className="flex items-center justify-between text-slate-400">
               <span>当前阶段:</span>
               <span className="text-[#e5a52b] font-bold">
-                {state.phase === 'action' ? `行动阶段 (${PLAYER_LABEL[actor]})` : state.phase}
+                {state.phase === 'action'
+                  ? viewerPlayer
+                    ? (
+                        <>
+                          行动阶段 (
+                          <span className={actor === viewerPlayer ? 'text-sky-300' : 'text-rose-300'}>
+                            {actor === viewerPlayer ? '己方' : '敌方'}
+                          </span>
+                          )
+                        </>
+                      )
+                    : `行动阶段 (${PLAYER_LABEL[actor]})`
+                  : state.phase}
               </span>
             </div>
             <div className="flex items-center justify-between text-slate-400">

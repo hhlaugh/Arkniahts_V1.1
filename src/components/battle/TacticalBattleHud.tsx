@@ -5,6 +5,7 @@ import type { NetworkStatus } from '../../views/BattleView';
 import type { PresentationBeat } from './combatPresentation';
 import { DEFAULT_ANIMATION_SPEED_MODE, type AnimationSpeedMode } from './combatPresentation';
 import { ScenicBannerLayer } from '../ui/ScenicBackdrop';
+import { BaseHpBar } from './BaseHpBar';
 import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
 
 interface TacticalBattleHudProps {
@@ -29,6 +30,9 @@ interface TacticalBattleHudProps {
   readonly disableMotion?: boolean;
   readonly onOpenSettings?: () => void;
   readonly onOpenRules?: () => void;
+  readonly missionSummary?: { readonly completed: number; readonly total: number };
+  readonly showMissions?: boolean;
+  readonly onToggleMissions?: () => void;
 }
 
 export type TurnPhaseStepKey = 'mulligan' | 'turn_start' | 'deploy' | 'combat' | 'pending' | 'turn_end' | 'finished';
@@ -141,6 +145,9 @@ export function TacticalBattleHud({
   disableMotion = false,
   onOpenSettings,
   onOpenRules,
+  missionSummary,
+  showMissions = false,
+  onToggleMissions,
 }: TacticalBattleHudProps) {
   const playerEnemy = state.players[topPlayer];
   const isAllyTurn = actor === bottomPlayer;
@@ -190,7 +197,6 @@ export function TacticalBattleHud({
 
   const enemyHit = enemyBaseDamageDelta !== null && enemyBaseDamageDelta > 0;
   const enemyMaxBaseHp = 20;
-  const enemyHpPct = Math.max(0, Math.min(100, (playerEnemy.base_points / enemyMaxBaseHp) * 100));
   const enemyCpCap = playerEnemy.turn_cp_cap || 3;
 
   return (
@@ -332,12 +338,14 @@ export function TacticalBattleHud({
               </strong>
               <span className="text-[10px] text-slate-500">/{enemyMaxBaseHp}</span>
             </div>
-            <div className="hidden lg:block w-14 h-1.5 bg-rose-950/80 border border-rose-900/70 overflow-hidden" aria-hidden="true">
-              <div
-                className="h-full bg-rose-500 transition-[width] duration-300"
-                style={{ width: `${enemyHpPct}%` }}
-              />
-            </div>
+            <BaseHpBar
+              currentHp={playerEnemy.base_points}
+              maxHp={enemyMaxBaseHp}
+              side="enemy"
+              isHit={enemyHit}
+              label="敌方基本分"
+              className="w-20 sm:w-28 lg:w-36 shrink-0"
+            />
             {enemyHit && !disableMotion && (
               <span
                 aria-hidden="true"
@@ -415,6 +423,22 @@ export function TacticalBattleHud({
         >
           🔍<span className="hidden lg:inline ml-1">档案</span>
         </Button>
+
+        {onToggleMissions && (
+          <Button
+            variant={showMissions ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={onToggleMissions}
+            title={showMissions ? '收起演习任务面板' : '查看本局动态演习任务与奖励进度'}
+            aria-label="查看动态演习任务"
+            className="text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 min-h-[30px] min-w-[30px] sm:min-h-[28px] shrink-0 whitespace-nowrap font-mono tabular-nums"
+          >
+            🎯
+            <span className="hidden lg:inline ml-1">
+              {missionSummary ? `任务 ${missionSummary.completed}/${missionSummary.total}` : '任务'}
+            </span>
+          </Button>
+        )}
 
         {onOpenRules && (
           <Button

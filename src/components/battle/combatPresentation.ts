@@ -755,8 +755,10 @@ export function buildPresentationBeats(params: {
           });
         }
         if (dmg > 0) {
+          const targetOwner = event.target_player_id ?? nextState.card_instances[event.target_instance_id]?.owner_id;
+          const hitKind = targetOwner === bottomPlayer ? 'damage_taken' : 'hit';
           const hasShieldOnBeat = current.audioCues.some((c) => c.kind === 'shield');
-          pushBeatAudioCue(current, 'hit', hasShieldOnBeat ? 35 : 0);
+          pushBeatAudioCue(current, hitKind, hasShieldOnBeat ? 35 : 0);
         }
         current.durationMs = Math.max(current.durationMs, 440);
         current.hasContent = true;
@@ -1015,18 +1017,32 @@ export function collectImmediateCombatAudioCues(params: {
   };
 
   for (const event of newEvents) {
-    if (event.type === 'unit_deployed' && event.source_instance_id) {
+    if (
+      (event.type === 'unit_deployed' || event.type === 'facility_deployed' || event.type === 'summon_created') &&
+      event.source_instance_id
+    ) {
       const inst = nextState.card_instances[event.source_instance_id];
       const rarity = inst ? (nextState.card_definitions[inst.card_id]?.rarity ?? 3) : 3;
       push(rarity >= 5 ? 'deploy_elite' : 'deploy');
-    } else if (event.type === 'unit_withdrawn') {
+    } else if (event.type === 'attack_declared' && event.source_instance_id) {
+      const inst = nextState.card_instances[event.source_instance_id];
+      const def = inst ? nextState.card_definitions[inst.card_id] : undefined;
+      const isRanged = inst?.summon_state?.attack_type === 'ranged' || def?.attack_type === 'ranged';
+      push(isRanged ? 'strike_ranged' : 'strike_melee');
+    } else if (event.type === 'unit_withdrawn' || event.type === 'summon_recalled') {
       push('withdraw');
-    } else if (event.type === 'skill_activated' || event.type === 'reaction_triggered') {
+    } else if (
+      event.type === 'skill_activated' ||
+      event.type === 'reaction_triggered' ||
+      event.type === 'effect_triggered'
+    ) {
       push('skill');
     } else if (event.type === 'shield_absorbed' && (event.amount ?? 0) > 0) {
       push('shield');
     } else if (event.type === 'damage_resolved' && (event.amount ?? 0) > 0) {
-      push('hit', seen.has('shield') ? 35 : 0);
+      const targetInst = event.target_instance_id ? nextState.card_instances[event.target_instance_id] : undefined;
+      const targetOwner = event.target_player_id ?? targetInst?.owner_id;
+      push(targetOwner === bottomPlayer ? 'damage_taken' : 'hit', seen.has('shield') ? 35 : 0);
     } else if (event.type === 'base_damaged' && (event.amount ?? 0) > 0) {
       push('base_hit');
     } else if (event.type === 'healed' && (event.amount ?? 0) > 0) {

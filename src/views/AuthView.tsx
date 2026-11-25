@@ -6,9 +6,11 @@ import { ScenicBackdrop, ScenicBannerLayer } from '../components/ui/ScenicBackdr
 import {
   listLoginableAccounts,
   loginAccount,
+  loginAsGuest,
   quickLoginAccount,
   registerAccount,
 } from '../data/auth-store';
+import { DEFAULT_ACCOUNT_NAME } from '../data/player-collection';
 import { playTacticalSfx, unlockBgmPlayback, useBgmStatus } from '../audio/bgmPlayer';
 import { updateAppSettings, useAppSettings } from '../data/app-settings';
 
@@ -24,8 +26,8 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
   const bgm = useBgmStatus();
 
   const [mode, setMode] = useState<AuthMode>('login');
-  const [accounts] = useState(() => listLoginableAccounts());
-  const [username, setUsername] = useState(() => accounts[0]?.name ?? '指挥官');
+  const [accounts] = useState(() => listLoginableAccounts().filter((acc) => !acc.isTest));
+  const [username, setUsername] = useState(() => accounts[0]?.name ?? DEFAULT_ACCOUNT_NAME);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -78,6 +80,20 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
     onAuthenticated(accountName);
   };
 
+  const handleGuestLogin = () => {
+    setError(null);
+    setInfo(null);
+    void unlockBgmPlayback();
+    const res = loginAsGuest();
+    if (!res.ok || !res.username) {
+      playTacticalSfx('alert');
+      setError(res.error ?? '游客终端接入失败，请重试。');
+      return;
+    }
+    playTacticalSfx('confirm');
+    onAuthenticated(res.username);
+  };
+
   return (
     <div className="relative min-h-screen w-full bg-[#12161b] text-[#e8e9e6] flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none">
       {/* 官方罗德岛外景半淡出底图 + 塔形三角形官方 Logo 背景层 */}
@@ -123,10 +139,10 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
           />
           <div>
             <div className="text-xs font-black tracking-widest text-slate-100 uppercase">
-              PRTS · 罗德岛身份认证终端
+              PRTS · 罗德岛战术演习身份终端
             </div>
             <div className="text-[10px] font-mono text-slate-400">
-              RHODES ISLAND PHARMACEUTICALS INC.
+              RHODES ISLAND TACTICAL EXERCISE TERMINAL
             </div>
           </div>
         </div>
@@ -249,7 +265,7 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
                 htmlFor="auth-username"
                 className="block text-[11px] font-mono font-bold text-slate-200"
               >
-                指挥官代号 / 用户名
+                博士代号 / 用户名
               </label>
               <input
                 id="auth-username"
@@ -260,8 +276,8 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder={
                   mode === 'register'
-                    ? '输入新指挥官名称（1~24 字符）'
-                    : '输入指挥官账户名（例如：指挥官）'
+                    ? '输入新博士代号（1~24 字符）'
+                    : `输入博士代号（默认：${DEFAULT_ACCOUNT_NAME}）`
                 }
                 className="w-full bg-[#101419] border border-[#3a4552] px-3 py-2.5 text-sm text-white font-mono focus:border-[#e5a52b] focus:outline-none"
               />
@@ -320,7 +336,7 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
                   className="w-full bg-[#101419] border border-[#3a4552] px-3 py-2.5 text-sm text-white font-mono focus:border-[#e5a52b] focus:outline-none"
                 />
                 <p className="text-[11px] text-slate-400 m-0">
-                  注册成功后自动获赠初始编队（3★干员全量×2 + 6000 合成玉）。
+                  注册成功后自动获赠初始编队（3★干员全量×2 + 60000 合成玉，含 100 抽启动资源）。
                 </p>
               </div>
             )}
@@ -340,21 +356,34 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
               </div>
             )}
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              cornerCut
-              className="w-full min-h-[44px] font-black tracking-widest"
-            >
-              {mode === 'login' ? '接入罗德岛作战终端' : '注册并进入作战终端'}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                cornerCut
+                className="w-full min-h-[44px] font-black tracking-widest"
+              >
+                {mode === 'login' ? '接入罗德岛战术演习终端' : '建档并接入演习终端'}
+              </Button>
 
-            {/* 既有本地账户与免密测试账户快捷通道 */}
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                cornerCut
+                onClick={handleGuestLogin}
+                className="w-full font-bold tracking-wider"
+              >
+                以游客博士身份直接演习（初始 100 抽）
+              </Button>
+            </div>
+
+            {/* 本机已存档普通博士账户快捷通道 */}
             {mode === 'login' && accounts.length > 0 && (
               <div className="pt-3 border-t border-[#2b343e] space-y-2">
                 <div className="text-[10px] font-mono text-slate-400">
-                  本机已存档指挥官账户（免密账户点击即可直连）
+                  本机已存档博士档案（免密档案点击即可接入）
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {accounts.map((acc) => (
@@ -377,11 +406,6 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
                           : 'bg-[#12171d] border-[#313b45] text-slate-300 hover:border-slate-500'
                       }`}
                     >
-                      {acc.isTest && (
-                        <span className="text-[9px] font-black text-rose-300 bg-rose-950/80 border border-rose-500/60 px-1">
-                          TEST
-                        </span>
-                      )}
                       <span>{acc.name}</span>
                       <span className="inline-flex items-center gap-1 text-amber-300 tabular-nums">
                         <OrundumIcon size="xs" />
@@ -401,7 +425,7 @@ export function AuthView({ onAuthenticated, onOpenSettings }: AuthViewProps) {
 
       {/* 底部说明 */}
       <footer className="relative z-10 w-full max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
-        <span>本地凭证加密保存 · 多指挥官独立藏品与自定义卡组</span>
+        <span>本地凭证加密保存 · 多博士独立藏品与自定义卡组</span>
         <span>RHODES ISLAND TACTICAL CARD TERMINAL</span>
       </footer>
     </div>

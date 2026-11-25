@@ -1,6 +1,7 @@
 import {
   areAdjacentLanes,
   compareBoardEntities,
+  getAdjacentLaneIds,
   getSameAndAdjacentLaneIds,
   isValidCell,
   normalizeLaneId,
@@ -548,6 +549,15 @@ function resolveTargets(state: GameState, targetSpec: unknown, ctx: EffectExecut
           areAdjacentLanes(state.board_profile, canonicalSourceLane, u.lane),
       );
       return adj.length > 0 ? [adj[0]] : [];
+    }
+    case 'one_enemy_each_adjacent_lane': {
+      if (!canonicalSourceLane) return [];
+      const result: CardInstance[] = [];
+      for (const adjLane of getAdjacentLaneIds(state.board_profile, canonicalSourceLane)) {
+        const firstEnemy = allBoard.find((u) => u.controller_id !== actorId && sameLane(u, adjLane));
+        if (firstEnemy) result.push(firstEnemy);
+      }
+      return result;
     }
     case 'all_friendly_vanguards':
       return allBoard.filter((u) => u.controller_id === actorId && defOf(state, u)?.class === 'vanguard');

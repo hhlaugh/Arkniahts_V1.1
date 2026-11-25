@@ -15,6 +15,12 @@ import {
   makeSlotKey,
 } from './combatPresentation';
 import { playCombatAudioCues, playCombatSfx } from '../../audio/combatSfx';
+import {
+  resolveActionSfx,
+  resolveCombatEventSfx,
+  triggerBattleEventsSfx,
+} from '../../audio/battleSfxTrigger';
+import { evaluateBattleMissions } from './battleMissions';
 import { TacticalBattleHud } from './TacticalBattleHud';
 import { TurnTransitionBanner } from './TurnTransitionBanner';
 import { PlayerHandDock } from './PlayerHandDock';
@@ -760,5 +766,139 @@ describe('Phase 6: 战斗轻量动画与视觉反馈测试', () => {
     expect(staticCriticalHtml).not.toContain('anim-facility-hp-sim');
     expect(staticCriticalHtml).not.toContain('anim-facility-critical');
     expect(staticCriticalHtml).toContain('⚠ 末回合');
+  });
+
+  it('音效触发器（battleSfxTrigger）：准确区分部署、普通攻击、受到伤害（敌/我）与释放技能音效', () => {
+    const ctrl = createStartedController(20261125);
+    const state = ctrl.getSnapshot().state;
+    const actor = state.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    const opHandId = state.players[actor].hand.find((id) => {
+      const def = state.card_definitions[state.card_instances[id].card_id];
+      return def?.card_type === 'operator';
+    })!;
+    const deployCue = resolveActionSfx(
+      { type: 'deploy_operator', card_instance_id: opHandId, lane: 'L1', position: 'front' },
+      state,
+    );
+    expect(deployCue?.category).toBe('deploy');
+    expect(['deploy', 'deploy_elite']).toContain(deployCue?.kind);
+
+    const skillUnitId = Object.values(state.card_instances).find(
+      (inst) => inst.owner_id === actor,
+    )!.card_instance_id;
+    expect(
+      resolveActionSfx({ type: 'activate_skill', card_instance_id: skillUnitId }, state),
+    ).toEqual({ category: 'skill', kind: 'skill' });
+
+    const rangedInst = Object.values(state.card_instances).find(
+      (i) => state.card_definitions[i.card_id]?.attack_type === 'ranged',
+    )!;
+    const allyUnit = Object.values(state.card_instances).find((i) => i.owner_id === actor)!;
+    const enemyUnit = Object.values(state.card_instances).find((i) => i.owner_id === enemy)!;
+
+    expect(
+      resolveCombatEventSfx(
+        {
+          sequence: 1,
+          type: 'attack_declared',
+          source_instance_id: rangedInst.card_instance_id,
+          detail: '远程普攻',
+        },
+        state,
+        actor,
+      ),
+    ).toEqual({ category: 'attack', kind: 'strike_ranged' });
+
+    // 己方受到伤害 -> damage_taken；敌方受到伤害 -> hit
+    expect(
+      resolveCombatEventSfx(
+        {
+          sequence: 2,
+          type: 'damage_resolved',
+          target_instance_id: allyUnit.card_instance_id,
+          target_player_id: actor,
+          amount: 3,
+          detail: '己方受伤',
+        },
+        state,
+        actor,
+      ),
+    ).toEqual({ category: 'damage', kind: 'damage_taken' });
+
+    expect(
+      resolveCombatEventSfx(
+        {
+          sequence: 3,
+          type: 'damage_resolved',
+          target_instance_id: enemyUnit.card_instance_id,
+          target_player_id: enemy,
+          amount: 3,
+          detail: '敌方受伤',
+        },
+        state,
+        actor,
+      ),
+    ).toEqual({ category: 'damage', kind: 'hit' });
+
+    expect(
+      resolveCombatEventSfx(
+        {
+          sequence: 4,
+          type: 'skill_activated',
+          source_instance_id: allyUnit.card_instance_id,
+          detail: '释放技能',
+        },
+        state,
+        actor,
+      ),
+    ).toEqual({ category: 'skill', kind: 'skill' });
+
+    // SSR/Node 环境无 WebAudio 时安全执行并返回错峰队列
+    const cues = triggerBattleEventsSfx(
+      [
+        { sequence: 10, type: 'unit_deployed', source_instance_id: opHandId, detail: '部署' },
+        { sequence: 11, type: 'attack_declared', source_instance_id: rangedInst.card_instance_id, detail: '普攻' },
+        { sequence: 12, type: 'damage_resolved', target_instance_id: allyUnit.card_instance_id, target_player_id: actor, amount: 2, detail: '受伤' },
+        { sequence: 13, type: 'skill_activated', source_instance_id: allyUnit.card_instance_id, detail: '技能' },
+      ],
+      state,
+      actor,
+    );
+    expect(cues.map((c) => c.category)).toEqual(['deploy', 'attack', 'damage', 'skill']);
+    expect(() => playCombatSfx('damage_taken')).not.toThrow();
+  });
+
+  it('动态演习任务（evaluateBattleMissions）：实时统计部署、伤害与次级任务并计算额外合成玉奖励', () => {
+    const ctrl = createStartedController(424242);
+    const state = ctrl.getSnapshot().state;
+    const logs: CombatLogEvent[] = [
+      { sequence: 1, type: 'unit_deployed', source_player_id: 'player_a', detail: '部署1' },
+      { sequence: 2, type: 'unit_deployed', source_player_id: 'player_a', detail: '部署2' },
+      { sequence: 3, type: 'unit_deployed', source_player_id: 'player_a', detail: '部署3' },
+      { sequence: 4, type: 'unit_deployed', source_player_id: 'player_a', detail: '部署4' },
+      { sequence: 5, type: 'unit_deployed', source_player_id: 'player_a', detail: '部署5' },
+      { sequence: 6, type: 'damage_resolved', source_player_id: 'player_a', target_player_id: 'player_b', amount: 12, detail: '伤害12' },
+      { sequence: 7, type: 'base_damaged', source_player_id: 'player_a', target_player_id: 'player_b', amount: 6, detail: '基地6' },
+      { sequence: 8, type: 'unit_defeated', source_player_id: 'player_a', target_player_id: 'player_b', detail: '击倒1' },
+      { sequence: 9, type: 'unit_defeated', source_player_id: 'player_a', target_player_id: 'player_b', detail: '击倒2' },
+      { sequence: 10, type: 'unit_defeated', source_player_id: 'player_a', target_player_id: 'player_b', detail: '击倒3' },
+      { sequence: 11, type: 'skill_activated', source_player_id: 'player_a', detail: '技能1' },
+      { sequence: 12, type: 'skill_activated', source_player_id: 'player_a', detail: '技能2' },
+    ];
+    const report = evaluateBattleMissions({
+      state,
+      logHistory: logs,
+      playerId: 'player_a',
+      seed: 424242,
+    });
+    expect(report.totalCount).toBe(3);
+    expect(report.missions[0]!.kind).toBe('deploy_operators');
+    expect(report.missions[0]!.completed).toBe(true);
+    expect(report.missions[1]!.kind).toBe('deal_damage');
+    expect(report.missions[1]!.completed).toBe(true);
+    expect(report.completedCount).toBeGreaterThanOrEqual(2);
+    expect(report.totalEarnedOriginite).toBeGreaterThan(0);
   });
 });

@@ -12,7 +12,7 @@
   ],
   "economy": {
     "currencyId": "originite",
-    "initialOriginite": 6000,
+    "initialOriginite": 60000,
     "testAccountOriginite": 999999,
     "battleRewards": { "win": 900, "lose": 300, "draw": 300 },
     "conversion": { "4": 100, "5": 300, "6": 1200 },

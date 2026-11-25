@@ -46,8 +46,16 @@ import { useCombatAnimations } from '../hooks/useCombatAnimations';
 import { triggerHaptic, type PointerPosition } from '../hooks/useLongPress';
 import { useViewport } from '../hooks/useViewport';
 import { useAppSettings } from '../data/app-settings';
+import { awardBattleMissionBonus, isBattleMissionBonusClaimed } from '../data/player-collection';
 import { playTacticalSfx } from '../audio/bgmPlayer';
-import { playCombatSfx } from '../audio/combatSfx';
+import { playCombatSfx, type CombatSfxKind } from '../audio/combatSfx';
+import {
+  triggerBattleActionSfx,
+  triggerBattleEventsSfx,
+  type BattleSfxCategory,
+} from '../audio/battleSfxTrigger';
+import { evaluateBattleMissions } from '../components/battle/battleMissions';
+import { MissionPanel } from '../components/battle/MissionPanel';
 import {
   formatCellLabel,
   formatLaneLabelZh,
@@ -158,6 +166,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const [touchDragState, setTouchDragState] = useState<TouchDragState | null>(null);
   const [showLog, setShowLog] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [showMissions, setShowMissions] = useState(false);
+  const [missionAutoHidden, setMissionAutoHidden] = useState(false);
+  const [claimedMissionBonus, setClaimedMissionBonus] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<'surrender' | 'exit' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -171,17 +182,66 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const touchCleanupRef = useRef<(() => void) | null>(null);
   const justFinishedTouchDragAtRef = useRef(0);
   const lastSnappedSlotKeyRef = useRef<SlotKey | null>(null);
+  const claimedMatchKeyRef = useRef<string | null>(null);
+  const recentActionSfxRef = useRef<{ category: BattleSfxCategory; at: number } | null>(null);
+  const lastSfxLogLenRef = useRef<number>(snapshot.logHistory.length);
 
   const effectiveOnExit = onExit ?? networkStatus?.onLeaveRoom ?? null;
   const surrenderActor: PlayerId = humanPlayer ?? actor;
   const canSurrender = Boolean((controller || onDispatch) && state.phase !== 'finished' && state.phase !== 'mulligan');
   const appSettings = useAppSettings();
 
+  const shouldSkipAnimationCue = (kind: CombatSfxKind): boolean => {
+    const recent = recentActionSfxRef.current;
+    if (!recent || Date.now() - recent.at > 260) return false;
+    if (recent.category === 'deploy' && (kind === 'deploy' || kind === 'deploy_elite')) return true;
+    if (recent.category === 'skill' && kind === 'skill') return true;
+    return false;
+  };
+
   const combatAnim = useCombatAnimations({
     state,
     logHistory: snapshot.logHistory,
     bottomPlayer,
+    shouldSkipAudioCue: shouldSkipAnimationCue,
   });
+
+  const missionPlayerId: PlayerId = humanPlayer ?? bottomPlayer;
+  const missionReport = useMemo(
+    () =>
+      evaluateBattleMissions({
+        state,
+        logHistory: snapshot.logHistory,
+        playerId: missionPlayerId,
+        seed: controller?.getSetup().seed,
+      }),
+    [state, snapshot.logHistory, missionPlayerId, controller],
+  );
+
+  useEffect(() => {
+    if (snapshot.logHistory.length < lastSfxLogLenRef.current) {
+      lastSfxLogLenRef.current = snapshot.logHistory.length;
+    }
+  }, [snapshot.logHistory.length]);
+
+  useEffect(() => {
+    if (state.phase !== 'finished') {
+      setMissionAutoHidden(false);
+      return;
+    }
+    if (claimedMatchKeyRef.current === missionReport.matchKey) return;
+    claimedMatchKeyRef.current = missionReport.matchKey;
+    if (missionReport.totalEarnedOriginite <= 0) {
+      setClaimedMissionBonus(0);
+      return;
+    }
+    if (isBattleMissionBonusClaimed(missionReport.matchKey)) {
+      setClaimedMissionBonus(missionReport.totalEarnedOriginite);
+      return;
+    }
+    const awarded = awardBattleMissionBonus(missionReport.matchKey, missionReport.totalEarnedOriginite);
+    setClaimedMissionBonus(awarded > 0 ? awarded : missionReport.totalEarnedOriginite);
+  }, [state.phase, missionReport.matchKey, missionReport.totalEarnedOriginite]);
   const activeBeat = combatAnim.activeBeat;
   // 演出进行期间使用 activeBeat.visualState 展示血量/护盾/退场，保证“先轨迹攻击、后扣血结算”
   const displayState = activeBeat?.visualState ?? state;
@@ -501,9 +561,27 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     return null;
   }, [activeHandCardId, activeHandIsOperator, actor, dragOverSlot, hoveredSlot, hoveredUnitId, selectedDeployActions, selection, state]);
 
+  const flushSkippedBattleSfx = () => {
+    const startIdx = Math.min(lastSfxLogLenRef.current, snapshot.logHistory.length);
+    const unseen = snapshot.logHistory.slice(startIdx);
+    lastSfxLogLenRef.current = snapshot.logHistory.length;
+    if (unseen.length === 0) return;
+    const recent = recentActionSfxRef.current;
+    const skipCategories =
+      recent && Date.now() - recent.at <= 260 ? new Set<BattleSfxCategory>([recent.category]) : undefined;
+    triggerBattleEventsSfx(unseen, state, bottomPlayer, { skipCategories });
+  };
+
+  const handleSkipAnimations = () => {
+    flushSkippedBattleSfx();
+    combatAnim.skipAll();
+  };
+
   const dispatch = async (action: GameAction, actorOverride: PlayerId = actor) => {
     if (combatAnim.isPlaying) {
-      combatAnim.skipAll();
+      handleSkipAnimations();
+    } else {
+      lastSfxLogLenRef.current = snapshot.logHistory.length;
     }
     try {
       const result = onDispatch ? await onDispatch(action) : controller?.dispatch(actorOverride, action);
@@ -511,7 +589,10 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         playTacticalSfx('alert');
         setError(result.reason ?? '操作不合法');
       } else {
-        if (action.type === 'end_action_phase') {
+        const actionCategory = triggerBattleActionSfx(action, state);
+        if (actionCategory) {
+          recentActionSfxRef.current = { category: actionCategory, at: Date.now() };
+        } else if (action.type === 'end_action_phase') {
           playTacticalSfx('confirm');
         }
         setSelection(null);
@@ -1940,6 +2021,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         disableMotion={combatAnim.effectiveDisabled}
         onOpenSettings={onOpenSettings}
         onOpenRules={onOpenRules}
+        missionSummary={{ completed: missionReport.completedCount, total: missionReport.totalCount }}
+        showMissions={state.phase === 'finished' ? !missionAutoHidden : showMissions}
+        onToggleMissions={() => {
+          playTacticalSfx('click');
+          if (state.phase === 'finished') {
+            setMissionAutoHidden((prev) => !prev);
+          } else {
+            setShowMissions((prev) => !prev);
+          }
+        }}
       />
 
       {/* 2. 系统提示与待决响应横幅区（无提示时自动折叠为 0px） */}
@@ -2020,7 +2111,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               className="flex-1 border-0 flex flex-col overflow-hidden"
             >
               <div className="flex-1 overflow-y-auto p-2">
-                <LogView history={snapshot.logHistory} state={snapshot.state} />
+                <LogView history={snapshot.logHistory} state={snapshot.state} viewerPlayer={humanPlayer} />
               </div>
             </Panel>
           </aside>
@@ -2049,7 +2140,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  combatAnim.skipAll();
+                  handleSkipAnimations();
                 }}
                 className="absolute top-2 right-2 sm:right-3 z-40 px-2 sm:px-2.5 py-1 bg-[#12171e]/95 hover:bg-[#1a212b] border border-[#e5a52b]/65 text-[#e5a52b] font-mono font-semibold text-[10px] sm:text-[11px] cursor-pointer transition-colors"
                 title="立即跳过余下战斗演出"
@@ -2288,6 +2379,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               hasPending={hasPending}
               legalActions={legal}
               onDispatch={dispatch}
+              viewerPlayer={humanPlayer}
               className="flex-1"
             />
           </aside>
@@ -2313,7 +2405,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           codeName="SYS.LOG"
           maxHeight={isLandscape ? 'max-h-[92dvh]' : 'max-h-[85dvh]'}
         >
-          <LogView history={snapshot.logHistory} state={snapshot.state} />
+          <LogView history={snapshot.logHistory} state={snapshot.state} viewerPlayer={humanPlayer} />
         </BottomSheet>
       )}
 
@@ -2347,7 +2439,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           <p className="m-0">
             {isHotseat
               ? `当前行动方【${PLAYER_LABEL[surrenderActor]}】将宣告撤退，直接判定对方获胜并进入战后结算页面。`
-              : '宣告撤退将直接判定我方战败，并立即进入作战结算报告。'}
+              : '宣告撤退将直接判定己方战败，并立即进入作战结算报告。'}
           </p>
           <p className="m-0 text-slate-400">该操作不可撤销，请确认是否立即结束推演。</p>
         </div>
@@ -2411,6 +2503,24 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           statusText={touchDragState.statusText}
           viewportWidth={typeof window !== 'undefined' ? window.innerWidth : width}
           viewportHeight={typeof window !== 'undefined' ? window.innerHeight : height}
+        />
+      )}
+
+      {/* 12. 演习动态任务与终局额外奖励结算面板 */}
+      {(state.phase === 'finished' ? !missionAutoHidden : showMissions) && (
+        <MissionPanel
+          report={missionReport}
+          isMatchFinished={state.phase === 'finished'}
+          claimedAmount={claimedMissionBonus}
+          onClose={() => {
+            playTacticalSfx('click');
+            if (state.phase === 'finished') {
+              setMissionAutoHidden(true);
+            } else {
+              setShowMissions(false);
+            }
+          }}
+          onExitMatch={effectiveOnExit ?? undefined}
         />
       )}
     </div>

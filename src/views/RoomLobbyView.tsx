@@ -355,11 +355,11 @@ export function RoomLobbyView({ controller, snapshot, onBackToTitle }: RoomLobby
         {/* 双方玩家座位卡片 */}
         <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-b from-[#1b2025] to-[#14181c]">
           {/* 房主座位 */}
-          <div className={`relative overflow-hidden p-4 bg-[#181d22] border space-y-3 ${isHost ? 'border-[#e5a52b] ring-1 ring-[#e5a52b]/30' : 'border-[#323d46]'}`}>
+          <div className={`relative overflow-hidden p-4 bg-[#181d22] border space-y-3 ${isHost ? 'border-sky-400/80 ring-1 ring-sky-400/30' : 'border-rose-500/50'}`}>
             <ScenicBannerLayer scene="rhodes-command" fade="right" opacityClassName="opacity-34" />
             <div className="relative z-10 flex items-center justify-between gap-2">
-              <span className="font-bold text-sm text-white">
-                {isHost ? '👤 你（房主 · 玩家 A）' : '👑 房主（玩家 A）'}
+              <span className={`font-bold text-sm ${isHost ? 'text-sky-300' : 'text-rose-300'}`}>
+                {isHost ? '👤 己方（房主）' : '⚔️ 敌方（房主）'}
               </span>
               <span className={`text-[11px] font-mono px-1.5 py-0.5 border ${roomState?.host.connected ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/50' : 'bg-rose-950/70 text-rose-300 border-rose-500/50'}`}>
                 {roomState?.host.connected ? '● 在线' : '○ 离线'}
@@ -405,11 +405,11 @@ export function RoomLobbyView({ controller, snapshot, onBackToTitle }: RoomLobby
           </div>
 
           {/* 访客座位 */}
-          <div className={`relative overflow-hidden p-4 bg-[#181d22] border space-y-3 ${isGuest ? 'border-[#e5a52b] ring-1 ring-[#e5a52b]/30' : 'border-[#323d46]'}`}>
+          <div className={`relative overflow-hidden p-4 bg-[#181d22] border space-y-3 ${isGuest ? 'border-sky-400/80 ring-1 ring-sky-400/30' : 'border-rose-500/50'}`}>
             <ScenicBannerLayer scene="lungmen-night" fade="right" opacityClassName="opacity-34" />
             <div className="relative z-10 flex items-center justify-between gap-2">
-              <span className="font-bold text-sm text-white">
-                {isGuest ? '👤 你（访客 · 玩家 B）' : '👥 访客（玩家 B）'}
+              <span className={`font-bold text-sm ${isGuest ? 'text-sky-300' : 'text-rose-300'}`}>
+                {isGuest ? '👤 己方（访客）' : '⚔️ 敌方（访客）'}
               </span>
               {guestJoined && (
                 <span className={`text-[11px] font-mono px-1.5 py-0.5 border ${roomState?.guest?.connected ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/50' : 'bg-rose-950/70 text-rose-300 border-rose-500/50'}`}>

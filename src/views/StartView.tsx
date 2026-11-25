@@ -11,6 +11,8 @@ import {
   getActiveAccountName,
   getActiveCollection,
   importAccountsJson,
+  isTestAccount,
+  isTestAccountName,
   listAccounts,
   setActiveAccount,
 } from '../data/player-collection';
@@ -18,7 +20,8 @@ import type { AccountSummary } from '../data/player-collection';
 import { DEMO_CARDS } from '../client/gameData';
 
 interface StartViewProps {
-  readonly onHotseat: () => void;
+  readonly isTestVersion?: boolean;
+  readonly onHotseat?: () => void;
   readonly onVsBot: () => void;
   readonly onOnline: () => void;
   readonly onDeckEditor: () => void;
@@ -30,6 +33,7 @@ interface StartViewProps {
 }
 
 export function StartView({
+  isTestVersion,
   onHotseat,
   onVsBot,
   onOnline,
@@ -47,6 +51,9 @@ export function StartView({
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const activeIsTest = isTestVersion ?? (isTestAccountName(activeName) || isTestAccount(activeName));
+  const showHotseatMode = activeIsTest && Boolean(onHotseat);
+  const visibleAccounts = accounts.filter((account) => !account.isTest && !isTestAccountName(account.name));
   const ownedSpeciesCount = DEMO_CARDS.filter((c) => (collection.owned[c.card_id] ?? 0) > 0).length;
 
   const refreshAccounts = () => {
@@ -57,7 +64,7 @@ export function StartView({
 
   const handleSwitch = (name: string) => {
     setActiveAccount(name);
-    setNotice(`已切换到账户「${name}」`);
+    setNotice(`已切换至博士档案「${name}」`);
     refreshAccounts();
   };
 
@@ -67,7 +74,7 @@ export function StartView({
       setNotice(result.error ?? '创建失败');
       return;
     }
-    setNotice(`账户「${newName.trim()}」已创建并激活（初始：3★×2 + 6000 合成玉）`);
+    setNotice(`博士档案「${newName.trim()}」已建档并激活（初始：3★×2 + 60000 合成玉 · 100 抽）`);
     setNewName('');
     refreshAccounts();
   };
@@ -128,16 +135,16 @@ export function StartView({
             />
             <div>
               <h1 className="text-base font-black tracking-widest text-slate-100 uppercase m-0 leading-tight">
-                PRTS · 战术作战终端
+                {activeIsTest ? 'PRTS · 战术演习测试终端' : 'PRTS · 罗德岛战术演习终端'}
               </h1>
               <span className="text-[10px] font-mono text-slate-400 tracking-wider">
-                RHODES ISLAND PHARMACEUTICALS INC.
+                RHODES ISLAND TACTICAL EXERCISE TERMINAL
               </span>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] font-mono tabular-nums">
             <span className="text-slate-300">
-              账户 <strong className="text-white">{activeName}</strong>
+              博士 <strong className="text-white">{activeName}</strong>
             </span>
             <span className="inline-flex items-center gap-1 text-amber-300 font-bold">
               <OrundumIcon size="sm" />
@@ -202,7 +209,7 @@ export function StartView({
           <div className="relative z-10 flex-1 space-y-2.5">
             <div className="inline-flex items-center gap-2 text-xs font-mono text-[#e5a52b] tracking-wider uppercase">
               <span className="w-2 h-2 bg-[#e5a52b]" />
-              <span>RHODES ISLAND OPERATIONAL CARD GAME</span>
+              <span>RHODES ISLAND PRTS · TACTICAL EXERCISE TERMINAL</span>
               <span>·</span>
               <span>72 OPERATORS</span>
             </div>
@@ -210,7 +217,9 @@ export function StartView({
               舟塔自走牌
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-              全量收录 72 位罗德岛干员，支持专属技能、阻挡线争夺、技力回转、费用调度与干员再部署战术。
+              {activeIsTest
+                ? '测试终端权限已验证。当前开放全干员图鉴调阅、单人模拟演习、联机对抗及本地双人热座沙盘。'
+                : '博士，欢迎接入罗德岛舰桥战术演习终端。PRTS 拟真沙盘已同步 72 位干员作战档案与三路防线攻防推演协议，请调遣干员、整备编队，在演习中锤炼临场指挥协同。'}
             </p>
           </div>
 
@@ -249,13 +258,13 @@ export function StartView({
               </Button>
             )}
             <span className="text-[10px] text-slate-400 font-mono text-center">
-              寻访收录 · 收录/自由双构筑模式 · 官方预设
+              100 抽启动补给 · 编队整备 · PRTS 干员档案库
             </span>
           </div>
         </div>
 
         {/* Tactical Battle Modes Selection Grid */}
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className={`p-6 grid grid-cols-1 gap-4 ${showHotseatMode ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
           {/* Mode 1: VS Bot */}
           <div
             onClick={onVsBot}
@@ -273,54 +282,56 @@ export function StartView({
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#e5a52b] font-semibold tracking-wider">
                   <span className="w-1.5 h-1.5 bg-[#e5a52b]" />
-                  MODE 01
+                  演习项目 01
                 </span>
-                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">AI SIM</span>
+                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">PRTS SIM</span>
               </div>
               <h3 className="text-sm font-bold text-slate-100 group-hover:text-[#e5a52b] transition-colors m-0">
-                单人对战（vs 机器人）
+                单人战术演习（vs PRTS 模拟教官）
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                执玩家 A 对阵规则引擎本地 AI。AI 严格遵守全部卡牌部署与攻防规则。
+                博士率领己方整备编队接入 PRTS 模拟对抗，教官系统将严格依循部署、阻挡与技能规则执行推演。
               </p>
             </div>
             <Button variant="primary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em]">
-              进入作战
+              开始演习
             </Button>
           </div>
 
-          {/* Mode 2: Hotseat */}
-          <div
-            onClick={onHotseat}
-            className="holo-frame group relative flex flex-col justify-between p-4 bg-[#12161b] hover:bg-[#171c23] border border-[#2c3540] hover:border-sky-400/75 transition-colors duration-150 cursor-pointer select-none overflow-hidden"
-            style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)' }}
-          >
-            <ScenicBannerLayer
-              scene="snowfield"
-              fade="right"
-              opacityClassName="opacity-22"
-              tint="radial-gradient(circle at 80% 45%, rgba(56,189,248,0.09) 0%, transparent 62%)"
-            />
-            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-sky-400/80 via-sky-400/20 to-transparent z-10" />
-            <div className="relative z-10 space-y-1.5 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-sky-400 font-semibold tracking-wider">
-                  <span className="w-1.5 h-1.5 bg-sky-400" />
-                  MODE 02
-                </span>
-                <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">LOCAL</span>
+          {/* Mode 2: Hotseat (Test Version Only) */}
+          {showHotseatMode && (
+            <div
+              onClick={onHotseat}
+              className="holo-frame group relative flex flex-col justify-between p-4 bg-[#12161b] hover:bg-[#171c23] border border-[#2c3540] hover:border-sky-400/75 transition-colors duration-150 cursor-pointer select-none overflow-hidden"
+              style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)' }}
+            >
+              <ScenicBannerLayer
+                scene="snowfield"
+                fade="right"
+                opacityClassName="opacity-22"
+                tint="radial-gradient(circle at 80% 45%, rgba(56,189,248,0.09) 0%, transparent 62%)"
+              />
+              <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-sky-400/80 via-sky-400/20 to-transparent z-10" />
+              <div className="relative z-10 space-y-1.5 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-sky-400 font-semibold tracking-wider">
+                    <span className="w-1.5 h-1.5 bg-sky-400" />
+                    TEST MODE
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">LOCAL</span>
+                </div>
+                <h3 className="text-sm font-bold text-slate-100 group-hover:text-sky-300 transition-colors m-0">
+                  本地热座（双人同屏）
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  测试版本专属：双人同屏轮流出牌与攻防推演，完整验证选牌、调度与三路对推。
+                </p>
               </div>
-              <h3 className="text-sm font-bold text-slate-100 group-hover:text-sky-300 transition-colors m-0">
-                本地热座（双人同屏）
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                双人同屏轮流出牌与攻防推演，完整经历选牌、调度与三路对推。
-              </p>
+              <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em] hover:border-sky-400/75">
+                同屏对战
+              </Button>
             </div>
-            <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em] hover:border-sky-400/75">
-              同屏对战
-            </Button>
-          </div>
+          )}
 
           {/* Mode 3: Online Room */}
           <div
@@ -339,28 +350,28 @@ export function StartView({
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-rose-400 font-semibold tracking-wider">
                   <span className="w-1.5 h-1.5 bg-rose-400" />
-                  MODE 03
+                  {showHotseatMode ? '演习项目 03' : '演习项目 02'}
                 </span>
                 <span className="text-[9px] font-mono text-slate-400 bg-[#0d1116] border border-[#2a333d] px-1.5 py-0.2">P2P RTC</span>
               </div>
               <h3 className="text-sm font-bold text-slate-100 group-hover:text-rose-300 transition-colors m-0">
-                好友对战（P2P 联机）
+                博士联机演习（P2P 对抗）
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                基于 WebRTC 直连，生成房间码即可跨设备实时联机对决，无需第三方中继。
+                与另一位博士建立点对点战术信标连线，生成演习房间码即可实时展开跨终端演习对抗。
               </p>
             </div>
             <Button variant="secondary" size="sm" cornerCut className="relative z-10 w-full font-mono text-[11px] tracking-[0.12em] hover:border-rose-400/75">
-              联机大厅
+              进入联机大厅
             </Button>
           </div>
         </div>
 
-        {/* Commander Accounts & Save Backup */}
+        {/* Doctor Profiles & Save Backup (Test accounts hidden) */}
         <div className="px-6 py-4 bg-[#14171a] border-t border-[#2d353b] space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[10px] font-mono text-slate-400 tracking-wider">
-              指挥官账户 · 存档保存在本机浏览器（导出 JSON 可跨设备搬运）
+              博士神经档案 · 演习藏品保存于本机终端（支持 JSON 备份搬运）
             </span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleExport}>
@@ -378,30 +389,29 @@ export function StartView({
               />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {accounts.map((account) => (
-              <button
-                key={account.name}
-                type="button"
-                onClick={() => handleSwitch(account.name)}
-                className={`px-2 py-1 text-[11px] font-mono border transition-colors flex items-center gap-1.5 ${
-                  account.name === activeName
-                    ? 'bg-[#29323d] border-[#e5a52b] text-white ring-1 ring-[#e5a52b]/40'
-                    : 'bg-[#181d22] border-[#313b43] text-slate-300 hover:border-[#4b5a66]'
-                }`}
-              >
-                {account.isTest && (
-                  <span className="text-[8px] font-black text-rose-300 bg-rose-950/80 border border-rose-500/60 px-1">TEST</span>
-                )}
-                <span>{account.name}</span>
-                <span className="inline-flex items-center gap-1 text-amber-300">
-                  <OrundumIcon size="xs" />
-                  <span>{account.originite}</span>
-                </span>
-                {account.name === activeName && <span className="text-[#e5a52b]">✓</span>}
-              </button>
-            ))}
-          </div>
+          {!activeIsTest && visibleAccounts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {visibleAccounts.map((account) => (
+                <button
+                  key={account.name}
+                  type="button"
+                  onClick={() => handleSwitch(account.name)}
+                  className={`px-2 py-1 text-[11px] font-mono border transition-colors flex items-center gap-1.5 ${
+                    account.name === activeName
+                      ? 'bg-[#29323d] border-[#e5a52b] text-white ring-1 ring-[#e5a52b]/40'
+                      : 'bg-[#181d22] border-[#313b43] text-slate-300 hover:border-[#4b5a66]'
+                  }`}
+                >
+                  <span>{account.name}</span>
+                  <span className="inline-flex items-center gap-1 text-amber-300">
+                    <OrundumIcon size="xs" />
+                    <span>{account.originite}</span>
+                  </span>
+                  {account.name === activeName && <span className="text-[#e5a52b]">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
@@ -411,11 +421,11 @@ export function StartView({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreate();
               }}
-              placeholder="新账户名（初始：3★×2 + 6000 合成玉）"
+              placeholder="新建博士代号（初始：3★×2 + 60000 合成玉 · 100 抽）"
               className="flex-1 min-w-[180px] sm:max-w-xs bg-[#1b2127] border border-[#3c4750] px-2.5 py-1 text-xs text-slate-200 font-mono focus:border-amber-400 focus:outline-none"
             />
             <Button variant="secondary" size="sm" onClick={handleCreate}>
-              新建账户
+              新建档案
             </Button>
             {notice && <span className="text-[10px] font-mono text-emerald-300">{notice}</span>}
           </div>
@@ -423,8 +433,8 @@ export function StartView({
 
         {/* Footer */}
         <div className="px-6 py-3 bg-[#121518] border-t border-[#2d353b] flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-400">
-          <span>本地浏览器存档 · 支持多账户切换与 JSON 导出备份</span>
-          <span>RHODES ISLAND TACTICAL CARD GAME</span>
+          <span>PRTS 战术演习终端 · 支持多博士档案管理与 JSON 备份</span>
+          <span>RHODES ISLAND TACTICAL EXERCISE TERMINAL</span>
         </div>
       </Panel>
     </div>

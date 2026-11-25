@@ -301,7 +301,7 @@ export function SettingsModal({
         {activeUsername && onLogout && (
           <section className="flex items-center justify-between gap-3 border border-[#323d48] bg-[#161b20] p-3.5">
             <div>
-              <div className="text-[10px] font-mono text-slate-400">当前接入指挥官</div>
+              <div className="text-[10px] font-mono text-slate-400">当前接入博士</div>
               <div className="text-xs font-bold text-white">{activeUsername}</div>
             </div>
             <Button

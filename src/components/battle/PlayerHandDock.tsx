@@ -3,6 +3,7 @@ import type { CardInstanceId, GameState, PlayerId } from '../../game/types';
 import { CardView, cardDefinitionOf } from '../cards/CardView';
 import { Button } from '../ui/Button';
 import { ScenicBannerLayer } from '../ui/ScenicBackdrop';
+import { BaseHpBar } from './BaseHpBar';
 import type { HoveredCardPreview } from './CardPreviewPopover';
 import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
 
@@ -76,7 +77,6 @@ export function PlayerHandDock({
   const turnCpCap = playerAlly.turn_cp_cap || 3;
   const litPips = Math.min(CP_CAP_GAUGE, Math.max(0, playerAlly.cost));
   const canInteractHand = isActionPhase && !hasPending && isAllyTurn && canAct;
-  const allyHpPct = Math.max(0, Math.min(100, (playerAlly.base_points / BASE_HP_MAX) * 100));
   const handTrayRef = React.useRef<HTMLDivElement>(null);
 
   const handleTrayWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -147,6 +147,16 @@ export function PlayerHandDock({
               </span>
             </div>
           </div>
+
+          <BaseHpBar
+            currentHp={playerAlly.base_points}
+            maxHp={BASE_HP_MAX}
+            side="ally"
+            isHit={allyHit}
+            compact
+            label="己方基本分"
+            className="w-full"
+          />
 
           <div
             className="flex items-center justify-between gap-2 font-mono tabular-nums"
@@ -336,12 +346,14 @@ export function PlayerHandDock({
                 </strong>
                 <span className="text-[9px] sm:text-[10px] text-slate-500">/{BASE_HP_MAX}</span>
               </div>
-              <div className="hidden md:block w-16 h-1.5 bg-sky-950/70 border border-sky-900/70 overflow-hidden" aria-hidden="true">
-                <div
-                  className="h-full bg-sky-400 transition-[width] duration-300"
-                  style={{ width: `${allyHpPct}%` }}
-                />
-              </div>
+              <BaseHpBar
+                currentHp={playerAlly.base_points}
+                maxHp={BASE_HP_MAX}
+                side="ally"
+                isHit={allyHit}
+                label="己方基本分"
+                className="w-16 sm:w-28 md:w-36 shrink-0"
+              />
               {allyHit && !disableMotion && (
                 <span
                   aria-hidden="true"

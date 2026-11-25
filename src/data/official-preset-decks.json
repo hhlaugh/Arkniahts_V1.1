@@ -1603,13 +1603,13 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 56,
-        "averageCardCost": 2.8,
+        "totalCardCostSum": 57,
+        "averageCardCost": 2.85,
         "byCardCost": {
           "1": 0,
           "2": 8,
-          "3": 10,
-          "4": 1,
+          "3": 9,
+          "4": 2,
           "5": 0,
           "6": 1,
           "7": 0,
@@ -1726,11 +1726,11 @@
           "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
-          "costCP": 3,
+          "costCP": 4,
           "operatorClass": "cas",
           "subclass": "中坚术师",
-          "synergyTags": "术士;溅射",
-          "abilityText": "【法伤】；每场战斗一次，战斗开始对同路所有敌人造成2点法术伤害。"
+          "synergyTags": "术士;溅射;跨路",
+          "abilityText": "【法伤】；命中主目标后，对每条相邻路线各一名敌人造成1点法术【溅射】伤害。"
         },
         {
           "cardId": "OP-CAS-009",

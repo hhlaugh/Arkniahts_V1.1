@@ -8,16 +8,23 @@ import { ScenicBackdrop } from '../components/ui/ScenicBackdrop';
 import { OperatorPortrait } from '../components/cards/OperatorPortrait';
 import { LogView } from '../components/battle/LogView';
 import { computeSettlementSummary } from '../components/battle/settlementStats';
+import type { BattleMissionReport } from '../components/battle/battleMissions';
+import { MissionPanel } from '../components/battle/MissionPanel';
 import { playTacticalSfx } from '../audio/bgmPlayer';
 import { playCombatSfx } from '../audio/combatSfx';
 import settlementOperationKeyart from '../assets/images/settlement_operation_keyart_1795044171854.jpg';
 
+import type { PlayerId } from '../game/types';
+
 interface SettlementViewProps {
   readonly snapshot: LocalGameSnapshot;
   readonly setup: LocalGameSetup;
+  readonly humanPlayer?: PlayerId | null;
   readonly modeLabel?: string;
   readonly outcome?: 'victory' | 'defeat' | 'draw';
   readonly reward?: { readonly originite: number; readonly accountName: string } | null;
+  readonly missionReport?: BattleMissionReport;
+  readonly missionBonus?: number;
   readonly onRestart: () => void;
   readonly onExit: () => void;
 }
@@ -66,26 +73,36 @@ function ComparisonRow({ label, leftValue, rightValue, unit = '' }: ComparisonRo
 export function SettlementView({
   snapshot,
   setup,
+  humanPlayer = null,
   modeLabel,
   outcome,
   reward,
+  missionReport,
+  missionBonus,
   onRestart,
   onExit,
 }: SettlementViewProps) {
   const state = snapshot.state;
   const [activeTab, setActiveTab] = useState<SettlementTab>('overview');
+  const isPlayerPerspective = humanPlayer !== null;
+  const leftId: PlayerId = humanPlayer ?? 'player_a';
+  const rightId: PlayerId = leftId === 'player_a' ? 'player_b' : 'player_a';
 
   const resolvedOutcome: 'victory' | 'defeat' | 'draw' =
     outcome ??
     (state.winner === 'draw'
       ? 'draw'
-      : state.winner === 'player_a' || state.winner === 'player_b'
-        ? 'victory'
-        : 'draw');
+      : isPlayerPerspective
+        ? state.winner === humanPlayer
+          ? 'victory'
+          : 'defeat'
+        : state.winner === 'player_a' || state.winner === 'player_b'
+          ? 'victory'
+          : 'draw');
 
   const summary = useMemo(() => computeSettlementSummary(snapshot), [snapshot]);
-  const sideA = summary.sides.player_a;
-  const sideB = summary.sides.player_b;
+  const leftSide = summary.sides[leftId];
+  const rightSide = summary.sides[rightId];
   const mvp = summary.mvp;
 
   const isVictory = resolvedOutcome === 'victory';
@@ -95,11 +112,15 @@ export function SettlementView({
   const outcomeEn = isDraw ? 'TACTICAL DRAW' : isDefeat ? 'TACTICAL RETREAT' : 'MISSION ACCOMPLISHED';
   const headlineText = isDraw
     ? '战术平局 · 双方均势收官'
-    : state.winner && state.winner !== 'draw'
-      ? `${PLAYER_LABEL[state.winner]} 作战胜利`
-      : isDefeat
-        ? '防线突破 · 作战撤退'
-        : '作战胜利';
+    : isPlayerPerspective
+      ? isVictory
+        ? '己方作战胜利'
+        : '防线突破 · 作战撤退'
+      : state.winner && state.winner !== 'draw'
+        ? `${PLAYER_LABEL[state.winner]} 作战胜利`
+        : isDefeat
+          ? '防线突破 · 作战撤退'
+          : '作战胜利';
 
   const accentBorderClass = isVictory
     ? 'border-t-amber-400/90'
@@ -117,8 +138,10 @@ export function SettlementView({
     playCombatSfx(isVictory ? 'victory' : 'defeat_match', 90);
   }, [isVictory]);
 
-  const hpPctA = Math.max(0, Math.min(100, (sideA.baseHp / 20) * 100));
-  const hpPctB = Math.max(0, Math.min(100, (sideB.baseHp / 20) * 100));
+  const hpPctLeft = Math.max(0, Math.min(100, (leftSide.baseHp / 20) * 100));
+  const hpPctRight = Math.max(0, Math.min(100, (rightSide.baseHp / 20) * 100));
+  const leftLabel = isPlayerPerspective ? '己方' : PLAYER_LABEL[leftId];
+  const rightLabel = isPlayerPerspective ? '敌方' : PLAYER_LABEL[rightId];
 
   return (
     <div className="relative min-h-screen w-full bg-[#11151b] text-[#e8e9e6] flex flex-col items-center justify-center p-3 sm:p-6 select-none overflow-hidden">
@@ -205,24 +228,24 @@ export function SettlementView({
                 <span aria-hidden="true">·</span>
                 <span>战斗事件 {summary.totalEvents} 条</span>
                 <span aria-hidden="true">·</span>
-                <span>总伤害 {sideA.damageDealt + sideB.damageDealt}</span>
+                <span>总伤害 {leftSide.damageDealt + rightSide.damageDealt}</span>
               </div>
             </div>
 
             {/* Base HP Duel Scoreline */}
             <div className="holo-frame shrink-0 px-3.5 py-2.5 bg-[#0e131a]/90 border border-[#323e4d] flex items-center gap-4 font-mono tabular-nums">
               <div className="text-center">
-                <div className="text-[10px] text-sky-400 font-bold">玩家 A 基地</div>
+                <div className="text-[10px] text-sky-400 font-bold">{`${leftLabel} 基地`}</div>
                 <div className="text-xl font-black text-white leading-tight">
-                  {sideA.baseHp}
+                  {leftSide.baseHp}
                   <span className="text-[11px] font-normal text-slate-500">/20</span>
                 </div>
               </div>
               <span className="text-xs font-black text-slate-500">VS</span>
               <div className="text-center">
-                <div className="text-[10px] text-rose-400 font-bold">玩家 B 基地</div>
+                <div className="text-[10px] text-rose-400 font-bold">{`${rightLabel} 基地`}</div>
                 <div className="text-xl font-black text-white leading-tight">
-                  {sideB.baseHp}
+                  {rightSide.baseHp}
                   <span className="text-[11px] font-normal text-slate-500">/20</span>
                 </div>
               </div>
@@ -231,14 +254,17 @@ export function SettlementView({
         </div>
 
         {/* Orundum Reward Banner */}
-        {reward && (
+        {(reward || (missionBonus ?? 0) > 0) && (
           <div className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-[#1a1610] via-[#171b22] to-[#11151b] border-b border-[#343228] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <span className="inline-flex items-center gap-2 text-amber-300 font-bold">
               <OrundumIcon size="md" />
-              <span className="text-sm tabular-nums">{`战果补给 · 合成玉 +${reward.originite}`}</span>
+              <span className="text-sm tabular-nums">
+                {reward ? `战果补给 · 合成玉 +${reward.originite}` : '演习任务补给'}
+                {(missionBonus ?? 0) > 0 ? ` · 任务额外 +${missionBonus}` : ''}
+              </span>
             </span>
             <span className="text-slate-300 text-[11px]">
-              已记入账户 {reward.accountName} · 可前往干员寻访使用
+              {reward ? `已记入账户 ${reward.accountName} · 可前往干员寻访使用` : '已记入当前博士账户'}
             </span>
           </div>
         )}
@@ -307,8 +333,8 @@ export function SettlementView({
                     <div className="flex items-center gap-2 text-[10px] font-mono text-amber-300 font-bold tracking-wider uppercase">
                       <span>全场关键干员 · MVP</span>
                       <span aria-hidden="true">·</span>
-                      <span className={mvp.ownerId === 'player_a' ? 'text-sky-300' : 'text-rose-300'}>
-                        {PLAYER_LABEL[mvp.ownerId]}
+                      <span className={mvp.ownerId === leftId ? 'text-sky-300' : 'text-rose-300'}>
+                        {isPlayerPerspective ? (mvp.ownerId === leftId ? '己方' : '敌方') : PLAYER_LABEL[mvp.ownerId]}
                       </span>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -347,49 +373,59 @@ export function SettlementView({
               </div>
             )}
 
+            {/* Dynamic Exercise Missions Summary */}
+            {missionReport && (
+              <MissionPanel
+                report={missionReport}
+                isMatchFinished
+                variant="embedded"
+                claimedAmount={missionBonus ?? null}
+              />
+            )}
+
             {/* Faction Decks & Base Integrity */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs font-mono tabular-nums">
               <div className="p-3.5 bg-[#10151c] border border-[#2a3848] space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sky-300 font-black">玩家 A 编队</span>
-                  <span className="text-slate-200 font-bold">{`${sideA.baseHp} / 20 HP`}</span>
+                  <span className="text-sky-300 font-black">{`${leftLabel}编队`}</span>
+                  <span className="text-slate-200 font-bold">{`${leftSide.baseHp} / 20 HP`}</span>
                 </div>
                 <div className="h-1.5 w-full bg-[#090d12] border border-[#233040] overflow-hidden" aria-hidden="true">
-                  <div className="h-full bg-sky-400 transition-[width] duration-300" style={{ width: `${hpPctA}%` }} />
+                  <div className="h-full bg-sky-400 transition-[width] duration-300" style={{ width: `${hpPctLeft}%` }} />
                 </div>
                 <div className="text-[11px] text-slate-300 truncate font-sans">
-                  {setup.decks.player_a.deck_name_zh}
+                  {setup.decks[leftId].deck_name_zh}
                 </div>
                 <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-1.5">
-                  <span>回合 {sideA.turnsTaken}</span>
+                  <span>回合 {leftSide.turnsTaken}</span>
                   <span aria-hidden="true">·</span>
-                  <span>手牌 {sideA.handCount}</span>
+                  <span>手牌 {leftSide.handCount}</span>
                   <span aria-hidden="true">·</span>
-                  <span>牌库 {sideA.deckCount}</span>
+                  <span>牌库 {leftSide.deckCount}</span>
                   <span aria-hidden="true">·</span>
-                  <span>护盾抵伤 {sideA.shieldAbsorbed}</span>
+                  <span>护盾抵伤 {leftSide.shieldAbsorbed}</span>
                 </div>
               </div>
 
               <div className="p-3.5 bg-[#10151c] border border-[#3f2c35] space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-rose-300 font-black">玩家 B 编队</span>
-                  <span className="text-slate-200 font-bold">{`${sideB.baseHp} / 20 HP`}</span>
+                  <span className="text-rose-300 font-black">{`${rightLabel}编队`}</span>
+                  <span className="text-slate-200 font-bold">{`${rightSide.baseHp} / 20 HP`}</span>
                 </div>
                 <div className="h-1.5 w-full bg-[#090d12] border border-[#3a2530] overflow-hidden" aria-hidden="true">
-                  <div className="h-full bg-rose-400 transition-[width] duration-300" style={{ width: `${hpPctB}%` }} />
+                  <div className="h-full bg-rose-400 transition-[width] duration-300" style={{ width: `${hpPctRight}%` }} />
                 </div>
                 <div className="text-[11px] text-slate-300 truncate font-sans">
-                  {setup.decks.player_b.deck_name_zh}
+                  {setup.decks[rightId].deck_name_zh}
                 </div>
                 <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-1.5">
-                  <span>回合 {sideB.turnsTaken}</span>
+                  <span>回合 {rightSide.turnsTaken}</span>
                   <span aria-hidden="true">·</span>
-                  <span>手牌 {sideB.handCount}</span>
+                  <span>手牌 {rightSide.handCount}</span>
                   <span aria-hidden="true">·</span>
-                  <span>牌库 {sideB.deckCount}</span>
+                  <span>牌库 {rightSide.deckCount}</span>
                   <span aria-hidden="true">·</span>
-                  <span>护盾抵伤 {sideB.shieldAbsorbed}</span>
+                  <span>护盾抵伤 {rightSide.shieldAbsorbed}</span>
                 </div>
               </div>
             </div>
@@ -397,20 +433,20 @@ export function SettlementView({
             {/* Proportional Tactical Metrics Comparison */}
             <div className="p-4 bg-[#10151c] border border-[#28323e] space-y-3">
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pb-1 border-b border-[#202934]">
-                <span className="text-sky-300 font-bold">玩家 A</span>
+                <span className="text-sky-300 font-bold">{leftLabel}</span>
                 <span className="tracking-wider text-slate-300 font-bold">战术统计对比</span>
-                <span className="text-rose-300 font-bold">玩家 B</span>
+                <span className="text-rose-300 font-bold">{rightLabel}</span>
               </div>
-              <ComparisonRow label="总输出伤害" leftValue={sideA.damageDealt} rightValue={sideB.damageDealt} />
-              <ComparisonRow label="基地直击伤害" leftValue={sideA.baseDamageDealt} rightValue={sideB.baseDamageDealt} />
-              <ComparisonRow label="击倒干员数" leftValue={sideA.kills} rightValue={sideB.kills} />
-              <ComparisonRow label="部署干员次数" leftValue={sideA.deployments} rightValue={sideB.deployments} />
-              <ComparisonRow label="技能与治疗量" leftValue={sideA.skillsActivated + sideA.healingDone} rightValue={sideB.skillsActivated + sideB.healingDone} />
+              <ComparisonRow label="总输出伤害" leftValue={leftSide.damageDealt} rightValue={rightSide.damageDealt} />
+              <ComparisonRow label="基地直击伤害" leftValue={leftSide.baseDamageDealt} rightValue={rightSide.baseDamageDealt} />
+              <ComparisonRow label="击倒干员数" leftValue={leftSide.kills} rightValue={rightSide.kills} />
+              <ComparisonRow label="部署干员次数" leftValue={leftSide.deployments} rightValue={rightSide.deployments} />
+              <ComparisonRow label="技能与治疗量" leftValue={leftSide.skillsActivated + leftSide.healingDone} rightValue={rightSide.skillsActivated + rightSide.healingDone} />
             </div>
           </div>
         ) : (
           <div className="p-4 sm:p-5 bg-[#141920] h-[340px] sm:h-[380px]">
-            <LogView history={snapshot.logHistory} state={state} />
+            <LogView history={snapshot.logHistory} state={state} viewerPlayer={humanPlayer} />
           </div>
         )}
 

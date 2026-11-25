@@ -140,12 +140,14 @@ export function DeckSelectView({
     }
     const checkA = validateDeck(deckA, DEMO_CARDS);
     if (!checkA.valid) {
-      setErrorMessage(`玩家 A 卡组「${deckA.deck_name_zh}」无效：${checkA.errors[0] ?? '请检查构筑'}`);
+      const sideA = mode === 'vs-bot' ? '己方' : '玩家 A';
+      setErrorMessage(`${sideA}卡组「${deckA.deck_name_zh}」无效：${checkA.errors[0] ?? '请检查构筑'}`);
       return;
     }
     const checkB = validateDeck(deckB, DEMO_CARDS);
     if (!checkB.valid) {
-      setErrorMessage(`玩家 B 卡组「${deckB.deck_name_zh}」无效：${checkB.errors[0] ?? '请检查构筑'}`);
+      const sideB = mode === 'vs-bot' ? '敌方 AI ' : '玩家 B ';
+      setErrorMessage(`${sideB}卡组「${deckB.deck_name_zh}」无效：${checkB.errors[0] ?? '请检查构筑'}`);
       return;
     }
     if (!boardValidation.valid) {
@@ -161,11 +163,25 @@ export function DeckSelectView({
   const renderColumn = (playerId: PlayerId) => {
     const isPlayerA = playerId === 'player_a';
     const columnScene = isPlayerA ? 'rhodes-exterior' : mode === 'vs-bot' ? 'rhodes-command' : 'snowfield';
+    const columnTitle =
+      mode === 'vs-bot'
+        ? isPlayerA
+          ? '己方 作战编制'
+          : '敌方 AI 作战编制'
+        : `${PLAYER_LABEL[playerId]} 作战编制`;
+    const columnCodeName =
+      mode === 'vs-bot'
+        ? isPlayerA
+          ? 'ALLY.SQUAD'
+          : 'ENEMY.AI'
+        : isPlayerA
+          ? 'OPERATOR.ALPHA'
+          : 'OPERATOR.BETA';
     return (
       <Panel
         variant="default"
-        title={`${PLAYER_LABEL[playerId]} 作战编制`}
-        codeName={isPlayerA ? 'OPERATOR.ALPHA' : 'OPERATOR.BETA'}
+        title={columnTitle}
+        codeName={columnCodeName}
         headerScene={columnScene}
         className="flex-1 flex flex-col min-w-0"
       >
@@ -260,7 +276,7 @@ export function DeckSelectView({
                 作战出击配置 · 编制选择
               </h2>
               <span className="text-[10px] font-mono text-slate-400 tracking-wider">
-                账户 {accountName} · {mode === 'vs-bot' ? '单人人机推演模式' : '本地热座双人推演模式'} · {deckMode === 'collection' ? '收录模式（仅已持有干员）' : '自由构筑（全量干员）'}
+                账户 {accountName} · {mode === 'vs-bot' ? 'PRTS 单人模拟演习模式' : '本地热座双人推演模式'} · {deckMode === 'collection' ? '收录模式（仅已持有干员）' : '自由构筑（全量干员）'}
               </span>
             </div>
           </div>

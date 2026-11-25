@@ -15,6 +15,7 @@ interface MulliganViewProps {
   readonly state: GameState;
   readonly playerId: PlayerId;
   readonly deckName: string;
+  readonly isHotseat?: boolean;
   readonly waitingForOpponent?: boolean;
   readonly onConfirm: (selected: readonly CardInstanceId[]) => ActionResult | Promise<ActionResult>;
   readonly onLeave?: () => void;
@@ -25,6 +26,7 @@ export function MulliganView({
   state,
   playerId,
   deckName,
+  isHotseat = false,
   waitingForOpponent = false,
   onConfirm,
   onLeave,
@@ -92,7 +94,7 @@ export function MulliganView({
         <Panel variant="raised" cornerCut="lg" scanlines className="relative z-10 max-w-md p-6 text-center space-y-3 border-[#52606d] bg-[#161b22]/92">
           <div className="w-12 h-12 mx-auto rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
           <h2 className="text-base font-bold text-white uppercase tracking-wider">
-            起手调度已锁定 · {PLAYER_LABEL[playerId]}
+            起手调度已锁定 · {isHotseat ? PLAYER_LABEL[playerId] : <span className="text-sky-300">己方编队</span>}
           </h2>
           <p className="text-xs text-slate-400 font-mono">
             编制：{deckName} · 正在等待对手完成调度同步…
@@ -139,7 +141,7 @@ export function MulliganView({
                 战术调度阶段 · 起手换牌
               </h2>
               <span className="text-[10px] font-mono text-slate-400 tracking-wider">
-                {PLAYER_LABEL[playerId]} · 当前编制: {deckName}
+                {isHotseat ? PLAYER_LABEL[playerId] : <span className="text-sky-300 font-bold">己方编队</span>} · 当前编制: {deckName}
               </span>
             </div>
           </div>

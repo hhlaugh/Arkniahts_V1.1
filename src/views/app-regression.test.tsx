@@ -16,9 +16,11 @@ import {
 } from '../data/validate-card-assets';
 import { CLASSIC_BOARD_PROFILE, CUSTOM_5_LANE_EXAMPLE } from '../game/board';
 import { enumerateLegalActions } from '../game/legal-actions';
-import type { CardId } from '../game/types';
+import type { CardId, CombatLogEvent } from '../game/types';
+import { evaluateBattleMissions } from '../components/battle/battleMissions';
 import { AuthView } from './AuthView';
 import { BattleView } from './BattleView';
+import { LogView } from '../components/battle/LogView';
 import { CardLibraryView } from './CardLibraryView';
 import { DeckEditorView } from './DeckEditorView';
 import { DeckSelectView } from './DeckSelectView';
@@ -170,15 +172,18 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(authHtml).toContain('rhodes_island_dark.png');
     expect(authHtml).toContain('登录账户');
     expect(authHtml).toContain('注册新档案');
+    expect(authHtml).toContain('以游客博士身份直接演习');
     expect(authHtml).toContain('aria-label="打开系统设置"');
     expect(authHtml).toContain('holo-panel');
     expect(authHtml).toContain('holo-btn');
     expect(authHtml).toContain('data-testid="orundum-icon"');
     expect(authHtml).toContain('orundum.png');
     expect(authHtml).not.toContain('animate-pulse');
+    expect(authHtml).not.toContain('hhlaugh-1');
+    expect(authHtml).not.toContain('hhlaugh-2');
 
     const settingsModalHtml = renderToString(
-      <SettingsModal isOpen onClose={noop} activeUsername="指挥官" onLogout={noop} />,
+      <SettingsModal isOpen onClose={noop} activeUsername="刀客塔" onLogout={noop} />,
     );
     expect(settingsModalHtml).toContain('系统设置');
     expect(settingsModalHtml).toContain('data-testid="scenic-banner-layer"');
@@ -190,6 +195,7 @@ describe('Phase 7 全面回归验收测试套件', () => {
 
     const startHtml = renderToString(
       <StartView
+        isTestVersion={false}
         onHotseat={noop}
         onVsBot={noop}
         onOnline={noop}
@@ -201,15 +207,18 @@ describe('Phase 7 全面回归验收测试套件', () => {
       />,
     );
     expect(startHtml).toContain('舟塔自走牌');
+    expect(startHtml).toContain('PRTS · 罗德岛战术演习终端');
+    expect(startHtml).toContain('博士，欢迎接入罗德岛舰桥战术演习终端');
+    expect(startHtml).toContain('开始演习');
     expect(startHtml).toContain('罗德岛干员图鉴');
     expect(startHtml).toContain('干员寻访');
+    expect(startHtml).toContain('60000 合成玉');
     expect(startHtml).toContain('data-testid="rhodes-watermark"');
     expect(startHtml).toContain('data-testid="scenic-backdrop"');
     expect(startHtml).toContain('data-testid="scenic-banner-layer"');
     expect(startHtml).toContain('bg_rhodes_bridge.png');
     expect(startHtml).toContain('bg_rhodes_exterior.png');
     expect(startHtml).toContain('bg_rhodes_command.png');
-    expect(startHtml).toContain('bg_snowfield.png');
     expect(startHtml).toContain('bg_lungmen_night.png');
     expect(startHtml).toContain('rhodes_island_light.png');
     expect(startHtml).toContain('rhodes_island_dark.png');
@@ -221,9 +230,31 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(startHtml).toContain('holo-frame');
     expect(startHtml).toContain('data-testid="orundum-icon"');
     expect(startHtml).toContain('orundum.png');
+    expect(startHtml).not.toContain('本地热座');
+    expect(startHtml).not.toContain('同屏对战');
+    expect(startHtml).not.toContain('hhlaugh-1');
+    expect(startHtml).not.toContain('hhlaugh-2');
     expect(startHtml).not.toContain('animate-pulse');
     expect(startHtml).not.toContain('招募');
     expect(startHtml).not.toContain('PROTOCOL');
+
+    const startTestHtml = renderToString(
+      <StartView
+        isTestVersion
+        onHotseat={noop}
+        onVsBot={noop}
+        onOnline={noop}
+        onDeckEditor={noop}
+        onLibrary={noop}
+        onRecruitment={noop}
+        onOpenSettings={noop}
+        onLogout={noop}
+      />,
+    );
+    expect(startTestHtml).toContain('本地热座（双人同屏）');
+    expect(startTestHtml).toContain('bg_snowfield.png');
+    expect(startTestHtml).not.toContain('hhlaugh-1');
+    expect(startTestHtml).not.toContain('hhlaugh-2');
 
     const deckSelectCollectionHtml = renderToString(
       <DeckSelectView mode="hotseat" initialDeckMode="collection" onStart={noop} onCancel={noop} onOpenDeckEditor={noop} />,
@@ -352,8 +383,35 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(battleBotHtml).toContain('结束行动');
     expect(battleBotHtml).toContain('投降');
     expect(battleBotHtml).toContain('退出');
+    expect(battleBotHtml).toContain('data-testid="base-hp-bar-ally"');
+    expect(battleBotHtml).toContain('data-testid="base-hp-bar-enemy"');
+    expect(battleBotHtml).toContain('role="progressbar"');
+    expect(battleBotHtml).toContain('aria-valuenow="20"');
     expect(battleBotHtml).toContain('data-scenic-scene="rhodes-exterior"');
     expect(battleBotHtml).toContain('bg_rhodes_exterior.png');
+
+    expect(battleBotHtml).toContain('aria-label="查看动态演习任务"');
+
+    // BattleView 终局状态自动弹出 MissionPanel 展示动态演习任务与额外合成玉奖励
+    const finishedBattleSnap = {
+      ...battleSnap,
+      state: { ...battleSnap.state, phase: 'finished' as const, winner: 'player_a' as const },
+      logHistory: [
+        ...battleSnap.logHistory,
+        { sequence: 901, type: 'unit_deployed' as const, source_player_id: 'player_a' as const, detail: '部署1' },
+        { sequence: 902, type: 'unit_deployed' as const, source_player_id: 'player_a' as const, detail: '部署2' },
+        { sequence: 903, type: 'unit_deployed' as const, source_player_id: 'player_a' as const, detail: '部署3' },
+        { sequence: 904, type: 'unit_deployed' as const, source_player_id: 'player_a' as const, detail: '部署4' },
+        { sequence: 905, type: 'unit_deployed' as const, source_player_id: 'player_a' as const, detail: '部署5' },
+        { sequence: 906, type: 'damage_resolved' as const, source_player_id: 'player_a' as const, target_player_id: 'player_b' as const, amount: 15, detail: '伤害' },
+      ],
+    };
+    const finishedBattleHtml = renderToString(
+      <BattleView snapshot={finishedBattleSnap} controller={controller} humanPlayer="player_a" onExit={noop} />,
+    ).replace(/<!-- -->/g, '');
+    expect(finishedBattleHtml).toContain('data-testid="mission-panel"');
+    expect(finishedBattleHtml).toContain('本局演习任务结算');
+    expect(finishedBattleHtml).toContain('额外奖励 +');
 
     const battleOnlineHtml = renderToString(
       <BattleView
@@ -367,17 +425,26 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(battleOnlineHtml).toContain('data-scenic-scene="lungmen-night"');
     expect(battleOnlineHtml).toContain('bg_lungmen_night.png');
 
+    const sampleMissionReport = evaluateBattleMissions({
+      state: finishedBattleSnap.state,
+      logHistory: finishedBattleSnap.logHistory,
+      playerId: 'player_a',
+      seed: setup.seed,
+    });
+
     const settlementHtml = renderToString(
       <SettlementView
         snapshot={battleSnap}
         setup={setup}
         modeLabel="模式：单人对战"
         outcome="victory"
-        reward={{ originite: 300, accountName: '指挥官' }}
+        reward={{ originite: 300, accountName: '刀客塔' }}
+        missionReport={sampleMissionReport}
+        missionBonus={sampleMissionReport.totalEarnedOriginite}
         onRestart={noop}
         onExit={noop}
       />,
-    );
+    ).replace(/<!-- -->/g, '');
     expect(settlementHtml).toContain('MISSION SETTLEMENT');
     expect(settlementHtml).toContain('MISSION ACCOMPLISHED');
     expect(settlementHtml).toContain('data-testid="scenic-backdrop"');
@@ -386,6 +453,8 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(settlementHtml).toContain('战斗记录');
     expect(settlementHtml).toContain('战术统计对比');
     expect(settlementHtml).toContain('合成玉 +300');
+    expect(settlementHtml).toContain(`任务额外 +${sampleMissionReport.totalEarnedOriginite}`);
+    expect(settlementHtml).toContain('data-testid="mission-panel"');
     expect(settlementHtml).toContain('orundum.png');
     expect(settlementHtml).toContain('再来一局');
 
@@ -498,5 +567,213 @@ describe('Phase 7 全面回归验收测试套件', () => {
   it('校验不存在缺失卡图时 fallback ID 仍稳定可控', () => {
     const firstId = DEMO_CARDS[0]!.card_id as CardId;
     expect(firstId.startsWith('OP-')).toBe(true);
+  });
+
+  it('玩家视角全面统一为己方(蓝)/敌方(红)且无玩家A/B指代，热座测试模式保持原样', () => {
+    const deckA = PRESET_DECKS[0]!;
+    const deckB = PRESET_DECKS[1] ?? deckA;
+    const setup = {
+      decks: { player_a: deckA, player_b: deckB },
+      cards: DEMO_CARDS,
+      seed: 202611,
+    };
+    const controller = LocalGameController.create(setup);
+    const mulliganSnap = controller.getSnapshot();
+    controller.submitMulligan('player_a', []);
+    controller.submitMulligan('player_b', []);
+    const battleSnap = controller.getSnapshot();
+
+    const startHtml = renderToString(
+      <StartView
+        onHotseat={noop}
+        onVsBot={noop}
+        onOnline={noop}
+        onDeckEditor={noop}
+        onLibrary={noop}
+        onRecruitment={noop}
+        onOpenSettings={noop}
+        onLogout={noop}
+      />,
+    );
+    expect(startHtml).not.toContain('玩家 A');
+    expect(startHtml).not.toContain('玩家 B');
+
+    const botDeckHtml = renderToString(
+      <DeckSelectView mode="vs-bot" initialDeckMode="free" onStart={noop} onCancel={noop} />,
+    );
+    expect(botDeckHtml).toContain('己方 作战编制');
+    expect(botDeckHtml).toContain('敌方 AI 作战编制');
+    expect(botDeckHtml).not.toContain('玩家 A');
+    expect(botDeckHtml).not.toContain('玩家 B');
+
+    const hotseatDeckHtml = renderToString(
+      <DeckSelectView mode="hotseat" initialDeckMode="free" onStart={noop} onCancel={noop} />,
+    );
+    expect(hotseatDeckHtml).toContain('玩家 A 作战编制');
+    expect(hotseatDeckHtml).toContain('玩家 B 作战编制');
+
+    const playerMulliganHtml = renderToString(
+      <MulliganView
+        state={mulliganSnap.state}
+        playerId="player_a"
+        deckName={deckA.deck_name_zh}
+        onConfirm={noopActionResult}
+      />,
+    );
+    expect(playerMulliganHtml).toContain('己方编队');
+    expect(playerMulliganHtml).not.toContain('玩家 A');
+
+    const hotseatMulliganHtml = renderToString(
+      <MulliganView
+        state={mulliganSnap.state}
+        playerId="player_a"
+        deckName={deckA.deck_name_zh}
+        isHotseat
+        onConfirm={noopActionResult}
+      />,
+    );
+    expect(hotseatMulliganHtml).toContain('玩家 A');
+
+    const lobbyHtml = renderToString(
+      <RoomLobbyView
+        controller={createMockOnlineController()}
+        snapshot={createIdleOnlineSnapshot({
+          roomCode: 'ABCD2345',
+          seat: 'guest',
+          roomState: {
+            code: 'ABCD2345',
+            started: false,
+            pausedForGuest: false,
+            host: { connected: true, ready: true, deckId: deckA.deck_id },
+            guest: { connected: true, ready: false, deckId: deckB.deck_id },
+          },
+        })}
+        onBackToTitle={noop}
+      />,
+    );
+    expect(lobbyHtml).toContain('己方（访客）');
+    expect(lobbyHtml).toContain('敌方（房主）');
+    expect(lobbyHtml).not.toContain('玩家 A');
+    expect(lobbyHtml).not.toContain('玩家 B');
+
+    const botBattleHtml = renderToString(
+      <BattleView snapshot={battleSnap} controller={controller} humanPlayer="player_a" onExit={noop} />,
+    );
+    expect(botBattleHtml).not.toContain('玩家 A');
+    expect(botBattleHtml).not.toContain('玩家 B');
+
+    const playerSettlementHtml = renderToString(
+      <SettlementView
+        snapshot={battleSnap}
+        setup={setup}
+        humanPlayer="player_b"
+        outcome="victory"
+        onRestart={noop}
+        onExit={noop}
+      />,
+    );
+    expect(playerSettlementHtml).toContain('己方作战胜利');
+    expect(playerSettlementHtml).toContain('己方 基地');
+    expect(playerSettlementHtml).toContain('敌方 基地');
+    expect(playerSettlementHtml).not.toContain('玩家 A');
+    expect(playerSettlementHtml).not.toContain('玩家 B');
+
+    // LogView 玩家视角：过滤冗余过程日志，保留部署/攻击结算/效果，纯蓝红区分敌我且无文字阵营标签
+    const sampleLogs: CombatLogEvent[] = [
+      {
+        sequence: 0,
+        type: 'cp_updated',
+        player_id: 'player_a',
+        action_type: 'turn_start_reset',
+        detail: '玩家 A 第 1 个己方回合开始，CP 重置为 3。',
+      },
+      {
+        sequence: 1,
+        type: 'unit_deployed',
+        source_player_id: 'player_a',
+        source_name: '能天使',
+        lane: 'left',
+        position: 'front',
+        slot_index: 1,
+        amount: 3,
+        detail: '玩家 A 部署了【能天使】于 [L1·F1]（消耗 3 CP）。',
+      },
+      {
+        sequence: 2,
+        type: 'attack_declared',
+        source_player_id: 'player_a',
+        target_player_id: 'player_b',
+        source_name: '能天使',
+        target_name: '碎骨',
+        detail: '玩家 A【能天使】(L1·F1) 攻击 玩家 B【碎骨】（预期伤害 3）。',
+      },
+      {
+        sequence: 3,
+        type: 'shield_absorbed',
+        source_player_id: 'player_a',
+        target_player_id: 'player_b',
+        source_name: '能天使',
+        target_name: '碎骨',
+        amount: 1,
+        detail: '玩家 B【碎骨】的护盾吸收了 1 点伤害。',
+      },
+      {
+        sequence: 4,
+        type: 'damage_resolved',
+        source_player_id: 'player_a',
+        target_player_id: 'player_b',
+        source_name: '能天使',
+        target_name: '碎骨',
+        amount: 2,
+        absorbed: 1,
+        action_type: 'attack',
+        detail: '能天使 对 玩家 B【碎骨】造成 2 点 HP 伤害（护盾吸收 1）。',
+      },
+      {
+        sequence: 5,
+        type: 'effect_triggered',
+        source_player_id: 'player_b',
+        source_name: '急救箱',
+        detail: '玩家 B 使用了支援卡【急救箱】（消耗 1 CP）。',
+      },
+      {
+        sequence: 6,
+        type: 'base_damaged',
+        source_player_id: 'player_a',
+        target_player_id: 'player_b',
+        source_name: '能天使',
+        amount: 3,
+        action_type: 'attack',
+        detail: '玩家 A【能天使】[L1] 直击 玩家 B 基地，造成 3 点伤害！',
+      },
+    ];
+
+    const logAsAHtml = renderToString(<LogView history={sampleLogs} viewerPlayer="player_a" />).replace(/<!-- -->/g, '');
+    expect(logAsAHtml).not.toContain('玩家 A');
+    expect(logAsAHtml).not.toContain('玩家 B');
+    expect(logAsAHtml).not.toContain('A方');
+    expect(logAsAHtml).not.toContain('B方');
+    expect(logAsAHtml).not.toContain('CP 重置');
+    expect(logAsAHtml).not.toContain('预期伤害');
+    expect(logAsAHtml).toContain('【能天使】');
+    expect(logAsAHtml).toContain('【碎骨】');
+    expect(logAsAHtml).toContain('造成');
+    expect(logAsAHtml).toContain('2 点伤害');
+    expect(logAsAHtml).toContain('护盾吸收 1');
+    expect(logAsAHtml).toContain('border-l-sky-400');
+    expect(logAsAHtml).toContain('border-l-rose-400');
+
+    // 当以 player_b 视角查看同一段日志时，player_b 变蓝（sky），player_a 变红（rose）
+    const logAsBHtml = renderToString(<LogView history={sampleLogs} viewerPlayer="player_b" />).replace(/<!-- -->/g, '');
+    expect(logAsBHtml).not.toContain('玩家 A');
+    expect(logAsBHtml).not.toContain('玩家 B');
+    expect(logAsBHtml).toContain('bg-rose-950/80 text-rose-200 border border-rose-400/50 shadow-sm">【能天使】');
+    expect(logAsBHtml).toContain('bg-sky-950/80 text-sky-200 border border-sky-400/50 shadow-sm">【碎骨】');
+
+    // 本地热座测试模式保留原日志行为
+    const logHotseatHtml = renderToString(<LogView history={sampleLogs} />).replace(/<!-- -->/g, '');
+    expect(logHotseatHtml).toContain('🔵 玩家 A');
+    expect(logHotseatHtml).toContain('🔴 玩家 B');
+    expect(logHotseatHtml).toContain('A方');
   });
 });

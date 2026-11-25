@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ACCOUNTS_STORAGE_KEY,
+  DEFAULT_ACCOUNT_NAME,
   LEGACY_CUSTOM_DECKS_KEY,
   addOriginiteToActive,
   applyPullOutcome,
+  awardBattleMissionBonus,
   awardBattleReward,
   buildInitialCollection,
   buildTestCollection,
@@ -14,6 +16,7 @@ import {
   getActiveCollection,
   getDeckMode,
   importAccountsJson,
+  isBattleMissionBonusClaimed,
   isTestAccount,
   listAccounts,
   setActiveAccount,
@@ -47,25 +50,54 @@ describe('playerCollection 账户存档层（GACHA_PLAN_v0.3 方案 A）', () =>
     vi.unstubAllGlobals();
   });
 
-  it('引导：默认账户 + hhlaugh-1/hhlaugh-2 全解锁测试账户', () => {
+  it('引导：默认账户（刀客塔） + hhlaugh-1/hhlaugh-2 全解锁测试账户', () => {
     mockLocalStorage();
     const store = ensureAccountsStore();
-    expect(Object.keys(store.accounts).sort()).toEqual(['hhlaugh-1', 'hhlaugh-2', '指挥官']);
-    expect(store.active).toBe('指挥官');
+    expect(DEFAULT_ACCOUNT_NAME).toBe('刀客塔');
+    expect(Object.keys(store.accounts).sort()).toEqual(['hhlaugh-1', 'hhlaugh-2', '刀客塔']);
+    expect(store.active).toBe('刀客塔');
     expect(store.accounts['hhlaugh-1']!.isTest).toBe(true);
     expect(store.accounts['hhlaugh-2']!.isTest).toBe(true);
     expect(isTestAccount()).toBe(false);
     expect(isTestAccount('hhlaugh-1')).toBe(true);
   });
 
-  it('初始授予：3★ 干员全量 + 战术/支援卡 ×2 + 6000 合成玉；测试账户全卡 ×2 + 999999 玉', () => {
+  it('旧版 v1 存档自动迁移：指挥官改名为刀客塔，初始 6000 合成玉补足至 60000（含 100 抽补差）', () => {
+    const baseInitial = buildInitialCollection();
+    const legacyV1Store = {
+      schemaVersion: 1,
+      active: '指挥官',
+      accounts: {
+        '指挥官': {
+          ...baseInitial,
+          currency: { originite: 6000 },
+        },
+        '测试博士': {
+          ...baseInitial,
+          currency: { originite: 6000 },
+        },
+        'hhlaugh-1': buildTestCollection(),
+        'hhlaugh-2': buildTestCollection(),
+      },
+    };
+    mockLocalStorage({ [ACCOUNTS_STORAGE_KEY]: JSON.stringify(legacyV1Store) });
+    const migrated = ensureAccountsStore();
+    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.active).toBe('刀客塔');
+    expect(migrated.accounts['指挥官']).toBeUndefined();
+    expect(migrated.accounts['刀客塔']!.currency.originite).toBe(60000);
+    expect(migrated.accounts['测试博士']!.currency.originite).toBe(60000);
+    expect(migrated.accounts['hhlaugh-1']!.currency.originite).toBe(999999);
+  });
+
+  it('初始授予：3★ 干员全量 + 战术/支援卡 ×2 + 60000 合成玉（100 抽）；测试账户全卡 ×2 + 999999 玉', () => {
     mockLocalStorage();
     const initial = buildInitialCollection();
     const threeStarAndNonOp = VALID_CARDS.filter((card) => (card.card_type === 'operator' && card.rarity < 4) || card.card_type !== 'operator');
     expect(threeStarAndNonOp.length).toBe(48);
     expect(Object.keys(initial.owned)).toHaveLength(48);
     expect(Object.values(initial.owned).every((count) => count === 2)).toBe(true);
-    expect(initial.currency.originite).toBe(6000);
+    expect(initial.currency.originite).toBe(60000);
 
     const test = buildTestCollection();
     expect(Object.keys(test.owned)).toHaveLength(VALID_CARDS.length);
@@ -90,10 +122,10 @@ describe('playerCollection 账户存档层（GACHA_PLAN_v0.3 方案 A）', () =>
     const storage = mockLocalStorage();
     ensureAccountsStore();
     addOriginiteToActive(900);
-    expect(getActiveCollection().currency.originite).toBe(6900);
+    expect(getActiveCollection().currency.originite).toBe(60900);
     storage.setItem(ACCOUNTS_STORAGE_KEY, '{broken json');
     const recovered = ensureAccountsStore();
-    expect(recovered.accounts[recovered.active]!.currency.originite).toBe(6900);
+    expect(recovered.accounts[recovered.active]!.currency.originite).toBe(60900);
   });
 
   it('导出/导入往返；非法导入被拒绝且不动现档', () => {
@@ -119,14 +151,24 @@ describe('playerCollection 账户存档层（GACHA_PLAN_v0.3 方案 A）', () =>
     expect(createAccount('  小A  ').ok).toBe(true);
     expect(getActiveAccountName()).toBe('小A');
     expect(createAccount('小A').ok).toBe(false);
+    expect(createAccount('hhlaugh-1').ok).toBe(false);
     expect(awardBattleReward('win')).toBe(900);
-    expect(getActiveCollection().currency.originite).toBe(6900);
+    expect(getActiveCollection().currency.originite).toBe(60900);
     expect(awardBattleReward('draw')).toBe(300);
-    expect(getActiveCollection().currency.originite).toBe(7200);
+    expect(getActiveCollection().currency.originite).toBe(61200);
     expect(() => setActiveAccount('不存在的账户')).toThrow();
-    setActiveAccount('指挥官');
-    expect(getActiveAccountName()).toBe('指挥官');
+    setActiveAccount('刀客塔');
+    expect(getActiveAccountName()).toBe('刀客塔');
     expect(isTestAccount()).toBe(false);
+
+    const beforeMission = getActiveCollection().currency.originite;
+    expect(isBattleMissionBonusClaimed('match-999-player_a')).toBe(false);
+    expect(awardBattleMissionBonus('match-999-player_a', 750)).toBe(750);
+    expect(isBattleMissionBonusClaimed('match-999-player_a')).toBe(true);
+    expect(getActiveCollection().currency.originite).toBe(beforeMission + 750);
+    // 同对局幂等校验：不可重复领取
+    expect(awardBattleMissionBonus('match-999-player_a', 750)).toBe(0);
+    expect(getActiveCollection().currency.originite).toBe(beforeMission + 750);
   });
 
   it('构筑模式：默认收录模式，可切换自由构筑', () => {
@@ -151,7 +193,7 @@ describe('playerCollection 账户存档层（GACHA_PLAN_v0.3 方案 A）', () =>
     });
     applyPullOutcome(outcome, DEFAULT_POOL.poolId, 314159, 10);
     const collection = getActiveCollection();
-    expect(collection.currency.originite).toBe(6000 - outcome.cost + outcome.originiteGained);
+    expect(collection.currency.originite).toBe(60000 - outcome.cost + outcome.originiteGained);
     expect(collection.pity[DEFAULT_POOL.poolId]!.since6Star).toBe(outcome.since6Star);
     expect(collection.pullHistory).toHaveLength(1);
     expect(collection.pullHistory[0]!.seed).toBe(314159);

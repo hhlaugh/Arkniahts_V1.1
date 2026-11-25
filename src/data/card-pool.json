@@ -3592,55 +3592,57 @@
     "card_type": "operator",
     "support_subtype": "",
     "rarity": 6,
-    "cost": 3,
+    "cost": 4,
     "v3_3_original_cost_cp": 4,
     "occupies_cell": true,
     "intercept_eligible": true,
     "trigger_events": [
-      "combat_start"
+      "after_attack"
     ],
     "skill_effects": [
       {
-        "trigger": "combat_start",
+        "trigger": "after_attack",
         "effects": [
           {
             "op": "deal_damage",
-            "target": "all_enemies_same_lane",
-            "amount": 2,
+            "target": "one_enemy_each_adjacent_lane",
+            "amount": 1,
             "damage_type": "arts",
-            "limit": "once_per_combat"
+            "pattern": "splash",
+            "condition": "primary_attack_hit"
           }
         ]
       }
     ],
     "native_traits": [],
     "ability_name_zh": "火山",
-    "trigger_phrase_zh": "战斗开始",
-    "rules_text_zh": "【法伤】；每场战斗一次，战斗开始对同路所有敌人造成2点法术伤害。",
-    "counterplay_or_limit": "每场战斗一次；最多影响同路全部合法敌人；目标快照后不补选。",
-    "keyword_tokens": "法伤",
-    "synergy_tags": "术士;溅射",
+    "trigger_phrase_zh": "攻击后",
+    "rules_text_zh": "【法伤】；命中主目标后，对每条相邻路线各一名敌人造成1点法术【溅射】伤害。",
+    "counterplay_or_limit": "主目标攻击命中后触发；每条直接相邻路线按格位优先选择1名敌人，造成1点无视掩护的法术溅射伤害。",
+    "keyword_tokens": "法伤;溅射",
+    "synergy_tags": "术士;溅射;跨路",
     "deck_copy_limit": 2,
-    "effect_trigger": "combat_start",
+    "effect_trigger": "after_attack",
     "effect_json": {
-      "trigger": "combat_start",
+      "trigger": "after_attack",
       "actions": [],
       "v1_1_blocks": [
         {
-          "trigger": "combat_start",
+          "trigger": "after_attack",
           "effects": [
             {
               "op": "deal_damage",
-              "target": "all_enemies_same_lane",
-              "amount": 2,
+              "target": "one_enemy_each_adjacent_lane",
+              "amount": 1,
               "damage_type": "arts",
-              "limit": "once_per_combat"
+              "pattern": "splash",
+              "condition": "primary_attack_hit"
             }
           ]
         }
       ]
     },
-    "hp": 3,
+    "hp": 4,
     "atk": 2,
     "class": "caster",
     "operator_subclass_zh": "中坚术师",
@@ -3659,13 +3661,14 @@
     "redeploy_cd_base": 3,
     "normal_withdrawal_refund_ratio": 0,
     "active_skill_sp_cost": null,
-    "active_skill_text_zh": "每场战斗一次，对同路所有敌人造成2点法术伤害。",
+    "active_skill_text_zh": "命中主目标后，对每条相邻路线各一名敌人造成1点法术溅射伤害。",
     "attack_profile": {
       "mode": "ranged",
       "damage_type": "arts",
       "route_scope": "same_lane",
       "target_priority": "front_first",
-      "pattern": "single",
+      "pattern": "splash",
+      "splash_damage": 1,
       "target_limit": 1,
       "deploy_rule": "back_only",
       "intercept_eligible": true

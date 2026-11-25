@@ -19,7 +19,16 @@ import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
 import { SettingsModal } from './components/ui/SettingsModal';
 import { RulesSupplementModal } from './components/ui/RulesSupplementModal';
-import { awardBattleReward, getActiveAccountName, getDeckMode } from './data/player-collection';
+import {
+  awardBattleMissionBonus,
+  awardBattleReward,
+  getActiveAccountName,
+  getDeckMode,
+  isBattleMissionBonusClaimed,
+  isTestAccount,
+  isTestAccountName,
+} from './data/player-collection';
+import { evaluateBattleMissions } from './components/battle/battleMissions';
 import { getAuthSession, isAuthenticated, logoutAccount } from './data/auth-store';
 import { useAppSettings } from './data/app-settings';
 import { playTacticalSfx, setBgmScene, type BgmScene } from './audio/bgmPlayer';
@@ -30,6 +39,7 @@ type Mode = 'hotseat' | 'vs-bot' | 'online';
 
 interface BattleReward {
   readonly originite: number;
+  readonly missionBonus: number;
   readonly accountName: string;
 }
 
@@ -40,7 +50,7 @@ function randomSeed(): number {
 
 export function App() {
   const [screen, setScreen] = useState<Screen>(() => (isAuthenticated() ? 'title' : 'auth'));
-  const [mode, setMode] = useState<Mode>('hotseat');
+  const [mode, setMode] = useState<Mode>('vs-bot');
   const [controller, setController] = useState<LocalGameController | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -78,19 +88,27 @@ export function App() {
   const handleLogout = () => {
     onlineController.leaveRoom();
     setController(null);
-    setMode('hotseat');
+    setMode('vs-bot');
     logoutAccount();
     setScreen('auth');
   };
 
   const activeSession = screen !== 'auth' ? getAuthSession() : null;
+  const activeAccountName = screen !== 'auth' ? (activeSession?.username ?? getActiveAccountName()) : null;
+  const isTestVersion = activeAccountName
+    ? isTestAccountName(activeAccountName) || isTestAccount(activeAccountName)
+    : false;
+  const effectiveMode: Mode = !isTestVersion && mode === 'hotseat' ? 'vs-bot' : mode;
 
   let content: React.ReactNode;
 
   if (screen === 'auth') {
     content = (
       <AuthView
-        onAuthenticated={() => setScreen('title')}
+        onAuthenticated={() => {
+          setMode('vs-bot');
+          setScreen('title');
+        }}
         onOpenSettings={handleOpenSettings}
       />
     );
@@ -114,10 +132,15 @@ export function App() {
   } else if (screen === 'title') {
     content = (
       <StartView
-        onHotseat={() => {
-          setMode('hotseat');
-          setScreen('deckSelect');
-        }}
+        isTestVersion={isTestVersion}
+        onHotseat={
+          isTestVersion
+            ? () => {
+                setMode('hotseat');
+                setScreen('deckSelect');
+              }
+            : undefined
+        }
         onVsBot={() => {
           setMode('vs-bot');
           setScreen('deckSelect');
@@ -140,7 +163,7 @@ export function App() {
         onLogout={handleLogout}
       />
     );
-  } else if (mode === 'online' || screen === 'online') {
+  } else if (effectiveMode === 'online' || screen === 'online') {
     content = (
       <OnlineScreen
         controller={onlineController}
@@ -156,7 +179,7 @@ export function App() {
   } else if (screen === 'deckSelect' || !controller) {
     content = (
       <DeckSelectView
-        mode={mode}
+        mode={effectiveMode === 'hotseat' ? 'hotseat' : 'vs-bot'}
         onCancel={() => setScreen('title')}
         onOpenDeckEditor={() => setScreen('deckEditor')}
         onStart={(setup: LocalGameSetup) => {
@@ -169,7 +192,7 @@ export function App() {
     content = (
       <GameScreen
         controller={controller}
-        mode={mode}
+        mode={effectiveMode}
         botSeat="player_b"
         onOpenSettings={handleOpenSettings}
         onOpenRules={handleOpenRules}
@@ -219,13 +242,33 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, on
     [mode, botSeat, controller],
   );
 
+  const missionPlayer: PlayerId =
+    mode === 'vs-bot'
+      ? botSeat === 'player_b'
+        ? 'player_a'
+        : 'player_b'
+      : state.winner === 'player_b'
+        ? 'player_b'
+        : 'player_a';
+
+  const missionReport = useMemo(
+    () =>
+      evaluateBattleMissions({
+        state,
+        logHistory: snapshot.logHistory,
+        playerId: missionPlayer,
+        seed: controller.getSetup().seed,
+      }),
+    [state, snapshot.logHistory, missionPlayer, controller],
+  );
+
   // 新对局重置奖励发放标记（再来一局 = 新 controller 实例）。
   useEffect(() => {
     rewardGrantedRef.current = false;
     setReward(null);
   }, [controller]);
 
-  // 对局结束发放合成玉（每局一次）：vs-bot 按玩家 A（人类）胜负；热座非平局按胜档计入活跃账户。
+  // 对局结束发放合成玉（每局一次）：vs-bot 按人类席位胜负；热座非平局按胜档计入活跃账户，并叠加上局演习任务奖励。
   useEffect(() => {
     if (state.phase !== 'finished' || rewardGrantedRef.current) return;
     rewardGrantedRef.current = true;
@@ -240,8 +283,14 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, on
           ? 'draw'
           : 'win';
     const originite = awardBattleReward(result);
-    setReward({ originite, accountName: getActiveAccountName() });
-  }, [state.phase, state.winner, mode]);
+    const missionBonus =
+      missionReport.totalEarnedOriginite > 0
+        ? isBattleMissionBonusClaimed(missionReport.matchKey)
+          ? missionReport.totalEarnedOriginite
+          : awardBattleMissionBonus(missionReport.matchKey, missionReport.totalEarnedOriginite)
+        : 0;
+    setReward({ originite, missionBonus, accountName: getActiveAccountName() });
+  }, [state.phase, state.winner, mode, missionReport]);
 
   // 机器人自动起手换牌。
   useEffect(() => {
@@ -294,6 +343,7 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, on
           state={state}
           playerId={botSeat}
           deckName={controller.getSetup().decks[botSeat].deck_name_zh}
+          isHotseat={mode === 'hotseat'}
           waitingForOpponent
           onConfirm={() => ({ ok: true })}
           onLeave={onExit}
@@ -306,6 +356,7 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, on
         state={state}
         playerId={nextPlayer}
         deckName={controller.getSetup().decks[nextPlayer].deck_name_zh}
+        isHotseat={mode === 'hotseat'}
         onConfirm={(selected: readonly CardInstanceId[]) => controller.submitMulligan(nextPlayer, selected)}
         onLeave={onExit}
       />
@@ -328,9 +379,12 @@ function GameScreen({ controller, mode, botSeat, onOpenSettings, onOpenRules, on
       <SettlementView
         snapshot={snapshot}
         setup={controller.getSetup()}
+        humanPlayer={mode === 'vs-bot' ? humanSeat : null}
         modeLabel={mode === 'vs-bot' ? '模式：单人对战（机器人 · 普通难度）' : '模式：本地热座（双人）'}
         outcome={outcome}
         reward={reward}
+        missionReport={missionReport}
+        missionBonus={reward?.missionBonus}
         onRestart={onRestart}
         onExit={onExit}
       />
@@ -362,6 +416,15 @@ function OnlineScreen({ controller, snapshot, onOpenSettings, onOpenRules, onExi
   const rewardRoomRef = useRef<string | null>(null);
   const mySeat: PlayerId = snapshot.seat === 'host' ? 'player_a' : 'player_b';
 
+  const onlineMissionReport = useMemo(() => {
+    if (!snapshot.inGame || !snapshot.gameSnapshot) return undefined;
+    return evaluateBattleMissions({
+      state: snapshot.gameSnapshot.state,
+      logHistory: snapshot.gameSnapshot.logHistory,
+      playerId: mySeat,
+    });
+  }, [snapshot.inGame, snapshot.gameSnapshot, mySeat]);
+
   // P2P 对局结束按本地席位结果发放合成玉（每个房间只发一次）。
   useEffect(() => {
     if (!snapshot.inGame || !snapshot.gameSnapshot) return;
@@ -372,8 +435,14 @@ function OnlineScreen({ controller, snapshot, onOpenSettings, onOpenRules, onExi
     const winner = snapshot.gameSnapshot.state.winner;
     const result: 'win' | 'lose' | 'draw' = winner === 'draw' ? 'draw' : winner === mySeat ? 'win' : 'lose';
     const originite = awardBattleReward(result);
-    setReward({ originite, accountName: getActiveAccountName() });
-  }, [snapshot, mySeat]);
+    const missionBonus =
+      onlineMissionReport && onlineMissionReport.totalEarnedOriginite > 0
+        ? isBattleMissionBonusClaimed(onlineMissionReport.matchKey)
+          ? onlineMissionReport.totalEarnedOriginite
+          : awardBattleMissionBonus(onlineMissionReport.matchKey, onlineMissionReport.totalEarnedOriginite)
+        : 0;
+    setReward({ originite, missionBonus, accountName: getActiveAccountName() });
+  }, [snapshot, mySeat, onlineMissionReport]);
 
   // If not yet in game, show room lobby
   if (!snapshot.inGame || !snapshot.gameSnapshot) {
@@ -434,9 +503,12 @@ function OnlineScreen({ controller, snapshot, onOpenSettings, onOpenRules, onExi
       <SettlementView
         snapshot={gameSnapshot}
         setup={setup}
-        modeLabel={`模式：好友联机对战（房间码：${snapshot.roomCode} · 你执${mySeat === 'player_a' ? '玩家 A' : '玩家 B'}）`}
+        humanPlayer={mySeat}
+        modeLabel={`模式：好友联机对战（房间码：${snapshot.roomCode}）`}
         outcome={outcome}
         reward={reward}
+        missionReport={onlineMissionReport}
+        missionBonus={reward?.missionBonus}
         onRestart={() => controller.leaveRoom()}
         onExit={() => {
           controller.leaveRoom();

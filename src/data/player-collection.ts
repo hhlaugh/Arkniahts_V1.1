@@ -15,12 +15,20 @@ import type { CardDefinition, CardId, DeckDefinition } from '../game/types';
 
 export const ACCOUNTS_STORAGE_KEY = 'arknight_accounts_v1';
 export const SNAPSHOTS_STORAGE_KEY = 'arknight_accounts_snapshots_v1';
+export const MISSION_CLAIMS_STORAGE_KEY = 'arknight_mission_claims_v1';
 export const DECK_MODE_STORAGE_KEY = 'arknight_deck_mode';
 export const LEGACY_CUSTOM_DECKS_KEY = 'mrfz_custom_decks';
-export const DEFAULT_ACCOUNT_NAME = '指挥官';
+export const DEFAULT_ACCOUNT_NAME = '刀客塔';
+export const LEGACY_DEFAULT_ACCOUNT_NAME = '指挥官';
+export const CURRENT_STORE_SCHEMA_VERSION = 2;
 export const TEST_ACCOUNT_NAMES = ['hhlaugh-1', 'hhlaugh-2'] as const;
 export const SNAPSHOT_LIMIT = 3;
 export const PULL_HISTORY_LIMIT = 200;
+
+export function isTestAccountName(name: string): boolean {
+  const trimmed = name.trim();
+  return (TEST_ACCOUNT_NAMES as readonly string[]).includes(trimmed);
+}
 
 export type DeckMode = (typeof DECK_MODES)[number];
 
@@ -121,7 +129,7 @@ function kvRemove(key: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// 初始授予（GACHA_PLAN_v0.3 §3）：新账户 3★ 全量 ×2 + 非干员卡全量附赠 + 6000 玉；
+// 初始授予（GACHA_PLAN_v0.3 §3）：新账户 3★ 全量 ×2 + 非干员卡全量附赠 + 60000 玉（100 抽）；
 // 测试账户全卡 ×2 + 999999 玉。
 // ---------------------------------------------------------------------------
 
@@ -216,7 +224,7 @@ function validateCollection(value: unknown): boolean {
 /** 严格校验原始存档；合法返回 AccountsStore，否则返回 null（绝不修正）。 */
 export function validateAccountsStore(raw: unknown): AccountsStore | null {
   if (!isRecord(raw)) return null;
-  if (raw.schemaVersion !== 1) return null;
+  if (raw.schemaVersion !== 1 && raw.schemaVersion !== CURRENT_STORE_SCHEMA_VERSION) return null;
   if (typeof raw.active !== 'string' || raw.active === '') return null;
   if (!isRecord(raw.accounts)) return null;
   const accountNames = Object.keys(raw.accounts);
@@ -277,6 +285,45 @@ function readLegacyCustomDecks(): DeckDefinition[] {
   }
 }
 
+function migrateStoreIfNeeded(store: AccountsStore): { readonly store: AccountsStore; readonly changed: boolean } {
+  if (store.schemaVersion >= CURRENT_STORE_SCHEMA_VERSION) {
+    return { store, changed: false };
+  }
+
+  const nextAccounts: Record<string, Collection> = {};
+  const bonusDelta = Math.max(0, GACHA_CONFIG.economy.initialOriginite - 6000);
+  const canRenameLegacyDefault =
+    LEGACY_DEFAULT_ACCOUNT_NAME in store.accounts && !(DEFAULT_ACCOUNT_NAME in store.accounts);
+
+  for (const [name, collection] of Object.entries(store.accounts)) {
+    const targetName = canRenameLegacyDefault && name === LEGACY_DEFAULT_ACCOUNT_NAME ? DEFAULT_ACCOUNT_NAME : name;
+    const isTest = collection.isTest === true || isTestAccountName(targetName);
+    const upgradedOriginite =
+      !isTest && bonusDelta > 0 && collection.currency.originite < GACHA_CONFIG.economy.initialOriginite
+        ? collection.currency.originite + bonusDelta
+        : collection.currency.originite;
+
+    nextAccounts[targetName] =
+      upgradedOriginite !== collection.currency.originite
+        ? { ...collection, currency: { originite: upgradedOriginite } }
+        : collection;
+  }
+
+  const nextActive =
+    canRenameLegacyDefault && store.active === LEGACY_DEFAULT_ACCOUNT_NAME
+      ? DEFAULT_ACCOUNT_NAME
+      : store.active;
+
+  return {
+    store: {
+      schemaVersion: CURRENT_STORE_SCHEMA_VERSION,
+      active: nextActive,
+      accounts: nextAccounts,
+    },
+    changed: true,
+  };
+}
+
 function bootstrapStore(): { store: AccountsStore; migratedLegacyDecks: boolean } {
   const accounts: Record<string, Collection> = {};
   let active = DEFAULT_ACCOUNT_NAME;
@@ -291,7 +338,7 @@ function bootstrapStore(): { store: AccountsStore; migratedLegacyDecks: boolean 
     accounts[active] = { ...target, customDecks: [...legacyDecks, ...target.customDecks] };
     migratedLegacyDecks = true;
   }
-  return { store: { schemaVersion: 1, active, accounts }, migratedLegacyDecks };
+  return { store: { schemaVersion: CURRENT_STORE_SCHEMA_VERSION, active, accounts }, migratedLegacyDecks };
 }
 
 export function ensureAccountsStore(): AccountsStore {
@@ -299,7 +346,13 @@ export function ensureAccountsStore(): AccountsStore {
   if (raw) {
     try {
       const parsed = validateAccountsStore(JSON.parse(raw));
-      if (parsed) return parsed;
+      if (parsed) {
+        const migrated = migrateStoreIfNeeded(parsed);
+        if (migrated.changed) {
+          persistStore(migrated.store);
+        }
+        return migrated.store;
+      }
     } catch {
       // corrupt JSON: fall through to snapshots
     }
@@ -308,8 +361,9 @@ export function ensureAccountsStore(): AccountsStore {
     try {
       const parsed = validateAccountsStore(JSON.parse(snapshot));
       if (parsed) {
-        persistStore(parsed);
-        return parsed;
+        const migrated = migrateStoreIfNeeded(parsed);
+        persistStore(migrated.store);
+        return migrated.store;
       }
     } catch {
       // try next snapshot
@@ -358,6 +412,7 @@ export function createAccount(name: string): { ok: boolean; error?: string } {
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: '账户名不能为空。' };
   if (trimmed.length > 24) return { ok: false, error: '账户名最长 24 个字符。' };
+  if (isTestAccountName(trimmed)) return { ok: false, error: '该代号为系统保留账户，无法创建。' };
   const store = ensureAccountsStore();
   if (trimmed in store.accounts) return { ok: false, error: `账户「${trimmed}」已存在。` };
   persistStore({
@@ -391,6 +446,32 @@ export function awardBattleReward(result: 'win' | 'lose' | 'draw'): number {
   const amount = GACHA_CONFIG.economy.battleRewards[result];
   if (!Number.isInteger(amount) || amount <= 0) return 0;
   addOriginiteToActive(amount);
+  return amount;
+}
+
+function readClaimedMissionKeys(): string[] {
+  const raw = kvGet(MISSION_CLAIMS_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isBattleMissionBonusClaimed(matchKey: string): boolean {
+  if (!matchKey) return false;
+  return readClaimedMissionKeys().includes(matchKey);
+}
+
+/** 幂等发放单局动态任务额外奖励（同一对局仅发放一次）。 */
+export function awardBattleMissionBonus(matchKey: string, amount: number): number {
+  if (!matchKey || !Number.isInteger(amount) || amount <= 0) return 0;
+  const claimed = readClaimedMissionKeys();
+  if (claimed.includes(matchKey)) return 0;
+  addOriginiteToActive(amount);
+  kvSet(MISSION_CLAIMS_STORAGE_KEY, JSON.stringify([...claimed, matchKey].slice(-60)));
   return amount;
 }
 
@@ -470,6 +551,7 @@ export function importAccountsJson(text: string): { ok: boolean; error?: string;
   }
   const validated = validateAccountsStore(parsed);
   if (!validated) return { ok: false, error: '存档格式校验失败：缺少必要字段或数据非法，已放弃导入（现有存档未改动）。' };
-  persistStore(validated);
-  return { ok: true, accountCount: Object.keys(validated.accounts).length };
+  const migrated = migrateStoreIfNeeded(validated).store;
+  persistStore(migrated);
+  return { ok: true, accountCount: Object.keys(migrated.accounts).length };
 }

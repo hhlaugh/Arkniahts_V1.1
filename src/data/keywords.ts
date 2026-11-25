@@ -32,7 +32,7 @@ const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: strin
   领主: { category: '特性', brief: '前排或后排皆可部署，且在任意阵位均具备远程索敌能力。' },
   连击: { category: '攻击', brief: '一次普通攻击分为 N 段连续打击同一目标，每段伤害=max(1, 攻击力-1)。' },
   越位: { category: '索敌', brief: '普通攻击可越过同路前排，优先锁定敌方后排目标；无后排时打前排。' },
-  溅射: { category: '攻击', brief: '命中主目标后，对同路指定副目标额外造成溅射伤害。' },
+  溅射: { category: '攻击', brief: '命中主目标后，对指定副目标额外造成溅射伤害。' },
   连锁: { category: '攻击', brief: '命中主目标后，伤害可跳跃至相邻路线的指定敌方单位。' },
   贯穿: { category: '攻击', brief: '普通攻击同时命中同路所有合法敌方单位，按格位依次结算。' },
   脆弱: { category: '减益', brief: '使目标下一次受到的普通攻击伤害 +1，触发后移除（不叠加）。' },

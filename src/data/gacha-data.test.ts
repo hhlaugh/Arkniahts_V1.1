@@ -8,7 +8,7 @@ describe('gacha 配置契约（GACHA_PLAN_v0.3）', () => {
     expect(GACHA_CONFIG.schemaVersion).toBe(1);
     const economy = GACHA_CONFIG.economy;
     expect(economy.currencyId).toBe('originite');
-    expect(economy.initialOriginite).toBe(6000);
+    expect(economy.initialOriginite).toBe(60000);
     expect(economy.testAccountOriginite).toBe(999999);
     expect(economy.battleRewards).toEqual({ win: 900, lose: 300, draw: 300 });
     expect(economy.conversion).toEqual({ '4': 100, '5': 300, '6': 1200 });

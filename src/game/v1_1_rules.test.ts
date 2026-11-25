@@ -739,4 +739,68 @@ describe('V1.1 规范全量验收测试', () => {
     expect(wAfter.card_instances[wEnemyFrontId]?.operator_combat?.current_hp).toBe(3);
     expect(wAfter.card_instances[wEnemyFrontId]?.operator_combat?.statuses.some((st) => st.kind === 'suppressed')).toBe(true);
   });
+
+  it('11. 艾雅法拉（OP-CAS-008）平衡调整：4 费 4/2，命中主目标后对每条相邻路线各1名敌人造成1点无视掩护的法术溅射伤害，空路直击不溅射', () => {
+    const eyjaDef = cardsById.get('OP-CAS-008' as CardId)!;
+    expect(eyjaDef.cost).toBe(4);
+    expect(eyjaDef.hp).toBe(4);
+    expect(eyjaDef.atk).toBe(2);
+
+    // 场景 A：中路 L2 艾雅法拉攻击 L2 主目标，同时 L1 与 L3 各有敌方（且 L1 敌人携带【掩护】）
+    let s = startGame(911);
+    const actor = s.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    let eyjaId: CardInstanceId;
+    let l1EnemyId: CardInstanceId;
+    let l1SecondEnemyId: CardInstanceId;
+    let l2EnemyId: CardInstanceId;
+    let l3EnemyId: CardInstanceId;
+
+    ({ state: s, id: eyjaId } = placeBoardUnit(s, actor, 'OP-CAS-008', 'L2', 'back', 1));
+    ({ state: s, id: l2EnemyId } = placeBoardUnit(s, enemy, 'OP-DEF-003', 'L2', 'front', 1, {
+      current_hp: 5 as HpValue,
+    }));
+    ({ state: s, id: l1EnemyId } = placeBoardUnit(s, enemy, 'OP-VAN-001', 'L1', 'front', 1, {
+      current_hp: 4 as HpValue,
+    }));
+    ({ state: s, id: l1SecondEnemyId } = placeBoardUnit(s, enemy, 'OP-VAN-002', 'L1', 'front', 2, {
+      current_hp: 3 as HpValue,
+    }));
+    ({ state: s, id: l3EnemyId } = placeBoardUnit(s, enemy, 'OP-SNI-001', 'L3', 'back', 1, {
+      current_hp: 2 as HpValue,
+    }));
+
+    // 给 L1 首目标挂上【掩护】，验证法术溅射无视且不消耗掩护
+    s = applyStatusToInstance(s, l1EnemyId, 'cover', 1);
+
+    const after = resolveCombat(s);
+    // 主目标（L2）受到 2 点法伤（5 -> 3）
+    expect(after.card_instances[l2EnemyId]?.operator_combat?.current_hp).toBe(3);
+    // L1 首位敌人受到 1 点法术溅射（4 -> 3）且保留【掩护】
+    expect(after.card_instances[l1EnemyId]?.operator_combat?.current_hp).toBe(3);
+    expect(after.card_instances[l1EnemyId]?.operator_combat?.statuses.some((st) => st.kind === 'cover')).toBe(true);
+    // L1 第二名敌人不受伤害（每条邻路仅 1 名）
+    expect(after.card_instances[l1SecondEnemyId]?.operator_combat?.current_hp).toBe(3);
+    // L3 敌人受到 1 点法术溅射（2 -> 1）
+    expect(after.card_instances[l3EnemyId]?.operator_combat?.current_hp).toBe(1);
+    // 艾雅法拉保持满血 4 点，没有额外的 combat_start AOE
+    expect(after.card_instances[eyjaId]?.operator_combat?.current_hp).toBe(4);
+
+    // 场景 B：艾雅法拉直击空路基地时不触发相邻路溅射
+    let sDirect = startGame(912);
+    const dActor = sDirect.active_player_id;
+    const dEnemy: PlayerId = dActor === 'player_a' ? 'player_b' : 'player_a';
+    let dL1EnemyId: CardInstanceId;
+
+    ({ state: sDirect } = placeBoardUnit(sDirect, dActor, 'OP-CAS-008', 'L2', 'back', 1));
+    ({ state: sDirect, id: dL1EnemyId } = placeBoardUnit(sDirect, dEnemy, 'OP-VAN-001', 'L1', 'front', 1, {
+      current_hp: 4 as HpValue,
+    }));
+
+    const directAfter = resolveCombat(sDirect);
+    expect(directAfter.players[dEnemy].base_points).toBe(18);
+    expect(directAfter.card_instances[dL1EnemyId]?.operator_combat?.current_hp).toBe(4);
+  });
 });
+

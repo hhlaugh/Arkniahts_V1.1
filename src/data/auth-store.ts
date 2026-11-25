@@ -1,6 +1,9 @@
 import {
+  DEFAULT_ACCOUNT_NAME,
+  LEGACY_DEFAULT_ACCOUNT_NAME,
   createAccount,
   ensureAccountsStore,
+  isTestAccountName,
   listAccounts,
   setActiveAccount,
   type AccountSummary,
@@ -8,6 +11,9 @@ import {
 
 export const AUTH_CREDENTIALS_KEY = 'arknight_auth_v1';
 export const AUTH_SESSION_KEY = 'arknight_auth_session_v1';
+const TEST_AUTH_SALT = 'PRTS::TEST_GATE::v1';
+const TEST_AUTH_HASH = '87e1ebd4bb6c5cd4';
+const GUEST_ACCOUNT_PREFIX = '访客博士';
 
 interface CredentialRecord {
   readonly salt: string;
@@ -124,8 +130,17 @@ export function getAuthSession(): AuthSession | null {
       typeof parsed.authenticatedAt === 'number'
     ) {
       const store = ensureAccountsStore();
-      if (parsed.username in store.accounts) {
-        return { username: parsed.username, authenticatedAt: parsed.authenticatedAt };
+      const resolvedUsername =
+        parsed.username in store.accounts
+          ? parsed.username
+          : parsed.username === LEGACY_DEFAULT_ACCOUNT_NAME && DEFAULT_ACCOUNT_NAME in store.accounts
+            ? DEFAULT_ACCOUNT_NAME
+            : null;
+      if (resolvedUsername) {
+        if (resolvedUsername !== parsed.username) {
+          kvSet(AUTH_SESSION_KEY, JSON.stringify({ username: resolvedUsername, authenticatedAt: parsed.authenticatedAt }));
+        }
+        return { username: resolvedUsername, authenticatedAt: parsed.authenticatedAt };
       }
     }
   } catch {
@@ -141,16 +156,19 @@ export function isAuthenticated(): boolean {
 export function hasAccountPassword(username: string): boolean {
   const trimmed = username.trim();
   if (!trimmed) return false;
+  if (isTestAccountName(trimmed)) return true;
   const creds = readCredentialStore();
   return Boolean(creds.users[trimmed]);
 }
 
 export function listLoginableAccounts(): readonly (AccountSummary & { readonly hasPassword: boolean })[] {
   const creds = readCredentialStore();
-  return listAccounts().map((account) => ({
-    ...account,
-    hasPassword: Boolean(creds.users[account.name]),
-  }));
+  return listAccounts()
+    .filter((account) => !account.isTest && !isTestAccountName(account.name))
+    .map((account) => ({
+      ...account,
+      hasPassword: Boolean(creds.users[account.name]),
+    }));
 }
 
 export function registerAccount(
@@ -159,8 +177,9 @@ export function registerAccount(
   confirmPassword: string,
 ): { readonly ok: boolean; readonly error?: string } {
   const trimmed = username.trim();
-  if (!trimmed) return { ok: false, error: '请输入指挥官代号（账户名）。' };
+  if (!trimmed) return { ok: false, error: '请输入博士代号（账户名）。' };
   if (trimmed.length > 24) return { ok: false, error: '账户名长度不能超过 24 个字符。' };
+  if (isTestAccountName(trimmed)) return { ok: false, error: '该代号为系统保留账户，无法注册。' };
   if (password.length < 4) return { ok: false, error: '登录密码至少需要 4 位字符。' };
   if (password !== confirmPassword) return { ok: false, error: '两次输入的密码不一致。' };
 
@@ -191,16 +210,35 @@ export function loginAccount(
   username: string,
   password: string,
 ): { readonly ok: boolean; readonly error?: string; readonly boundPassword?: boolean } {
-  const trimmed = username.trim();
-  if (!trimmed) return { ok: false, error: '请输入指挥官账户名。' };
+  let trimmed = username.trim();
+  if (!trimmed) return { ok: false, error: '请输入博士代号（账户名）。' };
 
   const accountsStore = ensureAccountsStore();
+  if (
+    !(trimmed in accountsStore.accounts) &&
+    trimmed === LEGACY_DEFAULT_ACCOUNT_NAME &&
+    DEFAULT_ACCOUNT_NAME in accountsStore.accounts
+  ) {
+    trimmed = DEFAULT_ACCOUNT_NAME;
+  }
   if (!(trimmed in accountsStore.accounts)) {
-    return { ok: false, error: `账户「${trimmed}」尚未注册，请先切换至「注册档案」创建。` };
+    return { ok: false, error: `档案「${trimmed}」尚未建档，请先切换至「注册新档案」创建。` };
+  }
+
+  if (isTestAccountName(trimmed)) {
+    if (!password) return { ok: false, error: '请输入登录密码。' };
+    if (hashPassword(password, TEST_AUTH_SALT) !== TEST_AUTH_HASH) {
+      return { ok: false, error: '账户名或密码校验失败，请重试。' };
+    }
+    setActiveAccount(trimmed);
+    setSession(trimmed);
+    return { ok: true };
   }
 
   const creds = readCredentialStore();
-  const record = creds.users[trimmed];
+  const record =
+    creds.users[trimmed] ??
+    (trimmed === DEFAULT_ACCOUNT_NAME ? creds.users[LEGACY_DEFAULT_ACCOUNT_NAME] : undefined);
 
   if (record) {
     if (!password) return { ok: false, error: '请输入登录密码。' };
@@ -245,12 +283,42 @@ export function quickLoginAccount(username: string): { readonly ok: boolean; rea
   if (!(trimmed in accountsStore.accounts)) {
     return { ok: false, error: `账户「${trimmed}」不存在。` };
   }
-  if (hasAccountPassword(trimmed)) {
+  if (isTestAccountName(trimmed) || hasAccountPassword(trimmed)) {
     return { ok: false, error: `账户「${trimmed}」已设置密码，请使用密码登录。` };
   }
   setActiveAccount(trimmed);
   setSession(trimmed);
   return { ok: true };
+}
+
+export function loginAsGuest(): { readonly ok: boolean; readonly username?: string; readonly error?: string } {
+  const store = ensureAccountsStore();
+  if (DEFAULT_ACCOUNT_NAME in store.accounts && !hasAccountPassword(DEFAULT_ACCOUNT_NAME)) {
+    setActiveAccount(DEFAULT_ACCOUNT_NAME);
+    setSession(DEFAULT_ACCOUNT_NAME);
+    return { ok: true, username: DEFAULT_ACCOUNT_NAME };
+  }
+
+  if (GUEST_ACCOUNT_PREFIX in store.accounts && !hasAccountPassword(GUEST_ACCOUNT_PREFIX)) {
+    setActiveAccount(GUEST_ACCOUNT_PREFIX);
+    setSession(GUEST_ACCOUNT_PREFIX);
+    return { ok: true, username: GUEST_ACCOUNT_PREFIX };
+  }
+
+  let candidate = GUEST_ACCOUNT_PREFIX;
+  if (candidate in store.accounts) {
+    let idx = 2;
+    while (`${GUEST_ACCOUNT_PREFIX}-${idx}` in store.accounts) {
+      idx += 1;
+    }
+    candidate = `${GUEST_ACCOUNT_PREFIX}-${idx}`;
+  }
+  const created = createAccount(candidate);
+  if (!created.ok) {
+    return { ok: false, error: created.error ?? '访客档案初始化失败。' };
+  }
+  setSession(candidate);
+  return { ok: true, username: candidate };
 }
 
 export function logoutAccount(): void {
