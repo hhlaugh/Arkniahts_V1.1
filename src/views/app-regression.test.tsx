@@ -225,6 +225,12 @@ describe('Phase 7 全面回归验收测试套件', () => {
     expect(startHtml).toContain('prts_badge.svg');
     expect(startHtml).toContain('aria-label="打开系统设置"');
     expect(startHtml).toContain('aria-label="退出登录"');
+    expect(startHtml).toContain('开始演习 · 进入作战');
+    expect(startHtml).toContain('MOD-02 · DECK BUILDER');
+    expect(startHtml).toContain('MOD-03 · HEADHUNTING');
+    expect(startHtml).toContain('MOD-04 · ARCHIVE');
+    expect(startHtml).toContain('LINK-01 · P2P WEBRTC');
+    expect(startHtml).toContain('ARCHIVE-IO · DOCTOR PROFILE');
     expect(startHtml).toContain('holo-panel');
     expect(startHtml).toContain('holo-btn');
     expect(startHtml).toContain('holo-frame');
@@ -252,6 +258,7 @@ describe('Phase 7 全面回归验收测试套件', () => {
       />,
     );
     expect(startTestHtml).toContain('本地热座（双人同屏）');
+    expect(startTestHtml).toContain('TEST-01 · LOCAL');
     expect(startTestHtml).toContain('bg_snowfield.png');
     expect(startTestHtml).not.toContain('hhlaugh-1');
     expect(startTestHtml).not.toContain('hhlaugh-2');

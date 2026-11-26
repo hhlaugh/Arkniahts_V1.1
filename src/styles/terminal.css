@@ -1061,6 +1061,84 @@ b { color: #fff; }
   padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
 }
 
+/* ---------- PRTS 首页战术指挥中心：克制入场、环境微光与模块悬停反馈 ---------- */
+@keyframes prtsPanelEnter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes prtsStatusBreath {
+  0%, 100% {
+    opacity: 0.62;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes prtsAmbientLight {
+  0% {
+    opacity: 0.38;
+    transform: translate3d(-1%, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.62;
+    transform: translate3d(1%, -0.5%, 0) scale(1.025);
+  }
+  100% {
+    opacity: 0.42;
+    transform: translate3d(-0.5%, 0.5%, 0) scale(1.01);
+  }
+}
+
+.prts-panel-enter {
+  animation: prtsPanelEnter 190ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.prts-enter-delay-1 {
+  animation-delay: 45ms;
+}
+
+.prts-enter-delay-2 {
+  animation-delay: 90ms;
+}
+
+.prts-enter-delay-3 {
+  animation-delay: 130ms;
+}
+
+.prts-status-breath {
+  animation: prtsStatusBreath 2.6s ease-in-out infinite;
+}
+
+.prts-ambient-glow {
+  animation: prtsAmbientLight 16s ease-in-out infinite alternate;
+}
+
+.prts-module-tile {
+  position: relative;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 180ms ease;
+}
+
+.prts-module-tile:hover {
+  transform: translate3d(0, -1.5px, 0);
+}
+
+.prts-module-tile:active {
+  transform: translate3d(0, 0.5px, 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card,
   .card-frame,
@@ -1126,6 +1204,10 @@ b { color: #fff; }
   .anim-progress-shimmer,
   .anim-unit-bar-half,
   .anim-unit-bar-complete,
+  .prts-panel-enter,
+  .prts-status-breath,
+  .prts-ambient-glow,
+  .prts-module-tile,
   .holo-btn,
   .holo-btn::before {
     transition: none !important;
