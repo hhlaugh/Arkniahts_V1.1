@@ -44,7 +44,7 @@ const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: strin
   牵引: { category: '位移', brief: '将敌方后排单位拉至同路前排；若前排已占则按规则交换位置。' },
   推击: { category: '位移', brief: '将敌方前排单位推向同路后排；若后排已占则结算碰撞伤害或【压制】。' },
   群疗: { category: '治疗', brief: '一次治疗行动可同时恢复范围内多名受伤友方单位的生命值。' },
-  伏击: { category: '特性', brief: '不具备拦截资格但可被攻击；未被【集火】时被攻击优先级等同基本分，仅有伏击单位时敌方可直接攻击基本分。' },
+  伏击: { category: '特性', brief: '不具备拦截资格但可被攻击；未被【标记】时被攻击优先级等同基本分，仅有伏击单位时敌方可直接攻击基本分。' },
   维护: { category: '限制', brief: '己方回合开始恢复 CP 并结算补给抽牌后支付指定费用，不足时视为被击倒并进入弃牌堆。' },
   快速再部署: { category: '特性', brief: '撤离或退场后的再部署冷却回合更短，可更快重新部署上场。' },
   不屈: { category: '保命', brief: '首次受到致命伤害时保留 1 点生命留在场上，不触发离场。' },
@@ -58,6 +58,7 @@ const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: strin
   减速: { category: '减益', brief: '使目标下一次普通攻击攻击力 -1，该次攻击结算后移除。' },
   落地: { category: '状态', brief: '令浮空单位可被近战普通攻击选中。' },
   浮空: { category: '特性', brief: '仅可部署于后排；未被【落地】、眩晕或冻结前免疫近战普通攻击。' },
+  突击: { category: '特性', brief: '无视部署当回合的攻击冷却，部署当回合即可直接参与交锋。' },
 };
 
 const STATUS_TO_KEYWORD: Readonly<Record<string, string>> = {
@@ -75,6 +76,7 @@ const STATUS_TO_KEYWORD: Readonly<Record<string, string>> = {
   taunt: '嘲讽',
   slow: '减速',
   grounded: '落地',
+  assault: '突击',
 };
 
 const RAW_KEYWORD_MAP: ReadonlyMap<string, RawKeywordJsonEntry> = new Map(

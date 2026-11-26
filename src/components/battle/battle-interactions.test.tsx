@@ -32,11 +32,13 @@ import {
 } from './touchDrag';
 import {
   findDirectPlayAction,
+  getHealingRangeLabel,
   getInvalidCardReason,
   getInvalidDeployReason,
   getInvalidUnitActionReason,
   getPendingChoicePromptText,
   previewAttackTargets,
+  previewHealingRange,
 } from './tacticalSelectors';
 import { UnitView } from './UnitView';
 import { DynamicBattlefieldBackdrop } from './DynamicBattlefieldBackdrop';
@@ -350,6 +352,178 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     });
     expect(previewTaunt?.tauntBlocked).toBe(true);
     expect(previewTaunt?.primaryTargetId).toBe(tauntId);
+    expect(previewTaunt?.legalTargetIds).toEqual(expect.arrayContaining([enemyFrontId, enemyBackId, tauntId]));
+
+    // 4. 后排近战预览：不将敌方后排纳入合法目标，且 attacksBase 为 false 并返回提示原因
+    const backMeleeState: GameState = {
+      ...duelState,
+      card_instances: {
+        ...duelState.card_instances,
+        [meleeId]: {
+          ...duelState.card_instances[meleeId],
+          position: 'back',
+        },
+      },
+    };
+    const previewBackWithFront = previewAttackTargets(backMeleeState, {
+      kind: 'unit',
+      instance: backMeleeState.card_instances[meleeId],
+    });
+    expect(previewBackWithFront?.legalTargetIds).toEqual([enemyFrontId]);
+    expect(previewBackWithFront?.primaryTargetId).toBe(enemyFrontId);
+
+    const backMeleeOnlyEnemyBack: GameState = {
+      ...backMeleeState,
+      card_instances: Object.fromEntries(
+        Object.entries(backMeleeState.card_instances).filter(([id]) => id !== enemyFrontId),
+      ),
+    };
+    const previewBackNoFront = previewAttackTargets(backMeleeOnlyEnemyBack, {
+      kind: 'unit',
+      instance: backMeleeOnlyEnemyBack.card_instances[meleeId],
+    });
+    expect(previewBackNoFront?.attacksBase).toBe(false);
+    expect(previewBackNoFront?.legalTargetIds).toEqual([]);
+    expect(previewBackNoFront?.cannotAttackReason).toContain('近战处于后排');
+  });
+
+  it('治疗范围预览: 医疗干员高亮同路/邻路可治疗友军并排除设施与禁疗干员', () => {
+    const state = createActionPhaseState(105);
+    const actor = state.active_player_id;
+
+    const medicId = 'unit-medic' as CardInstanceId;
+    const woundedId = 'unit-wounded' as CardInstanceId;
+    const adjAllyId = 'unit-adj-ally' as CardInstanceId;
+    const hellagurId = 'unit-hellagur' as CardInstanceId; // OP-GUA-004 宴/赫拉格类禁疗占位校验
+    const facilityId = 'unit-facility' as CardInstanceId;
+
+    const medicDef = DEMO_CARDS.find((c) => c.card_id === ('OP-MED-003' as CardId))!; // 调香师 same_and_adjacent_lane
+    const allyDef = DEMO_CARDS.find((c) => c.card_id === ('OP-VAN-001' as CardId))!;
+    const banHealDef = DEMO_CARDS.find((c) => c.card_id === ('OP-GUA-004' as CardId))!;
+    const facilityDef = DEMO_CARDS.find((c) => c.card_id === ('DEMO-SUP-V2-001' as CardId))!;
+
+    expect(getHealingRangeLabel(medicDef)).toContain('同路及邻路');
+
+    const healState: GameState = {
+      ...state,
+      card_definitions: {
+        ...state.card_definitions,
+        [medicDef.card_id]: medicDef,
+        [allyDef.card_id]: allyDef,
+        [banHealDef.card_id]: banHealDef,
+        [facilityDef.card_id]: facilityDef,
+      },
+      card_instances: {
+        ...state.card_instances,
+        [medicId]: {
+          card_instance_id: medicId,
+          card_id: medicDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          board_half: actor,
+          lane: 'L1',
+          position: 'back',
+          zone: 'board',
+          operator_combat: {
+            current_hp: (medicDef.hp ?? 3) as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+        [woundedId]: {
+          card_instance_id: woundedId,
+          card_id: allyDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          board_half: actor,
+          lane: 'L1',
+          position: 'front',
+          zone: 'board',
+          operator_combat: {
+            current_hp: 1 as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+        [adjAllyId]: {
+          card_instance_id: adjAllyId,
+          card_id: allyDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          board_half: actor,
+          lane: 'L2',
+          position: 'front',
+          zone: 'board',
+          operator_combat: {
+            current_hp: (allyDef.hp ?? 3) as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+        [hellagurId]: {
+          card_instance_id: hellagurId,
+          card_id: banHealDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          board_half: actor,
+          lane: 'L2',
+          position: 'front',
+          slot_index: 2,
+          zone: 'board',
+          operator_combat: {
+            current_hp: 1 as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+        [facilityId]: {
+          card_instance_id: facilityId,
+          card_id: facilityDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          board_half: actor,
+          lane: 'L2',
+          position: 'back',
+          zone: 'board',
+          entity_kind: 'facility',
+          operator_combat: {
+            current_hp: 2 as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+      },
+    };
+
+    const preview = previewHealingRange(healState, {
+      kind: 'unit',
+      instance: healState.card_instances[medicId],
+    });
+    expect(preview).not.toBeNull();
+    expect(preview?.rangeCells.some((c) => c.lane === 'L1' && c.position === 'front')).toBe(true);
+    expect(preview?.rangeCells.some((c) => c.lane === 'L2' && c.position === 'back')).toBe(true);
+    expect(preview?.rangeCells.some((c) => c.lane === 'L3')).toBe(false);
+    expect(preview?.healableUnitIds).toContain(woundedId);
+    expect(preview?.healableUnitIds).toContain(adjAllyId);
+    expect(preview?.healableUnitIds).not.toContain(hellagurId);
+    expect(preview?.healableUnitIds).not.toContain(facilityId);
+    expect(preview?.woundedTargetIds).toEqual([woundedId]);
+    expect(preview?.priorityTargetIds).toEqual([woundedId]);
   });
 
   it('UnitView: 不同高亮状态 (attack_target vs target vs selected) 渲染可区分视觉指示', () => {
@@ -436,6 +610,83 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     expect(htmlTapSkillFx).toContain('data-tap-cue="skill"');
     expect(htmlTapSkillFx).toContain('anim-skill-burst');
     expect(htmlTapSkillFx).toContain('anim-skill-sweep');
+
+    const htmlInRange = renderToString(
+      <UnitView state={unitState} instance={unitState.card_instances[unitId]} highlight="in_range" />,
+    );
+    expect(htmlInRange).toContain('data-highlight="in_range"');
+    expect(htmlInRange).toContain('◎ 射程内');
+
+    const htmlHealTarget = renderToString(
+      <UnitView
+        state={unitState}
+        instance={unitState.card_instances[unitId]}
+        highlight="heal_target"
+        isPriorityHealTarget
+      />,
+    );
+    expect(htmlHealTarget).toContain('data-highlight="heal_target"');
+    expect(htmlHealTarget).toContain('+ 优先治疗');
+
+    const htmlHealRange = renderToString(
+      <UnitView state={unitState} instance={unitState.card_instances[unitId]} highlight="heal_range" />,
+    );
+    expect(htmlHealRange).toContain('data-highlight="heal_range"');
+    expect(htmlHealRange).toContain('+ 治疗范围');
+
+    const htmlMarkedWithAssault = renderToString(
+      <UnitView
+        state={unitState}
+        instance={{
+          ...unitState.card_instances[unitId],
+          operator_combat: {
+            ...unitState.card_instances[unitId].operator_combat!,
+            statuses: [
+              {
+                kind: 'assault',
+                remaining_owner_turns: 1,
+                applied_on_owner_turn_index: 1,
+                blocks_normal_withdrawal: false,
+                expire_at_node: 'combat_end',
+              },
+            ],
+          },
+        }}
+        highlight="none"
+        isFocusTarget
+      />,
+    );
+    expect(htmlMarkedWithAssault).toContain('🎯 标记');
+    expect(htmlMarkedWithAssault).not.toContain('🎯 集火');
+    expect(htmlMarkedWithAssault).toContain('突击');
+
+    const enemyPlayer = unitState.active_player_id === 'player_a' ? 'player_b' : 'player_a';
+    const enemyUnitState: GameState = {
+      ...unitState,
+      card_instances: {
+        ...unitState.card_instances,
+        [unitId]: {
+          ...unitState.card_instances[unitId],
+          owner_id: enemyPlayer,
+          controller_id: enemyPlayer,
+          board_half: enemyPlayer,
+        },
+      },
+    };
+    const detailHtml = renderToString(
+      <TacticalDetailPanel
+        state={enemyUnitState}
+        selection={unitId}
+        onDeselect={() => {}}
+        canAct
+        isActionPhase
+        hasPending={false}
+        legalActions={enumerateLegalActions(enemyUnitState, enemyUnitState.active_player_id)}
+        onDispatch={() => {}}
+      />,
+    ).replace(/<!-- -->/g, '');
+    expect(detailHtml).toContain('🎯 标记为本回合优先目标');
+    expect(detailHtml).not.toContain('集火为本回合优先目标');
   });
 
   it('双击手势识别: 300ms 内连续轻点触发双击快速技能，超过阈值则按普通单击处理', () => {
@@ -1038,7 +1289,10 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     // 1. 构造手牌包含「战术分析」(DEMO-TAC-V2-021)、「紧急治疗」(需指定目标) 与 1 名干员
     const tacDef = DEMO_CARDS.find((c) => c.card_id === ('DEMO-TAC-V2-021' as CardId))!;
     const tacInstId = 'tac-analysis-1' as CardInstanceId;
-    const extraOpId = baseState.players[actor].hand[0]!;
+    const extraOpId =
+      baseState.players[actor].hand.find(
+        (id) => baseState.card_definitions[baseState.card_instances[id]!.card_id]?.card_type === 'operator',
+      ) ?? baseState.players[actor].hand[0]!;
     const stagedState: GameState = {
       ...baseState,
       card_definitions: { ...baseState.card_definitions, [tacDef.card_id]: tacDef },

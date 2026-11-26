@@ -195,8 +195,8 @@
     "keyword_id": "ambush",
     "keyword_name_zh": "伏击",
     "category": "分支特性",
-    "card_short_text": "【伏击】不拦截普通攻击但可被攻击；未被【集火】时被攻击优先级等同基本分。",
-    "detail_rules_text": "不会阻挡敌方单攻（仅有伏击单位在场时敌方可直接攻击基地基本分），但可被【集火】指令、多目标或技能选中。",
+    "card_short_text": "【伏击】不拦截普通攻击但可被攻击；未被【标记】时被攻击优先级等同基本分。",
+    "detail_rules_text": "不会阻挡敌方单攻（仅有伏击单位在场时敌方可直接攻击基地基本分），但可被【标记】指令、多目标或技能选中。",
     "usage_status": "V1.1"
   },
   {
@@ -269,6 +269,14 @@
     "category": "强控制状态",
     "card_short_text": "【冻结】无法普通攻击、禁用自身技能与撤离，并失去拦截与嘲讽资格。",
     "detail_rules_text": "冻结期间仍占据原格并可受到伤害，同时令浮空目标落地；持续至目标下个己方回合开始。",
+    "usage_status": "V1.1"
+  },
+  {
+    "keyword_id": "assault",
+    "keyword_name_zh": "突击",
+    "category": "部署特性",
+    "card_short_text": "【突击】无视部署当回合的攻击冷却，部署当回合即可正常参与交锋。",
+    "detail_rules_text": "后手方整场首次部署的干员自动获得【突击】，本回合即可参与交锋与进攻（目前不做卡牌拓展）。",
     "usage_status": "V1.1"
   }
 ]

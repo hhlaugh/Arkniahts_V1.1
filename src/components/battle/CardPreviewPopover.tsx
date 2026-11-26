@@ -8,6 +8,7 @@ import { getCardPresentation, getSummonPresentation } from '../../data/card-pres
 import { extractCardKeywords } from '../../data/keywords';
 import { OperatorPortrait } from '../cards/OperatorPortrait';
 import { RARITY_THEMES } from '../ui/tokens';
+import { getHealingRangeLabel } from './tacticalSelectors';
 import tacticalCardBackplate from '../../assets/images/tactical_card_backplate_1795070703422.jpg';
 
 export interface HoveredCardPreview {
@@ -250,6 +251,10 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
 
   // V1.1 卡牌仅保留单份效果描述（不重复渲染 active_skill_text_zh）
   const rulesText = definition.rules_text_zh || effectSummary(definition);
+  const healingRangeLabel = getHealingRangeLabel(definition);
+  const isBackRowMelee = Boolean(
+    isBoardUnit && instance.position === 'back' && attackProfile?.mode === 'melee',
+  );
   const liveCombat = isBoardUnit ? instance.operator_combat : undefined;
   const baseAtk = definition.atk ?? 0;
   const effectiveAtk = entityStats?.atk ?? baseAtk;
@@ -476,6 +481,18 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
                   <p className="m-0 text-slate-100 text-center">{rulesText}</p>
                 )}
 
+                {healingRangeLabel && (
+                  <div className="pt-1 border-t border-emerald-500/30 text-[10px] font-mono text-emerald-300 text-center">
+                    ✚ 治疗范围：{healingRangeLabel}
+                  </div>
+                )}
+
+                {isBackRowMelee && (
+                  <div className="pt-1 border-t border-amber-500/30 text-[10px] font-mono text-amber-300 text-center">
+                    ⚠️ 近战处于后排，无法攻击敌方后排与基地
+                  </div>
+                )}
+
                 {liveCombat?.equipped_package && (
                   <div className="pt-1 border-t border-[#222c3a] text-[10px] font-mono text-emerald-300 text-center">
                     🔧 已装备：{liveCombat.equipped_package.card_name_zh}
@@ -485,7 +502,10 @@ export function CardPreviewPopover({ state, hovered, invalidReason, onDismiss }:
                 {liveCombat && liveCombat.statuses.length > 0 && (
                   <div className="pt-1 border-t border-[#222c3a] text-[10px] font-mono text-rose-200 flex flex-wrap justify-center gap-x-2 gap-y-0.5">
                     {liveCombat.statuses.map((s, idx) => (
-                      <span key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? idx}`}>
+                      <span
+                        key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? idx}`}
+                        className={s.kind === 'assault' ? 'text-amber-300 font-bold' : undefined}
+                      >
                         {STATUS_LABEL[s.kind] ?? s.kind} {s.remaining_owner_turns}回
                       </span>
                     ))}

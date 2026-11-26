@@ -58,11 +58,13 @@ export type StatusKind =
   | 'chilled'
   | 'vulnerable'
   | 'cover'
-  | 'poisoned';
+  | 'poisoned'
+  | 'assault';
 
 export type ExpireAtNode =
   | 'owner_turn_start'
   | 'owner_next_turn_start'
+  | 'owner_turn_end'
   | 'owner_next_turn_end'
   | 'source_next_turn_start'
   | 'target_next_basic_attack'
@@ -334,6 +336,7 @@ export interface PlayerState {
   focus_target_changes_this_turn: number;
   next_deploy_discounts: readonly DeployDiscount[];
   facility_first_deploy_discount_used_turn: number | null;
+  assault_bonus_used?: boolean;
 }
 
 export type GameAction =
@@ -407,6 +410,7 @@ export interface GameState {
   readonly combat_log: readonly CombatLogEvent[];
   readonly pending_effect_choices: readonly PendingEffectChoice[];
   readonly turn_start_prepared: boolean;
+  readonly first_player_id?: PlayerId;
 }
 
 export type CombatLogEventType =

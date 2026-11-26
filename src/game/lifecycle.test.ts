@@ -306,7 +306,12 @@ describe('deployment validation and atomicity', () => {
     state = setCost(enemyUnit.state, actor, 10);
     state = setCost(state, enemy, 10);
     state = deploy(state, actor, plume.cardInstanceId, 'L1', 'front');
-    state = deploy(state, enemy, enemyUnit.cardInstanceId, 'L1', 'front');
+    state = deploy({ ...state, active_player_id: enemy }, enemy, enemyUnit.cardInstanceId, 'L1', 'front');
+    state = { ...state, active_player_id: actor };
+    state = editInstance(state, plume.cardInstanceId, (inst) => ({
+      ...inst,
+      operator_lifecycle: { ...inst.operator_lifecycle!, entered_battle_this_owner_turn: false },
+    }));
     state = dispatch(state, actor, { type: 'end_action_phase' });
 
     const handBefore = state.players[actor].hand.length;

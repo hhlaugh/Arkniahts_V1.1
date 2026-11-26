@@ -132,6 +132,7 @@ function makePlayer(playerId: PlayerId, deck: readonly CardInstanceId[]): GameSt
     focus_target_changes_this_turn: 0,
     next_deploy_discounts: [],
     facility_first_deploy_discount_used_turn: null,
+    assault_bonus_used: false,
   };
 }
 
@@ -280,9 +281,11 @@ export function mulligan(
     if (!Number.isFinite(firstPlayerRoll.value) || firstPlayerRoll.value < 0 || firstPlayerRoll.value >= 1 || !Number.isInteger(firstPlayerRoll.state)) {
       return { ok: false, value: state, reason: 'randomSource 返回了无效随机值。' };
     }
+    const firstPlayer: PlayerId = firstPlayerRoll.value < 0.5 ? 'player_a' : 'player_b';
     nextState = {
       ...nextState,
-      active_player_id: firstPlayerRoll.value < 0.5 ? 'player_a' : 'player_b',
+      active_player_id: firstPlayer,
+      first_player_id: firstPlayer,
       phase: 'turn_start',
       turn_number: 1,
       random_state: normalizeSeed(firstPlayerRoll.state),
@@ -395,6 +398,33 @@ function deployOperator(
     once_per_game_flags: lifecycle?.once_per_game_flags ?? {},
   };
 
+  const otherId: PlayerId = actorId === 'player_a' ? 'player_b' : 'player_a';
+  const isSecondPlayer =
+    (state.first_player_id !== undefined && state.first_player_id !== actorId) ||
+    (state.first_player_id === undefined &&
+      state.players[otherId].turns_taken > 0 &&
+      player.turns_taken <= state.players[otherId].turns_taken);
+  const triggersAssault = Boolean(isSecondPlayer && !player.assault_bonus_used);
+
+  const baseCombat = initialOperatorCombat(definition);
+  const deployedCombat: OperatorCombatState = triggersAssault
+    ? {
+        ...baseCombat,
+        granted_immediate_attack_this_turn: true,
+        statuses: [
+          ...baseCombat.statuses,
+          {
+            status_id: 'assault_first_deploy',
+            kind: 'assault',
+            remaining_owner_turns: 1,
+            applied_on_owner_turn_index: player.turns_taken,
+            expire_at_node: 'combat_end',
+            blocks_normal_withdrawal: false,
+          },
+        ],
+      }
+    : baseCombat;
+
   const deployed: CardInstance = {
     ...instance,
     entity_kind: 'operator',
@@ -403,7 +433,7 @@ function deployOperator(
     lane: canonicalLane,
     position,
     slot_index: slotIndex,
-    operator_combat: initialOperatorCombat(definition),
+    operator_combat: deployedCombat,
     operator_lifecycle: nextLifecycle,
   };
 
@@ -413,6 +443,7 @@ function deployOperator(
     cost: (player.cost - finalCost) as Cost,
     next_deploy_discounts: player.next_deploy_discounts.filter((d) => d.expires_player !== actorId),
     facility_first_deploy_discount_used_turn: logisticsUsed ? player.own_turn_index : player.facility_first_deploy_discount_used_turn,
+    assault_bonus_used: triggersAssault ? true : player.assault_bonus_used,
   };
 
   let nextState = setPlayer(state, actorId, nextPlayer);
@@ -431,6 +462,20 @@ function deployOperator(
     action_type: 'deploy',
     detail: `${playerLabel(actorId)} 部署了【${definition.card_name_zh}】于 [${cellDesc}]（消耗 ${finalCost} CP${finalCost < definition.cost ? `，原价 ${definition.cost}` : ''}）。`,
   });
+
+  if (triggersAssault) {
+    nextState = addCombatLog(nextState, {
+      type: 'effect_triggered',
+      source_instance_id: cardInstanceId,
+      target_instance_id: cardInstanceId,
+      source_player_id: actorId,
+      target_player_id: actorId,
+      source_name: definition.card_name_zh,
+      target_name: definition.card_name_zh,
+      action_type: 'assault',
+      detail: `${playerLabel(actorId)} 后手首个干员【${definition.card_name_zh}】获得【突击】，本回合可直接参与交锋。`,
+    });
+  }
 
   if (logisticsUsed) {
     nextState = addCombatLog(nextState, {
@@ -589,12 +634,12 @@ function setFocusTarget(
   const player = state.players[actorId];
   const maxChanges = state.open_decision_config.maxFocusChangesPerTurn;
   if (typeof maxChanges === 'number' && player.focus_target_changes_this_turn >= maxChanges) {
-    return { ok: false, value: state, reason: `每回合最多更改 ${maxChanges} 次集火目标。` };
+    return { ok: false, value: state, reason: `每回合最多更改 ${maxChanges} 次标记目标。` };
   }
   if (targetId !== null) {
     const target = state.card_instances[targetId];
     if (!target || target.zone !== 'board' || target.controller_id === actorId || !target.operator_combat) {
-      return { ok: false, value: state, reason: '集火目标必须是一名在场的敌方实体（干员、召唤物或设施）。' };
+      return { ok: false, value: state, reason: '标记目标必须是一名在场的敌方实体（干员、召唤物或设施）。' };
     }
   }
 
@@ -610,8 +655,8 @@ function setFocusTarget(
     target_instance_id: targetId ?? undefined,
     target_name: targetInst ? entityName(next, targetInst) : undefined,
     detail: targetInst
-      ? `${playerLabel(actorId)} 指定【${entityName(next, targetInst)}】为本回合玩家集火目标。`
-      : `${playerLabel(actorId)} 取消了本回合玩家集火目标。`,
+      ? `${playerLabel(actorId)} 标记【${entityName(next, targetInst)}】为本回合优先攻击目标。`
+      : `${playerLabel(actorId)} 取消了本回合标记目标。`,
   });
   return { ok: true, value: { ...next, state_version: next.state_version + 1 } };
 }
@@ -828,7 +873,12 @@ function resolveTurnStart(state: GameState): GameState {
   const turnCpCap = Math.min(MAX_COST, baseCp + 2);
 
   // 1. 重置当前 CP 至该回合基础 CP、重置本回合一次性标记
-  let next = updatePlayer(state, playerId, (p) => ({
+  const otherPlayerId: PlayerId = playerId === 'player_a' ? 'player_b' : 'player_a';
+  let next = state;
+  if (!next.first_player_id && next.players[otherPlayerId].turns_taken === 0) {
+    next = { ...next, first_player_id: playerId };
+  }
+  next = updatePlayer(next, playerId, (p) => ({
     ...p,
     cost: baseCp as Cost,
     turn_cp_cap: turnCpCap,

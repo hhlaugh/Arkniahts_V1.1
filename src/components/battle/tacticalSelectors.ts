@@ -1,4 +1,5 @@
 import {
+  compareBoardEntities,
   normalizeLaneId,
   slotCountForRow,
   sortedLanes,
@@ -9,11 +10,17 @@ import {
   getEffectiveAttackProfile,
   getEligibleLanes,
   getEntityKind,
+  getEntityMaxHp,
   hasStatus,
   hasTauntForAttacker,
+  isFrozen,
+  isGrounded,
+  isNativeFloating,
+  normalizeRouteScope,
   selectOrdinaryAttackTargets,
 } from '../../game/range';
 import type {
+  CardDefinition,
   CardInstance,
   CardInstanceId,
   GameAction,
@@ -30,15 +37,44 @@ export interface AttackPreviewResult {
   readonly controllerId: PlayerId;
   readonly primaryTargetId: CardInstanceId | null;
   readonly targetIds: readonly CardInstanceId[];
+  readonly legalTargetIds: readonly CardInstanceId[];
   readonly tauntBlocked: boolean;
   readonly attacksBase: boolean;
   readonly cannotAttackReason: string | null;
   readonly laneSlots: readonly { readonly half: PlayerId; readonly lane: LaneId; readonly position: Position }[];
 }
 
+export interface HealingRangePreview {
+  readonly healerId?: CardInstanceId;
+  readonly controllerId: PlayerId;
+  readonly lane: LaneId | null;
+  readonly routeScope: 'same_lane' | 'same_and_adjacent_lane' | 'all_lanes';
+  readonly scopeLabel: string;
+  readonly healableUnitIds: readonly CardInstanceId[];
+  readonly woundedTargetIds: readonly CardInstanceId[];
+  readonly priorityTargetIds: readonly CardInstanceId[];
+  readonly rangeCells: readonly { readonly half: PlayerId; readonly lane: LaneId; readonly position: Position }[];
+}
+
+function willDeployGrantAssault(state: GameState, controllerId: PlayerId): boolean {
+  const otherId: PlayerId = controllerId === 'player_a' ? 'player_b' : 'player_a';
+  const player = state.players[controllerId];
+  if (!player || player.assault_bonus_used) return false;
+  return (
+    (state.first_player_id !== undefined && state.first_player_id !== controllerId) ||
+    (state.first_player_id === undefined &&
+      state.players[otherId].turns_taken > 0 &&
+      player.turns_taken <= state.players[otherPlayerFallback(otherId)].turns_taken)
+  );
+}
+
+function otherPlayerFallback(id: PlayerId): PlayerId {
+  return id;
+}
+
 /**
  * 与 V1.1 规则引擎 100% 对齐的攻击目标与航道预览选择器（只读，不产生副作用）。
- * 支持已部署实体或悬停待部署格子预演（含嘲讽、集火、范围覆盖与多目标/贯穿预览）。
+ * 支持已部署实体或悬停待部署格子预演（含嘲讽、标记、近战后排限制、范围覆盖与合法目标预览）。
  */
 export function previewAttackTargets(
   state: GameState,
@@ -90,12 +126,17 @@ export function previewAttackTargets(
   const profile = getEffectiveAttackProfile(state, previewInstance);
   if (!profile) return null;
 
+  const isBackRowMelee = profile.mode === 'melee' && previewInstance.position === 'back';
   const enemyHalf: PlayerId = controllerId === 'player_a' ? 'player_b' : 'player_a';
   const eligibleLanes = getEligibleLanes(state, lane, profile.route_scope);
-  const laneSlots = eligibleLanes.flatMap((l) => [
-    { half: enemyHalf, lane: l, position: 'front' as const },
-    { half: enemyHalf, lane: l, position: 'back' as const },
-  ]);
+  const laneSlots = eligibleLanes.flatMap((l) =>
+    isBackRowMelee
+      ? [{ half: enemyHalf, lane: l, position: 'front' as const }]
+      : [
+          { half: enemyHalf, lane: l, position: 'front' as const },
+          { half: enemyHalf, lane: l, position: 'back' as const },
+        ],
+  );
 
   let cannotAttackReason: string | null = null;
   if (source.kind === 'unit') {
@@ -105,14 +146,23 @@ export function previewAttackTargets(
       cannotAttackReason = '当前处于眩晕状态，本回合跳过攻击';
     } else if (profile.mode === 'support') {
       cannotAttackReason = '医疗干员在战斗阶段优先执行友方治疗';
-    } else if (instance.operator_lifecycle?.entered_battle_this_owner_turn && !instance.operator_combat?.granted_immediate_attack_this_turn) {
+    } else if (
+      instance.operator_lifecycle?.entered_battle_this_owner_turn &&
+      !instance.operator_combat?.granted_immediate_attack_this_turn &&
+      !hasStatus(instance, 'assault')
+    ) {
       cannotAttackReason = '本回合刚部署，将在下次行动后参与交锋';
     }
   } else {
+    const draftGrantsAssault = willDeployGrantAssault(state, controllerId);
     cannotAttackReason =
       profile.mode === 'support'
-        ? '医疗干员部署后于我方战斗阶段治疗友方'
-        : '部署当回合不会立刻攻击，下回合按此路径索敌';
+        ? draftGrantsAssault
+          ? '【突击】后手首部署：本回合作战阶段即可治疗友方'
+          : '医疗干员部署后于我方战斗阶段治疗友方'
+        : draftGrantsAssault
+          ? '【突击】后手首部署：无视部署冷却，本回合即可进攻'
+          : '部署当回合不会立刻攻击，下回合按此路径索敌';
   }
 
   if (profile.mode === 'support') {
@@ -122,6 +172,7 @@ export function previewAttackTargets(
       controllerId,
       primaryTargetId: null,
       targetIds: [],
+      legalTargetIds: [],
       tauntBlocked: false,
       attacksBase: false,
       cannotAttackReason,
@@ -129,9 +180,29 @@ export function previewAttackTargets(
     };
   }
 
+  const eligibleLaneSet = new Set(eligibleLanes);
+  const legalEnemies = Object.values(state.card_instances)
+    .filter((i) => {
+      if (i.zone !== 'board' || i.controller_id === controllerId || !i.lane || !i.operator_combat) {
+        return false;
+      }
+      if (isBackRowMelee && i.position === 'back') return false;
+      const inScope = eligibleLaneSet.has(normalizeLaneId(state.board_profile, i.lane));
+      const tauntScope = i.summon_state?.taunt_scope ?? state.card_definitions[i.card_id]?.taunt_scope ?? 'none';
+      const hasGlobalTaunt = tauntScope === 'all_lanes' && !isFrozen(i);
+      if (!inScope && !hasGlobalTaunt) return false;
+      return !isNativeFloating(state, i) || isGrounded(state, i) || profile.mode === 'ranged';
+    })
+    .sort((a, b) => compareBoardEntities(state.board_profile, a, b));
+
   const targets = selectOrdinaryAttackTargets(state, previewInstance);
   const primary = targets[0] ?? null;
   const tauntBlocked = Boolean(primary && hasTauntForAttacker(state, previewInstance, primary));
+  const attacksBase = targets.length === 0 && !isBackRowMelee;
+
+  if (isBackRowMelee && targets.length === 0 && !cannotAttackReason) {
+    cannotAttackReason = '近战处于后排，无法攻击敌方后排与基地';
+  }
 
   return {
     attackerId: source.kind === 'unit' ? source.instance.card_instance_id : undefined,
@@ -139,10 +210,211 @@ export function previewAttackTargets(
     controllerId,
     primaryTargetId: primary?.card_instance_id ?? null,
     targetIds: targets.map((t) => t.card_instance_id),
+    legalTargetIds: legalEnemies.map((t) => t.card_instance_id),
     tauntBlocked,
-    attacksBase: targets.length === 0,
+    attacksBase,
     cannotAttackReason,
     laneSlots,
+  };
+}
+
+interface AllyHealSpec {
+  readonly routeScope: 'same_lane' | 'same_and_adjacent_lane' | 'all_lanes';
+  readonly targetLimit: number | 'all';
+  readonly priority: 'lowest_hp_ratio' | 'lowest_current_hp';
+  readonly scopeLabel: string;
+}
+
+function getAllyHealSpecForDefinition(def: CardDefinition): AllyHealSpec | null {
+  if (def.attack_profile?.mode === 'support') {
+    const scope = normalizeRouteScope(String(def.attack_profile.route_scope));
+    const normalizedScope: AllyHealSpec['routeScope'] =
+      scope === 'all_lanes' || scope === 'same_and_adjacent_lane' ? scope : 'same_lane';
+    const limit: number | 'all' =
+      def.attack_profile.pattern === 'heal_multi'
+        ? def.attack_profile.target_limit === 'all'
+          ? 'all'
+          : Math.max(1, Number(def.attack_profile.target_limit ?? 2))
+        : 1;
+    const hasAllWoundedTurnEnd = (def.skill_effects ?? []).some((b) =>
+      b.effects.some((e) => e.op === 'heal' && e.target === 'all_wounded_allies'),
+    );
+    const scopeText =
+      normalizedScope === 'all_lanes'
+        ? '全路友方单位'
+        : normalizedScope === 'same_and_adjacent_lane'
+          ? '同路及邻路友方单位'
+          : '同路友方单位';
+    const countText = limit === 'all' ? '全员' : limit > 1 ? `至多 ${limit} 名` : '生命比例最低 1 名';
+    const extraText = hasAllWoundedTurnEnd ? '；回合末全路群疗' : '';
+    return {
+      routeScope: normalizedScope,
+      targetLimit: limit,
+      priority: 'lowest_hp_ratio',
+      scopeLabel: `${scopeText}（${countText}${extraText} · 含召唤物，不含设施与【禁疗】）`,
+    };
+  }
+
+  for (const block of def.skill_effects ?? def.effect_json?.v1_1_blocks ?? []) {
+    for (const op of block.effects) {
+      if (op.op !== 'heal' && op.op !== 'heal_and_shield') continue;
+      const target = String(op.target ?? '');
+      if (target === 'self' || target === 'host') continue;
+      if (target === 'selected_friendly_unit') {
+        return {
+          routeScope: 'all_lanes',
+          targetLimit: 1,
+          priority: 'lowest_hp_ratio',
+          scopeLabel: '全场任意可治疗友方单位（不含设施与【禁疗】）',
+        };
+      }
+      if (target === 'all_wounded_allies') {
+        return {
+          routeScope: 'all_lanes',
+          targetLimit: 'all',
+          priority: 'lowest_hp_ratio',
+          scopeLabel: '全路所有受伤友方单位（不含设施与【禁疗】）',
+        };
+      }
+      if (target === 'friendly_damaged_unit_lowest_current_hp') {
+        return {
+          routeScope: 'all_lanes',
+          targetLimit: 1,
+          priority: 'lowest_current_hp',
+          scopeLabel: '全路当前生命最低 1 名受伤友方单位（不含设施与【禁疗】）',
+        };
+      }
+      if (target === 'lowest_hp_ratio_wounded_ally_same_or_adjacent') {
+        return {
+          routeScope: 'same_and_adjacent_lane',
+          targetLimit: 1,
+          priority: 'lowest_hp_ratio',
+          scopeLabel: '同路及邻路生命比例最低 1 名受伤友方单位（不含设施与【禁疗】）',
+        };
+      }
+      if (
+        target === 'lowest_hp_ratio_wounded_ally_same_lane' ||
+        target === 'wounded_ally_same_lane' ||
+        target === 'damaged_ally_same_lane'
+      ) {
+        return {
+          routeScope: 'same_lane',
+          targetLimit: 1,
+          priority: 'lowest_hp_ratio',
+          scopeLabel: '同路受伤友方单位（不含设施与【禁疗】）',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+export function getHealingRangeLabel(def: CardDefinition | undefined | null): string | null {
+  if (!def) return null;
+  return getAllyHealSpecForDefinition(def)?.scopeLabel ?? null;
+}
+
+/**
+ * 计算友方治疗可作用范围、可治疗单位与优先治疗目标（只读预览，与引擎治疗校验一致）。
+ */
+export function previewHealingRange(
+  state: GameState,
+  source:
+    | { readonly kind: 'unit'; readonly instance: CardInstance }
+    | {
+        readonly kind: 'draft';
+        readonly cardInstanceId: CardInstanceId;
+        readonly controllerId: PlayerId;
+        readonly lane: LaneId;
+        readonly position: Position;
+        readonly slotIndex?: number;
+      }
+    | {
+        readonly kind: 'card';
+        readonly cardInstanceId: CardInstanceId;
+        readonly controllerId: PlayerId;
+      },
+): HealingRangePreview | null {
+  const controllerId = source.kind === 'unit' ? source.instance.controller_id : source.controllerId;
+  const instance =
+    source.kind === 'unit' ? source.instance : state.card_instances[source.cardInstanceId];
+  if (!instance) return null;
+
+  const def = state.card_definitions[instance.card_id];
+  if (!def) return null;
+
+  let spec: AllyHealSpec | null = null;
+  if (instance.summon_state?.token_id === 'magallan_support_drone') {
+    spec = {
+      routeScope: 'same_lane',
+      targetLimit: 1,
+      priority: 'lowest_hp_ratio',
+      scopeLabel: '同路受伤友方单位（回合末恢复 1 HP，不含设施与【禁疗】）',
+    };
+  } else {
+    spec = getAllyHealSpecForDefinition(def);
+  }
+  if (!spec) return null;
+
+  const rawLane = source.kind === 'unit' ? source.instance.lane : source.kind === 'draft' ? source.lane : null;
+  if (source.kind === 'card' && spec.routeScope !== 'all_lanes') {
+    return null;
+  }
+  const lane = rawLane ? normalizeLaneId(state.board_profile, rawLane) : null;
+  if (spec.routeScope !== 'all_lanes' && !lane) return null;
+
+  const eligibleLanes =
+    spec.routeScope === 'all_lanes' || !lane
+      ? sortedLanes(state.board_profile).map((l) => l.laneId)
+      : getEligibleLanes(state, lane, spec.routeScope);
+  const eligibleLaneSet = new Set(eligibleLanes);
+
+  const rangeCells = eligibleLanes.flatMap((l) => [
+    { half: controllerId, lane: l, position: 'front' as const },
+    { half: controllerId, lane: l, position: 'back' as const },
+  ]);
+
+  const healableUnits = Object.values(state.card_instances)
+    .filter((u) => {
+      if (u.zone !== 'board' || u.controller_id !== controllerId || !u.operator_combat || !u.lane) return false;
+      if (getEntityKind(state, u) === 'facility') return false;
+      if (!eligibleLaneSet.has(normalizeLaneId(state.board_profile, u.lane))) return false;
+      const uDef = state.card_definitions[u.card_id];
+      if (uDef?.native_traits?.some((t) => t.effect?.op === 'exclude_from_friendly_heal_targets')) return false;
+      return true;
+    })
+    .sort((a, b) => compareBoardEntities(state.board_profile, a, b));
+
+  const woundedUnits = [...healableUnits]
+    .filter((u) => (u.operator_combat?.current_hp ?? 0) < getEntityMaxHp(state, u))
+    .sort((a, b) => {
+      if (spec.priority === 'lowest_current_hp') {
+        const diff = (a.operator_combat?.current_hp ?? 0) - (b.operator_combat?.current_hp ?? 0);
+        if (diff !== 0) return diff;
+      } else {
+        const ra = (a.operator_combat?.current_hp ?? 0) / Math.max(1, getEntityMaxHp(state, a));
+        const rb = (b.operator_combat?.current_hp ?? 0) / Math.max(1, getEntityMaxHp(state, b));
+        if (Math.abs(ra - rb) > 1e-6) return ra - rb;
+      }
+      return compareBoardEntities(state.board_profile, a, b);
+    });
+
+  const priorityTargets =
+    spec.targetLimit === 'all'
+      ? woundedUnits
+      : woundedUnits.slice(0, Math.max(1, spec.targetLimit));
+
+  return {
+    healerId: source.kind === 'unit' ? source.instance.card_instance_id : undefined,
+    controllerId,
+    lane,
+    routeScope: spec.routeScope,
+    scopeLabel: spec.scopeLabel,
+    healableUnitIds: healableUnits.map((u) => u.card_instance_id),
+    woundedTargetIds: woundedUnits.map((u) => u.card_instance_id),
+    priorityTargetIds: priorityTargets.map((u) => u.card_instance_id),
+    rangeCells,
   };
 }
 

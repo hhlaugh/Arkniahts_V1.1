@@ -211,7 +211,7 @@ describe('automatic combat target selection and settlement', () => {
     let bFront: CardInstanceId;
     let bBack: CardInstanceId;
     [s, aFront] = put(s, 'player_a', 'OP-GUA-001', 'L1', 'front');
-    [s, aBack] = put(s, 'player_a', 'OP-GUA-001', 'L1', 'back');
+    [s, aBack] = put(s, 'player_a', 'OP-SNI-002', 'L1', 'back');
     [s, bFront] = put(s, 'player_b', 'OP-GUA-001', 'L1', 'front', { hp: 2 });
     [s, bBack] = put(s, 'player_b', 'OP-GUA-001', 'L1', 'back', { hp: 3 });
     s = resolveCombat(s);

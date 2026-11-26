@@ -701,7 +701,7 @@ export function removeEntityByDefeatOrDestroy(
     discard: nextOwnerDiscard,
     focus_target_id: p.focus_target_id === entityId ? null : p.focus_target_id,
   }));
-  // 清除对方集火该目标
+  // 清除对方标记该目标
   const otherId: PlayerId = latest.owner_id === 'player_a' ? 'player_b' : 'player_a';
   if (next.players[otherId].focus_target_id === entityId) {
     next = updatePlayer(next, otherId, (p) => ({ ...p, focus_target_id: null }));

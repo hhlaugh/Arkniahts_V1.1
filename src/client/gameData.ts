@@ -110,6 +110,7 @@ export const STATUS_LABEL: Readonly<Record<string, string>> = {
   vulnerable: '脆弱',
   cover: '掩护',
   poisoned: '中毒',
+  assault: '突击',
 };
 
 export const CLASS_LABEL: Readonly<Record<string, string>> = {

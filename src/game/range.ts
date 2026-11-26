@@ -216,13 +216,21 @@ export function canEntityPerformBasicAttack(state: GameState, instance: CardInst
     const summonAtk = getEntityStats(state, instance).atk;
     if (summonAtk <= 0) return false;
     if (instance.operator_combat.consumed_normal_attack_this_turn) return false;
-    if (instance.operator_lifecycle?.entered_battle_this_owner_turn && !instance.operator_combat.granted_immediate_attack_this_turn) {
+    if (
+      instance.operator_lifecycle?.entered_battle_this_owner_turn &&
+      !instance.operator_combat.granted_immediate_attack_this_turn &&
+      !hasStatus(instance, 'assault')
+    ) {
       return false;
     }
     return true;
   }
   if (instance.operator_combat.consumed_normal_attack_this_turn) return false;
-  if (instance.operator_lifecycle?.entered_battle_this_owner_turn && !instance.operator_combat.granted_immediate_attack_this_turn) {
+  if (
+    instance.operator_lifecycle?.entered_battle_this_owner_turn &&
+    !instance.operator_combat.granted_immediate_attack_this_turn &&
+    !hasStatus(instance, 'assault')
+  ) {
     return false;
   }
   const profile = getEffectiveAttackProfile(state, instance);
@@ -425,7 +433,7 @@ export function canEntityBlockBaseAttack(state: GameState, instance: CardInstanc
  * 解析普通攻击主目标（以及多目标/贯穿等目标列表）。
  * 严格遵循 V1.1 优先级：
  * 1. 合法范围内的嘲讽目标
- * 2. 合法范围内的玩家本回合集火目标指令
+ * 2. 合法范围内的玩家本回合标记目标指令
  * 3. 干员自身索敌规则（front_first / back_first / lowest_hp / lowest_hp_ratio / highest_hp / shield_first）
  * 4. 最终并列按 (laneOrder, rowOrder, slotIndex, entityId) 升序
  */
@@ -433,9 +441,15 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
   const profile = getEffectiveAttackProfile(state, attacker);
   if (!profile || profile.mode === 'support' || !attacker.lane) return [];
 
+  // 近战单位若处于后排，无法攻击敌方后排单位（且无法直接攻击敌方基本分）
+  const isBackRowMelee = profile.mode === 'melee' && attacker.position === 'back';
+
   const eligibleLanes = new Set(getEligibleLanes(state, attacker.lane, profile.route_scope));
   const enemyEntities = Object.values(state.card_instances).filter((i) => {
     if (i.zone !== 'board' || i.controller_id === attacker.controller_id || !i.lane || !i.operator_combat) {
+      return false;
+    }
+    if (isBackRowMelee && i.position === 'back') {
       return false;
     }
     const inScope = eligibleLanes.has(normalizeLaneId(state.board_profile, i.lane));
@@ -451,7 +465,7 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
   const focusedInScope = focusId ? enemyEntities.some((e) => e.card_instance_id === focusId) : false;
 
   // 若攻击范围内完全没有任何能拦截基地/承担前排阻挡的实体（如场上仅有孤立的被冻结单位、或仅有孤立的伊桑/狮蝎/鸟笼，不含设施），
-  // 且我方未对其中单位下达集火指令 -> 不拦截基地攻击（返回空数组使主攻击直击基地）
+  // 且我方未对其中单位下达标记指令 -> 不拦截基地攻击（返回空数组使主攻击直击基地）
   const hasAnyBaseBlocker = enemyEntities.some((e) => canEntityBlockBaseAttack(state, e));
   if (!hasAnyBaseBlocker && !focusedInScope) {
     return [];
@@ -459,7 +473,7 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
 
   const priority = normalizeTargetPriority(String(profile.target_priority));
   // 嘲讽（含鸟笼）、设施（FAC-02）与多目标/贯穿始终参与候选；
-  // 伏击客（伊桑/狮蝎）不拦截但可被集火或多目标攻击命中；非集火指令下，被攻击优先级等同基地（低于一切可拦截/占位阻挡目标）
+  // 伏击客（伊桑/狮蝎）不拦截但可被标记或多目标攻击命中；未被标记时，被攻击优先级等同基地（低于一切可拦截/占位阻挡目标）
   const selectableEntities = enemyEntities.filter((e) => {
     const kind = getEntityKind(state, e);
     if (kind === 'facility') return true;
@@ -480,7 +494,7 @@ export function selectOrdinaryAttackTargets(state: GameState, attacker: CardInst
     const bFocus = focusId && b.card_instance_id === focusId ? 0 : 1;
     if (aFocus !== bFocus) return aFocus - bFocus;
 
-    // 非集火状态下，具有拦截资格/占格阻挡的实体（含设施）始终优先于不拦截的伏击客/冻结单位
+    // 未被标记状态下，具有拦截资格/占格阻挡的实体（含设施）始终优先于不拦截的伏击客/冻结单位
     const aBlocks = canEntityBlockBaseAttack(state, a) ? 0 : 1;
     const bBlocks = canEntityBlockBaseAttack(state, b) ? 0 : 1;
     if (aBlocks !== bBlocks) return aBlocks - bBlocks;

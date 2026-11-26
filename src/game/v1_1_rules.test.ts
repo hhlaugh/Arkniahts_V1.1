@@ -200,7 +200,7 @@ function setCp(state: GameState, playerId: PlayerId, cp: number, cap = 10): Game
 }
 
 describe('V1.1 规范全量验收测试', () => {
-  it('1. 数据层：108 张卡（72 干员 + 24 战术 + 6 设施 + 6 支援）+ 34 关键词 + 无超 8 费卡 + 零校验错误', () => {
+  it('1. 数据层：108 张卡（72 干员 + 24 战术 + 6 设施 + 6 支援）+ 35 关键词（含突击，暂不做卡牌拓展）+ 无超 8 费卡 + 零校验错误', () => {
     expect(loaded.validCards).toHaveLength(108);
     expect(loaded.validCards.filter((c) => c.card_type === 'operator')).toHaveLength(72);
     expect(loaded.validCards.filter((c) => c.card_type === 'tactic')).toHaveLength(24);
@@ -208,7 +208,9 @@ describe('V1.1 规范全量验收测试', () => {
     expect(loaded.validCards.filter((c) => c.card_type === 'support')).toHaveLength(6);
     expect(loaded.validCards.every((c) => c.cost <= 8)).toBe(true);
     expect(summarizeValidation(loaded.issues)).toEqual({ errors: 0, warnings: 0 });
-    expect(keywordsJson).toHaveLength(34);
+    expect(keywordsJson).toHaveLength(35);
+    expect(keywordsJson.some((k) => k.keyword_id === 'assault' && k.keyword_name_zh === '突击')).toBe(true);
+    expect(loaded.validCards.every((c) => !(c.keyword_tokens ?? '').split(';').includes('突击'))).toBe(true);
   });
 
   it('2. 动态 BoardProfile：支持经典三路 21/32/21、单路与 5 路自定义，拒绝非法路线/格数', () => {
@@ -248,12 +250,12 @@ describe('V1.1 规范全量验收测试', () => {
     expect(areAdjacentLanes(CUSTOM_5_LANE_EXAMPLE, 'L1', 'L3')).toBe(false);
   });
 
-  it('3. 索敌优先级（嘲讽 > 集火 > 干员优先级 > 路/排/格序）与低索敌隐匿规则', () => {
+  it('3. 索敌优先级（嘲讽 > 标记 > 干员优先级 > 路/排/格序）与低索敌隐匿规则', () => {
     let s = startGame(11);
     const actor = s.active_player_id;
     const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
 
-    // 默认按前排先，且集火可绕过同优先级敌方
+    // 默认按前排先，且标记可绕过同优先级敌方
     let atkId: CardInstanceId;
     let f1: CardInstanceId;
     let f2: CardInstanceId;
@@ -261,17 +263,17 @@ describe('V1.1 规范全量验收测试', () => {
     ({ state: s, id: atkId } = placeBoardUnit(s, actor, 'OP-SNI-002', 'L1', 'back', 1));
     ({ state: s, id: f1 } = placeBoardUnit(s, enemy, 'OP-VAN-001', 'L1', 'front', 1));
     ({ state: s, id: f2 } = placeBoardUnit(s, enemy, 'OP-SNI-001', 'L1', 'back', 1));
-    // 将后排设为集火目标（无嘲讽时优先打集火）
+    // 将后排设为标记目标（无嘲讽时优先打标记）
     s = reduceGameAction(s, actor, { type: 'set_focus_target', target_instance_id: f2 }).value;
     expect(selectOrdinaryAttackTargets(s, s.card_instances[atkId]!).map((u) => u.card_instance_id)).toEqual([f2]);
 
-    // 添加嘲讽单位 -> 嘲讽优先级高于集火
+    // 添加嘲讽单位 -> 嘲讽优先级高于标记
     ({ state: s, id: tauntId } = placeBoardUnit(s, enemy, 'OP-DEF-003', 'L1', 'front', 1, {
       statuses: [{ kind: 'taunt', remaining_owner_turns: 1, applied_on_owner_turn_index: 1, blocks_normal_withdrawal: false }],
     }));
     expect(selectOrdinaryAttackTargets(s, s.card_instances[atkId]!).map((u) => u.card_instance_id)).toEqual([tauntId]);
 
-    // 多路 3 格下检验伊桑 / 狮蝎伏击客规则：不拦截但可被攻击，非集火下优先级等同基本分（仅伏击客时直击基地），集火可命中，且仅压制最高攻敌方单位
+    // 多路 3 格下检验伊桑 / 狮蝎伏击客规则：不拦截但可被攻击，未标记下优先级等同基本分（仅伏击客时直击基地），标记可命中，且仅压制最高攻敌方单位
     const wide = createCustomBoardProfile([{ frontSlots: 3, rearSlots: 2 }]);
     let w = startGame(12, { boardProfile: wide });
     const wActor = w.active_player_id;
@@ -282,18 +284,18 @@ describe('V1.1 规范全量验收测试', () => {
     ({ state: w, id: wAttacker } = placeBoardUnit(w, wActor, 'OP-GUA-001', 'L1', 'front', 1));
     ({ state: w, id: ethanId } = placeBoardUnit(w, wEnemy, 'OP-SPE-004', 'L1', 'front', 1));
     expect(isInterceptEligible(w, w.card_instances[ethanId]!)).toBe(false);
-    // 1) 仅有伏击客且未集火 -> 返回空目标并直接攻击敌方基地基本分
+    // 1) 仅有伏击客且未标记 -> 返回空目标并直接攻击敌方基地基本分
     expect(selectOrdinaryAttackTargets(w, w.card_instances[wAttacker]!)).toEqual([]);
     const baseBefore = w.players[wEnemy].base_points;
     const directBaseRes = resolveCombat({ ...w, phase: 'combat' });
     expect(directBaseRes.players[wEnemy].base_points).toBe(baseBefore - 2);
     expect(directBaseRes.card_instances[ethanId]?.operator_combat?.current_hp).toBe(3);
 
-    // 2) 对伏击客下达集火指令 -> 可直接攻击伏击客
+    // 2) 对伏击客下达标记指令 -> 可直接攻击伏击客
     const focusedEthan = reduceGameAction(w, wActor, { type: 'set_focus_target', target_instance_id: ethanId }).value;
     expect(selectOrdinaryAttackTargets(focusedEthan, focusedEthan.card_instances[wAttacker]!).map((u) => u.card_instance_id)).toEqual([ethanId]);
 
-    // 3) 场上同时存在常规可拦截单位与伏击客且未集火 -> 优先打常规目标而非伏击客
+    // 3) 场上同时存在常规可拦截单位与伏击客且未标记 -> 优先打常规目标而非伏击客
     ({ state: w, id: otherFrontId } = placeBoardUnit(w, wEnemy, 'OP-VAN-001', 'L1', 'front', 2));
     expect(isInterceptEligible(w, w.card_instances[otherFrontId]!)).toBe(true);
     expect(selectOrdinaryAttackTargets(w, w.card_instances[wAttacker]!).map((u) => u.card_instance_id)).toEqual([otherFrontId]);
@@ -801,6 +803,128 @@ describe('V1.1 规范全量验收测试', () => {
     const directAfter = resolveCombat(sDirect);
     expect(directAfter.players[dEnemy].base_points).toBe(18);
     expect(directAfter.card_instances[dL1EnemyId]?.operator_combat?.current_hp).toBe(4);
+  });
+
+  it('12. 后手首次部署干员获得【突击】：无视部署回合冷却立即攻击，先手方与后手后续部署不获得', () => {
+    let s = startGame(921);
+    const firstPlayer = s.first_player_id ?? s.active_player_id;
+    const secondPlayer: PlayerId = firstPlayer === 'player_a' ? 'player_b' : 'player_a';
+    expect(s.active_player_id).toBe(firstPlayer);
+
+    // 先手方部署第一个干员（OP-VAN-001，ATK 1）：不获得【突击】，本回合无法攻击敌方基地
+    s = setCp(s, firstPlayer, 10, 10);
+    let p1Op1: CardInstanceId;
+    ({ state: s, id: p1Op1 } = giveHandCard(s, firstPlayer, 'OP-VAN-001'));
+    const p1DeployRes = reduceGameAction(s, firstPlayer, {
+      type: 'deploy_operator',
+      card_instance_id: p1Op1,
+      lane: 'L1',
+      position: 'front',
+      slot_index: 1,
+    });
+    expect(p1DeployRes.ok).toBe(true);
+    s = p1DeployRes.value;
+    expect(s.card_instances[p1Op1]?.operator_combat?.statuses.some((st) => st.kind === 'assault')).toBe(false);
+    expect(s.card_instances[p1Op1]?.operator_combat?.granted_immediate_attack_this_turn).not.toBe(true);
+
+    // 结束先手行动阶段 -> 进入作战并推进结算，再推进到后手行动阶段
+    const p2BaseBeforeP1End = s.players[secondPlayer].base_points;
+    let endP1 = reduceGameAction(s, firstPlayer, { type: 'end_action_phase' });
+    expect(endP1.ok).toBe(true);
+    s = advancePhase(endP1.value).value;
+    // 先手刚部署干员未攻击，后手基地血量未减少
+    expect(s.players[secondPlayer].base_points).toBe(p2BaseBeforeP1End);
+    while (s.active_player_id !== secondPlayer || s.phase !== 'action') {
+      const adv = advancePhase(s);
+      if (!adv.ok) throw new Error(adv.reason);
+      s = adv.value;
+    }
+
+    // 后手方首次部署干员（OP-GUA-001，ATK 2）：获得【突击】，本回合立即攻击先手基地
+    s = setCp(s, secondPlayer, 10, 10);
+    let p2Op1: CardInstanceId;
+    let p2Op2: CardInstanceId;
+    ({ state: s, id: p2Op1 } = giveHandCard(s, secondPlayer, 'OP-GUA-001'));
+    ({ state: s, id: p2Op2 } = giveHandCard(s, secondPlayer, 'OP-VAN-001'));
+
+    const p2Deploy1 = reduceGameAction(s, secondPlayer, {
+      type: 'deploy_operator',
+      card_instance_id: p2Op1,
+      lane: 'L2',
+      position: 'front',
+      slot_index: 1,
+    });
+    expect(p2Deploy1.ok).toBe(true);
+    s = p2Deploy1.value;
+    expect(s.players[secondPlayer].assault_bonus_used).toBe(true);
+    expect(s.card_instances[p2Op1]?.operator_combat?.statuses.some((st) => st.kind === 'assault')).toBe(true);
+    expect(s.card_instances[p2Op1]?.operator_combat?.granted_immediate_attack_this_turn).toBe(true);
+
+    // 后手方同一回合部署第二名干员 -> 不再获得【突击】
+    const p2Deploy2 = reduceGameAction(s, secondPlayer, {
+      type: 'deploy_operator',
+      card_instance_id: p2Op2,
+      lane: 'L3',
+      position: 'front',
+      slot_index: 1,
+    });
+    expect(p2Deploy2.ok).toBe(true);
+    s = p2Deploy2.value;
+    expect(s.card_instances[p2Op2]?.operator_combat?.statuses.some((st) => st.kind === 'assault')).toBe(false);
+
+    // 结束行动阶段并推进作战结算：第一名干员（L2，ATK 2）攻击先手基地，第二名干员（L3）仍在部署冷却中不攻击；战斗后清理临时突击状态
+    const p1BaseBefore = s.players[firstPlayer].base_points;
+    const endP2 = reduceGameAction(s, secondPlayer, { type: 'end_action_phase' });
+    expect(endP2.ok).toBe(true);
+    const afterCombatP2 = advancePhase(endP2.value);
+    expect(afterCombatP2.ok).toBe(true);
+    s = afterCombatP2.value;
+    expect(s.players[firstPlayer].base_points).toBe(p1BaseBefore - 2);
+    expect(s.card_instances[p2Op1]?.operator_combat?.statuses.some((st) => st.kind === 'assault')).toBe(false);
+  });
+
+  it('13. 近战单位处于后排时无法攻击敌方后排与基本分，仍可攻击射程内敌方前排；领主后排仍可正常打击后排与基地', () => {
+    let s = startGame(931);
+    const actor = s.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    // 场景 A：近战干员 OP-GUA-001 位于 L1 后排，敌方 L1 仅后排有干员 + 全路空前排 -> 无法攻击敌方后排与基地
+    let backMeleeId: CardInstanceId;
+    let enemyBackId: CardInstanceId;
+    ({ state: s, id: backMeleeId } = placeBoardUnit(s, actor, 'OP-GUA-001', 'L1', 'back', 1));
+    ({ state: s, id: enemyBackId } = placeBoardUnit(s, enemy, 'OP-SNI-001', 'L1', 'back', 1, {
+      current_hp: 4 as HpValue,
+    }));
+
+    expect(selectOrdinaryAttackTargets(s, s.card_instances[backMeleeId]!)).toEqual([]);
+    const baseBefore = s.players[enemy].base_points;
+    const afterEmptyFront = resolveCombat(s);
+    expect(afterEmptyFront.card_instances[enemyBackId]?.operator_combat?.current_hp).toBe(4);
+    expect(afterEmptyFront.players[enemy].base_points).toBe(baseBefore);
+
+    // 场景 B：敌方 L1 前排有干员时，后排近战仍可正常攻击前排
+    let enemyFrontId: CardInstanceId;
+    ({ state: s, id: enemyFrontId } = placeBoardUnit(s, enemy, 'OP-VAN-001', 'L1', 'front', 1, {
+      current_hp: 4 as HpValue,
+    }));
+    expect(selectOrdinaryAttackTargets(s, s.card_instances[backMeleeId]!).map((u) => u.card_instance_id)).toEqual([enemyFrontId]);
+    const afterWithFront = resolveCombat(s);
+    expect(afterWithFront.card_instances[enemyFrontId]?.operator_combat?.current_hp).toBe(2);
+    expect(afterWithFront.card_instances[enemyBackId]?.operator_combat?.current_hp).toBe(4);
+
+    // 场景 C：领主干员（OP-GUA-008 银灰，mode=ranged）位于后排且敌方同路仅后排有单位 -> 仍可正常打击敌方后排
+    let lordState = startGame(932);
+    const lActor = lordState.active_player_id;
+    const lEnemy: PlayerId = lActor === 'player_a' ? 'player_b' : 'player_a';
+    let lordId: CardInstanceId;
+    let lEnemyBackId: CardInstanceId;
+    ({ state: lordState, id: lordId } = placeBoardUnit(lordState, lActor, 'OP-GUA-008', 'L2', 'back', 1));
+    ({ state: lordState, id: lEnemyBackId } = placeBoardUnit(lordState, lEnemy, 'OP-SNI-001', 'L2', 'back', 1, {
+      current_hp: 5 as HpValue,
+    }));
+    expect(selectOrdinaryAttackTargets(lordState, lordState.card_instances[lordId]!).map((u) => u.card_instance_id)).toEqual([
+      lEnemyBackId,
+    ]);
   });
 });
 

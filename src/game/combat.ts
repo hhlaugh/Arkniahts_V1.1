@@ -351,8 +351,22 @@ function resolveSingleAttackerTurn(
   const debuffPenalty = countAttackDebuffPenalty(freshAttacker);
   const focusFireBonus = Math.max(getFocusFireBonusFromUnit(freshAttacker), options.immediateFocusFireBonus ?? 0);
 
-  // 无敌方阻挡目标 -> 直击基地
+  // 无敌方阻挡目标 -> 检查近战后排限制或直击基地
   if (targets.length === 0) {
+    if (profile.mode === 'melee' && freshAttacker.position === 'back') {
+      next = addCombatLog(next, {
+        type: 'effect_triggered',
+        source_instance_id: attackerId,
+        source_player_id: freshAttacker.controller_id,
+        source_name: attackerName,
+        lane: freshAttacker.lane,
+        position: freshAttacker.position ?? undefined,
+        slot_index: freshAttacker.slot_index ?? undefined,
+        action_type: 'range_blocked',
+        detail: `${playerLabel(freshAttacker.controller_id)}【${attackerName}】(${posLabel}) 处于后排，近战无法攻击敌方后排或基地。`,
+      });
+      return next;
+    }
     const baseAttackDamage = Math.max(0, stats.atk - debuffPenalty + focusFireBonus);
     next = consumePostAttackDebuffs(next, attackerId);
     next = consumeFirstAttackModifiers(next, attackerId);
@@ -625,16 +639,24 @@ export function resolveCombat(state: GameState): GameState {
     next = triggerUnitEventBlocks(next, src.card_instance_id, 'combat_end').state;
   }
 
-  // 4. 清除 combat_end 到期的临时修正（如真银斩、风笛 combat_end 残留等）
+  // 4. 清除 combat_end 到期的临时修正与状态（如真银斩、风笛 combat_end 残留与【突击】状态等）
   for (const inst of Object.values(next.card_instances)) {
-    if (!inst.operator_combat?.temp_modifiers?.length) continue;
-    const filtered = inst.operator_combat.temp_modifiers.filter(
+    const combat = inst.operator_combat;
+    if (!combat) continue;
+    const filteredMods = combat.temp_modifiers?.filter(
       (m) => m.expires !== 'combat_end' && m.expires !== 'first_basic_attack_this_combat',
     );
-    if (filtered.length !== inst.operator_combat.temp_modifiers.length) {
+    const filteredStatuses = combat.statuses.filter((s) => s.expire_at_node !== 'combat_end');
+    const modsChanged = Boolean(combat.temp_modifiers && filteredMods && filteredMods.length !== combat.temp_modifiers.length);
+    const statusesChanged = filteredStatuses.length !== combat.statuses.length;
+    if (modsChanged || statusesChanged) {
       next = updateInstance(next, inst.card_instance_id, (u) => ({
         ...u,
-        operator_combat: { ...u.operator_combat!, temp_modifiers: filtered },
+        operator_combat: {
+          ...u.operator_combat!,
+          ...(modsChanged ? { temp_modifiers: filteredMods } : {}),
+          ...(statusesChanged ? { statuses: filteredStatuses } : {}),
+        },
       }));
     }
   }
@@ -754,18 +776,24 @@ export function expireStatusesAtTurnEnd(state: GameState, playerId: PlayerId): G
   for (const unit of Object.values(next.card_instances)) {
     if (unit.zone !== 'board' || !unit.operator_combat) continue;
 
-    // 1. owner_next_turn_end 到期的状态（如沉默）
+    // 1. owner_next_turn_end / owner_turn_end / combat_end 到期的状态（如沉默、突击）
     if (unit.owner_id === playerId || unit.controller_id === playerId) {
       const kept: StatusEffect[] = [];
       for (const status of unit.operator_combat.statuses) {
-        if (status.expire_at_node === 'owner_next_turn_end' && status.applied_on_owner_turn_index < ownerTurn) {
-          next = addCombatLog(next, {
-            type: 'status_expired',
-            target_instance_id: unit.card_instance_id,
-            target_player_id: unit.controller_id,
-            target_name: entityName(next, unit),
-            detail: `${playerLabel(unit.controller_id)}【${entityName(next, unit)}】的 ${status.kind} 状态到期。`,
-          });
+        if (
+          status.expire_at_node === 'combat_end' ||
+          status.expire_at_node === 'owner_turn_end' ||
+          (status.expire_at_node === 'owner_next_turn_end' && status.applied_on_owner_turn_index < ownerTurn)
+        ) {
+          if (status.kind !== 'assault') {
+            next = addCombatLog(next, {
+              type: 'status_expired',
+              target_instance_id: unit.card_instance_id,
+              target_player_id: unit.controller_id,
+              target_name: entityName(next, unit),
+              detail: `${playerLabel(unit.controller_id)}【${entityName(next, unit)}】的 ${status.kind} 状态到期。`,
+            });
+          }
           continue;
         }
         kept.push(status);

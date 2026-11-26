@@ -18,7 +18,7 @@ import { CardFrame } from '../cards/CardFrame';
 import { HealthBar } from '../ui/HealthBar';
 import { ResourceIndicator } from '../ui/ResourceIndicator';
 import { STATUS_LABEL, PLAYER_LABEL } from '../../client/gameData';
-import { getInvalidCardReason, getInvalidUnitActionReason } from './tacticalSelectors';
+import { getHealingRangeLabel, getInvalidCardReason, getInvalidUnitActionReason } from './tacticalSelectors';
 import { KeywordGlossary } from '../cards/KeywordGlossary';
 
 interface TacticalDetailPanelProps {
@@ -68,6 +68,10 @@ export function TacticalDetailPanel({
       : basePresentation;
   const entityStats = selectedInstance ? getEntityStats(state, selectedInstance) : null;
   const effectiveProfile = selectedInstance ? getEffectiveAttackProfile(state, selectedInstance) : null;
+  const healingRangeLabel = selectedDefinition ? getHealingRangeLabel(selectedDefinition) : null;
+  const isBackRowMelee = Boolean(
+    isBoardUnit && selectedInstance?.position === 'back' && effectiveProfile?.mode === 'melee',
+  );
   const facilityDisabled = selectedInstance ? isFacilityDisabled(state, selectedInstance) : false;
 
   const canWithdraw =
@@ -230,6 +234,18 @@ export function TacticalDetailPanel({
               </div>
             )}
 
+            {isBackRowMelee && (
+              <div className="px-2.5 py-1.5 bg-amber-950/55 border border-amber-500/45 text-amber-200 text-[11px] leading-snug text-center">
+                ⚠️ 近战位于后排：无法攻击敌方后排与基地，仅可攻击射程内前排目标
+              </div>
+            )}
+
+            {healingRangeLabel && (
+              <div className="px-2.5 py-1.5 bg-emerald-950/55 border border-emerald-500/45 text-emerald-200 text-[11px] leading-snug text-center">
+                ✚ 治疗范围：{healingRangeLabel}
+              </div>
+            )}
+
             {isBoardUnit && selectedInstance.operator_combat && entityStats && (
               <div className="bg-[#0f131a] p-3 border border-[#2b3644] space-y-2">
                 <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
@@ -270,7 +286,15 @@ export function TacticalDetailPanel({
                 {selectedInstance.operator_combat.statuses.length > 0 && (
                   <div className="flex flex-wrap gap-1 pt-1 border-t border-[#232c38]">
                     {selectedInstance.operator_combat.statuses.map((s) => (
-                      <Badge key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? ''}`} variant="status" className="bg-rose-950/80 text-rose-300 border-rose-600">
+                      <Badge
+                        key={`${s.kind}-${s.status_id ?? s.applied_sequence ?? ''}`}
+                        variant="status"
+                        className={
+                          s.kind === 'assault'
+                            ? 'bg-amber-950/85 text-amber-200 border-amber-400/75'
+                            : 'bg-rose-950/80 text-rose-300 border-rose-600'
+                        }
+                      >
                         {STATUS_LABEL[s.kind] ?? s.kind} ({s.remaining_owner_turns}回合)
                       </Badge>
                     ))}
@@ -382,7 +406,7 @@ export function TacticalDetailPanel({
                       onClick={() => onDispatch({ type: 'set_focus_target', target_instance_id: selection! })}
                       className="w-full font-bold"
                     >
-                      🎯 设为本回合集火目标
+                      🎯 标记为本回合优先目标
                     </Button>
                   )}
                   {canClearFocus && (
@@ -392,7 +416,7 @@ export function TacticalDetailPanel({
                       onClick={() => onDispatch({ type: 'set_focus_target', target_instance_id: null })}
                       className="w-full"
                     >
-                      取消集火锁定
+                      取消标记
                     </Button>
                   )}
                 </div>

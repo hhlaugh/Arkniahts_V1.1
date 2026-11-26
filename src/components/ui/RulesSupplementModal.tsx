@@ -64,8 +64,8 @@ const TARGETING_PRIORITY_ROWS: readonly { readonly tier: string; readonly title:
   },
   {
     tier: 'P2',
-    title: '集火指令',
-    detail: '玩家在当前回合内花费 CP 对指定敌方单位下达的【集火】指令，在本回合内优先于常规阻挡目标。',
+    title: '标记指令',
+    detail: '玩家在当前回合内对指定敌方单位下达的【标记】指令，在本回合内优先于常规阻挡目标。',
   },
   {
     tier: 'P3',
@@ -75,7 +75,7 @@ const TARGETING_PRIORITY_ROWS: readonly { readonly tier: string; readonly title:
   {
     tier: 'P4',
     title: '基本分与不拦截单位',
-    detail: '【伏击】单位、夜莺鸟笼与【冻结】单位不具备拦截资格；未被【集火】时优先级等同基地，同路仅有此类单位时敌方普攻直击基地。',
+    detail: '【伏击】单位、夜莺鸟笼与【冻结】单位不具备拦截资格；未被【标记】时优先级等同基地，同路仅有此类单位时敌方普攻直击基地。',
   },
 ];
 
@@ -88,10 +88,11 @@ const DAMAGE_PIPELINE_STEPS: readonly { readonly step: string; readonly title: s
 ];
 
 const KEYWORD_GLOSSARY_ENTRIES: readonly KeywordEntry[] = [
+  { name: '突击', group: 'positioning', kind: '部署 · 无视冷却', effect: '无视部署当回合攻击冷却，本回合即可直接参与交锋；后手方首次部署的干员自动获得此效果（暂不做卡牌拓展）。' },
   { name: '法伤', group: 'combat', kind: '攻击 · 无视掩护', effect: '造成法术伤害，无视且不消耗目标【掩护】（仍由护盾正常吸收）。' },
-  { name: '伏击', group: 'positioning', kind: '特性 · 不拦截', effect: '不具备普通攻击拦截资格但可被攻击；未被【集火】时被攻击优先级等同基地基本分。' },
+  { name: '伏击', group: 'positioning', kind: '特性 · 不拦截', effect: '不具备普通攻击拦截资格但可被攻击；未被【标记】时被攻击优先级等同基地基本分。' },
   { name: '嘲讽', group: 'positioning', kind: '索敌 · P1 强制', effect: '在攻击者合法射程内强制优先吸引敌方普通攻击；处于【冻结】时暂时失效。' },
-  { name: '集火', group: 'combat', kind: '增益 · 攻击强化', effect: '本次普通攻击攻击力 +1（【集火】N 则 +N），多个来源取最高值；亦可指定本回合 P2 优先目标。' },
+  { name: '集火', group: 'combat', kind: '增益 · 攻击强化', effect: '本次普通攻击攻击力 +1（【集火】N 则 +N），多个来源取最高值（与玩家战术【标记】相区分）。' },
   { name: '压制', group: 'status', kind: '减益 · 单次降攻', effect: '使目标下一次普通攻击攻击力 -1（最低 0），该次攻击结算后自动移除。' },
   { name: '脆弱', group: 'status', kind: '减益 · 易伤', effect: '使目标下一次受到的普通攻击伤害 +1，触发后消耗（不叠加，不影响技能固定伤害）。' },
   { name: '掩护', group: 'combat', kind: '防护 · 物伤减免', effect: '下一次受到的非【法伤】、非【中毒】伤害 -1 并消耗（至多持有 1 层，优先于护盾结算）。' },
@@ -269,13 +270,13 @@ export function RulesSupplementModal({ isOpen, onClose }: RulesSupplementModalPr
               <div className="bg-[#11151b] p-3 space-y-1">
                 <div className="font-bold text-slate-100">行动阶段（Action）</div>
                 <p className="m-0">
-                  可按任意先后执行部署干员、使用战术卡、部署设施、附着支援装备、主动撤离、0 CP 回收召唤物或设定【集火】目标。退出行动阶段时手牌冷却 <span className="font-mono tabular-nums">-1</span>（刚进冷却者自下回合起倒计时）。
+                  可按任意先后执行部署干员、使用战术卡、部署设施、附着支援装备、主动撤离、0 CP 回收召唤物或设定【标记】目标。退出行动阶段时手牌冷却 <span className="font-mono tabular-nums">-1</span>（刚进冷却者自下回合起倒计时）。
                 </p>
               </div>
               <div className="bg-[#11151b] p-3 space-y-1">
                 <div className="font-bold text-slate-100">作战阶段（Combat）</div>
                 <p className="m-0">
-                  先结算战斗开始效果，再按 <span className="font-mono">(L1→L3, 前→后, 格位)</span> 建立快照依次普攻或治疗。<strong className="text-amber-300">当回合刚部署单位（未获立即攻击）与设施不参与常规普攻</strong>；战斗中途位移或新召唤不插队，最后结算战斗结束效果。
+                  先结算战斗开始效果，再按 <span className="font-mono">(L1→L3, 前→后, 格位)</span> 建立快照依次普攻或治疗。<strong className="text-amber-300">当回合刚部署单位（未获【突击】等立即攻击，后手首次部署自动获【突击】）与设施不参与常规普攻</strong>；战斗中途位移或新召唤不插队，最后结算战斗结束效果。
                 </p>
               </div>
               <div className="bg-[#11151b] p-3 space-y-1">
@@ -310,7 +311,7 @@ export function RulesSupplementModal({ isOpen, onClose }: RulesSupplementModalPr
               <div className="bg-[#11151b] p-3 space-y-1">
                 <div className="font-bold text-slate-100">攻击射程与多目标范围</div>
                 <p className="m-0">
-                  普攻默认作用于同路敌方（医疗默认治疗同路受伤友军）。【强攻】打同路至多 2 名，【贯穿】打同路全部，【溅射】与【连锁】可波及同路或相邻路线的指定敌方；部分装备或效果可扩展至相邻路或全路。
+                  普攻默认作用于同路敌方（医疗默认治疗同路受伤友军）。<strong className="text-amber-300">近战单位若被推击至后排，无法攻击敌方后排单位与敌方基本分（仅可攻击射程内敌方前排）</strong>；【领主】仍具远程索敌不受此限。【强攻】打同路至多 2 名，【贯穿】打同路全部，【溅射】与【连锁】可波及同路或相邻路。
                 </p>
               </div>
             </div>

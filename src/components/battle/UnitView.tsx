@@ -11,7 +11,14 @@ import { OperatorPortrait } from '../cards/OperatorPortrait';
 import { HealthBar } from '../ui/HealthBar';
 import { RARITY_THEMES } from '../ui/tokens';
 
-export type UnitHighlight = 'none' | 'target' | 'selected' | 'attack_target';
+export type UnitHighlight =
+  | 'none'
+  | 'target'
+  | 'selected'
+  | 'attack_target'
+  | 'in_range'
+  | 'heal_target'
+  | 'heal_range';
 
 export interface UnitTapCue {
   readonly kind: 'tap' | 'skill' | 'deploy';
@@ -25,6 +32,7 @@ interface UnitViewProps {
   readonly compact?: boolean;
   readonly canActivateSkill?: boolean;
   readonly isFocusTarget?: boolean;
+  readonly isPriorityHealTarget?: boolean;
   readonly isDragLocked?: boolean;
   readonly animState?: UnitAnimationState;
   readonly tapCue?: UnitTapCue | null;
@@ -59,7 +67,7 @@ const SUMMON_DISPLAY_NAMES: Readonly<Record<string, string>> = {
 /**
  * 战场棋盘实体组件 (BoardUnit: 干员 / 场地设施 / 召唤物)
  * - 使用 V1.1 `getEntityStats` / `getEntityKind` / `getEffectiveAttackProfile` 权威计算攻击、生命与状态
- * - 区分干员、场地设施（3HP · 剩余回合 · 瘫痪状态）、召唤物（可召回/嘲讽）及装备/集火角标
+ * - 区分干员、场地设施（3HP · 剩余回合 · 瘫痪状态）、召唤物（可召回/嘲讽）及装备/标记角标
  */
 export function UnitView({
   state,
@@ -68,6 +76,7 @@ export function UnitView({
   compact = false,
   canActivateSkill = false,
   isFocusTarget = false,
+  isPriorityHealTarget = false,
   isDragLocked = false,
   animState,
   tapCue = null,
@@ -117,9 +126,20 @@ export function UnitView({
   const isSelected = highlight === 'selected';
   const isTarget = highlight === 'target';
   const isAttackTarget = highlight === 'attack_target';
+  const isInRange = highlight === 'in_range';
+  const isHealTarget = highlight === 'heal_target';
+  const isHealRange = highlight === 'heal_range';
   const hasEquipped = Boolean(combat.equipped_package || combat.equipment_ids.length > 0);
   const hasStatuses = combat.statuses.length > 0 || hasEquipped;
-  const hasCornerBadge = isDragLocked || isTarget || isAttackTarget || isFocusTarget || canActivateSkill;
+  const hasCornerBadge =
+    isDragLocked ||
+    isTarget ||
+    isAttackTarget ||
+    isInRange ||
+    isHealTarget ||
+    isHealRange ||
+    isFocusTarget ||
+    canActivateSkill;
 
   const motionOff = Boolean(animState?.disableMotion);
   const isFacilityDecay = Boolean(animState?.facilityDecay);
@@ -199,7 +219,15 @@ export function UnitView({
         }
       }}
       className={`touch-gesture-surface group relative select-none cursor-pointer focus-visible:outline-none ${
-        isDragLocked ? 'scale-[1.02] z-30' : isSelected || isTarget || isAttackTarget || animState?.hit || isFacilityHpReductionActive ? 'z-20' : showSkillFx || longPressHandlers.isHolding ? 'z-25' : isFocusTarget ? 'z-15' : ''
+        isDragLocked
+          ? 'scale-[1.02] z-30'
+          : isSelected || isTarget || isAttackTarget || isInRange || isHealTarget || animState?.hit || isFacilityHpReductionActive
+            ? 'z-20'
+            : showSkillFx || longPressHandlers.isHolding || isHealRange
+              ? 'z-25'
+              : isFocusTarget
+                ? 'z-15'
+                : ''
       } ${motionClass} w-full ${compact ? 'h-[54px]' : 'h-[58px] sm:h-[70px] lg:h-[82px]'}`}
     >
       {/* 硬朗尖锐外切角金属边框壳 */}
@@ -215,23 +243,29 @@ export function UnitView({
                   ? 'bg-cyan-400'
                   : isAttackTarget
                     ? 'bg-rose-500'
-                    : isFocusTarget
-                      ? 'bg-amber-400/90'
-                      : animState?.hit
-                        ? 'bg-rose-400'
-                        : isFacilityHpReductionActive
-                          ? 'bg-amber-400'
-                          : isFacilityCritical
-                            ? 'bg-rose-500/85'
-                            : showSkillFx
-                              ? 'bg-cyan-300'
-                              : canActivateSkill
-                                ? 'bg-amber-400/70 group-hover:bg-amber-300'
-                                : entityKind === 'facility'
-                                  ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
-                                  : entityKind === 'summon'
-                                    ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
-                                    : 'bg-[#384556] group-hover:bg-[#7b8da6]'
+                    : isInRange
+                      ? 'bg-rose-400/70'
+                      : isHealTarget
+                        ? 'bg-emerald-400'
+                        : isHealRange
+                          ? 'bg-emerald-500/60'
+                          : isFocusTarget
+                            ? 'bg-amber-400/90'
+                            : animState?.hit
+                              ? 'bg-rose-400'
+                              : isFacilityHpReductionActive
+                                ? 'bg-amber-400'
+                                : isFacilityCritical
+                                  ? 'bg-rose-500/85'
+                                  : showSkillFx
+                                    ? 'bg-cyan-300'
+                                    : canActivateSkill
+                                      ? 'bg-amber-400/70 group-hover:bg-amber-300'
+                                      : entityKind === 'facility'
+                                        ? 'bg-amber-500/55 group-hover:bg-amber-300/85'
+                                        : entityKind === 'summon'
+                                          ? 'bg-emerald-500/55 group-hover:bg-emerald-300/85'
+                                          : 'bg-[#384556] group-hover:bg-[#7b8da6]'
         }`}
       >
       {/* 内部裁切内容容器 */}
@@ -347,7 +381,11 @@ export function UnitView({
                 <span
                   key={status.kind}
                   title={`${STATUS_LABEL[status.kind] ?? status.kind}${status.remaining_owner_turns > 0 ? ` (${status.remaining_owner_turns}回合)` : ''}`}
-                  className="text-[8px] px-0.5 sm:px-1 bg-rose-950 text-rose-300 border border-rose-500/60 font-mono leading-tight"
+                  className={`text-[8px] px-0.5 sm:px-1 border font-mono leading-tight ${
+                    status.kind === 'assault'
+                      ? 'bg-amber-950 text-amber-200 border-amber-400/75'
+                      : 'bg-rose-950 text-rose-300 border-rose-500/60'
+                  }`}
                 >
                   {STATUS_LABEL[status.kind] ?? status.kind}
                 </span>
@@ -552,13 +590,31 @@ export function UnitView({
           </div>
         )}
 
-        {!isDragLocked && !isTarget && !isAttackTarget && isFocusTarget && (
-          <div className="absolute top-0 right-0 px-1 py-0.2 bg-amber-400 text-slate-950 font-mono font-black text-[8px] pointer-events-none z-20">
-            🎯 集火
+        {!isDragLocked && isInRange && !isTarget && !isAttackTarget && (
+          <div className="absolute top-0 right-0 px-1 py-0.2 bg-rose-950/95 border-l border-b border-rose-400/75 text-rose-200 font-mono font-black text-[8px] pointer-events-none">
+            ◎ 射程内
           </div>
         )}
 
-        {!isDragLocked && !isTarget && !isAttackTarget && !isFocusTarget && canActivateSkill && (
+        {!isDragLocked && isHealTarget && !isTarget && !isAttackTarget && !isInRange && (
+          <div className="absolute top-0 right-0 px-1 py-0.2 bg-emerald-500 text-slate-950 font-mono font-black text-[8px] pointer-events-none">
+            {isPriorityHealTarget ? '+ 优先治疗' : '+ 可治疗'}
+          </div>
+        )}
+
+        {!isDragLocked && isHealRange && !isHealTarget && !isTarget && !isAttackTarget && !isInRange && (
+          <div className="absolute top-0 right-0 px-1 py-0.2 bg-emerald-950/95 border-l border-b border-emerald-400/70 text-emerald-200 font-mono font-black text-[8px] pointer-events-none">
+            + 治疗范围
+          </div>
+        )}
+
+        {!isDragLocked && !isTarget && !isAttackTarget && !isInRange && !isHealTarget && !isHealRange && isFocusTarget && (
+          <div className="absolute top-0 right-0 px-1 py-0.2 bg-amber-400 text-slate-950 font-mono font-black text-[8px] pointer-events-none z-20">
+            🎯 标记
+          </div>
+        )}
+
+        {!isDragLocked && !isTarget && !isAttackTarget && !isInRange && !isHealTarget && !isHealRange && !isFocusTarget && canActivateSkill && (
           <div
             data-skill-ready="true"
             className="absolute top-0 right-0 px-1 py-0.2 bg-amber-400/95 text-slate-950 font-mono font-black text-[8px] pointer-events-none shadow-xs"

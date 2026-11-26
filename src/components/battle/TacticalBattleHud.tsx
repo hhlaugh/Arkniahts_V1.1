@@ -445,7 +445,7 @@ export function TacticalBattleHud({
             variant="ghost"
             size="sm"
             onClick={onOpenRules}
-            title="查看游戏规则补充说明（含伏击客优先级与设施寿命）"
+            title="查看游戏规则补充说明（含突击部署、站位射程与词条图鉴）"
             aria-label="规则说明"
             className="text-[11px] sm:text-xs px-1.5 sm:px-2 py-0.5 min-h-[30px] min-w-[30px] sm:min-h-[28px] shrink-0 whitespace-nowrap text-slate-200 hover:text-amber-300"
           >

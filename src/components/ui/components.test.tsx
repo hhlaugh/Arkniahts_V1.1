@@ -309,8 +309,12 @@ describe('Phase 4: 卡牌视觉系统、只读图鉴与卡组编辑深化', () =
     expect(rulesHtml).toContain('设施（6 张）· 独立卡牌类别与寿命限制');
     expect(rulesHtml).toContain('【法伤】');
     expect(rulesHtml).toContain('【伏击】');
+    expect(rulesHtml).toContain('【突击】');
+    expect(rulesHtml).toContain('标记指令');
+    expect(rulesHtml).toContain('近战单位若被推击至后排，无法攻击敌方后排单位与敌方基本分');
     expect(rulesHtml).not.toContain('法术攻击');
     expect(rulesHtml).not.toContain('伏击客机制');
+    expect(rulesHtml).not.toContain('集火指令');
     expect(rulesHtml).not.toContain('data-testid="ambusher-priority-popover"');
 
     const startHtml = renderToString(

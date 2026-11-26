@@ -30,6 +30,8 @@ const STATUS_NAMES = new Set<string>([
   '沉默',
   '嘲讽',
   '集火',
+  '标记',
+  '突击',
   '不屈',
   '隐匿',
   '浮空',
@@ -376,7 +378,7 @@ export function LogView({ history, state, viewerPlayer = null }: LogViewProps) {
       case 'focus_target_set':
         return (
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[2px] bg-amber-950/70 text-amber-300 border border-amber-500/40 shrink-0">
-            🎯 集火
+            🎯 标记
           </span>
         );
       case 'cp_updated':
@@ -553,7 +555,7 @@ export function LogView({ history, state, viewerPlayer = null }: LogViewProps) {
     // 通用清理：移除所有"玩家 A/B"文字，使用颜色直接标识敌我
     const cleaned = stripFactionText(event.detail);
     const regex =
-      /(\[[^\]]+·[^\]]+\]|【[^】]+】|基地|击倒了|击杀了|造成 \d+ 点(?: HP| 法术| 物理| 中毒| 技能| 反击| 真实)?(?:技能)?伤害|造成 \d+ 点(?:基地|基本分|疲劳)+伤害|护盾吸收了 \d+ 点伤害|（护盾吸收 \d+）|（护盾吸收 \d+ 点）|主动撤离战场|撤回手牌|召回召唤物|获得 \d+ 点(?:部署费用|CP)|获得 \d+ 点护盾|恢复 \d+ 点 HP|治疗 [^ ]+ \d+ 点 HP|减免 \d+ 点受击伤害|阵亡并进入弃牌堆|被击倒并进入弃牌堆|被摧毁并进入弃牌堆|被摧毁移除|眩晕|冻结|落地|减速|压制|寒冷|脆弱|掩护|中毒|沉默|嘲讽|集火|不屈)/g;
+      /(\[[^\]]+·[^\]]+\]|【[^】]+】|基地|击倒了|击杀了|造成 \d+ 点(?: HP| 法术| 物理| 中毒| 技能| 反击| 真实)?(?:技能)?伤害|造成 \d+ 点(?:基地|基本分|疲劳)+伤害|护盾吸收了 \d+ 点伤害|（护盾吸收 \d+）|（护盾吸收 \d+ 点）|主动撤离战场|撤回手牌|召回召唤物|获得 \d+ 点(?:部署费用|CP)|获得 \d+ 点护盾|恢复 \d+ 点 HP|治疗 [^ ]+ \d+ 点 HP|减免 \d+ 点受击伤害|阵亡并进入弃牌堆|被击倒并进入弃牌堆|被摧毁并进入弃牌堆|被摧毁移除|眩晕|冻结|落地|减速|压制|寒冷|脆弱|掩护|中毒|沉默|嘲讽|集火|标记|突击|不屈)/g;
 
     const parts: string[] = [];
     let lastIdx = 0;
@@ -745,7 +747,7 @@ export function LogView({ history, state, viewerPlayer = null }: LogViewProps) {
     const detail = event.detail.replace(/player_a/g, '玩家 A').replace(/player_b/g, '玩家 B');
 
     const regex =
-      /(玩家 A|玩家 B|\[[^\]]+·[^\]]+\]|【[^】]+】|击杀了|造成 \d+ 点(?: HP| 法术| 物理| 中毒| 技能| 反击| 真实)?(?:技能)?伤害|造成 \d+ 点基地(?:与)?(?:基本分)?伤害|造成 \d+ 点基本分伤害|护盾吸收了 \d+ 点伤害|（护盾吸收 \d+ 点）|主动撤离战场|普通撤离|召回召唤物|部署了|直击 玩家 [AB] 基地|攻击 玩家 [AB] 基地|阵亡并进入弃牌堆|阵亡退场|摧毁并移出|获得 \d+ 点(?:部署费用|CP)|获得 \d+ SP|消耗 \d+ SP|治疗 [^ ]+ \d+ 点 HP|为【[^】]+】治疗 \d+ 点 HP|减免 \d+ 点受击伤害|眩晕|冻结|落地|减速|压制|寒冷|脆弱|掩护|中毒|沉默|嘲讽|集火)/g;
+      /(玩家 A|玩家 B|\[[^\]]+·[^\]]+\]|【[^】]+】|击杀了|造成 \d+ 点(?: HP| 法术| 物理| 中毒| 技能| 反击| 真实)?(?:技能)?伤害|造成 \d+ 点基地(?:与)?(?:基本分)?伤害|造成 \d+ 点基本分伤害|护盾吸收了 \d+ 点伤害|（护盾吸收 \d+ 点）|主动撤离战场|普通撤离|召回召唤物|部署了|直击 玩家 [AB] 基地|攻击 玩家 [AB] 基地|阵亡并进入弃牌堆|阵亡退场|摧毁并移出|获得 \d+ 点(?:部署费用|CP)|获得 \d+ SP|消耗 \d+ SP|治疗 [^ ]+ \d+ 点 HP|为【[^】]+】治疗 \d+ 点 HP|减免 \d+ 点受击伤害|眩晕|冻结|落地|减速|压制|寒冷|脆弱|掩护|中毒|沉默|嘲讽|集火|标记|突击)/g;
 
     const parts: string[] = [];
     let lastIdx = 0;
@@ -913,13 +915,15 @@ export function LogView({ history, state, viewerPlayer = null }: LogViewProps) {
                     ? '⚓'
                     : token === '掩护' || token === '嘲讽'
                       ? '🛡️'
-                      : token === '集火'
+                      : token === '集火' || token === '标记'
                         ? '🎯'
-                        : token === '脆弱'
-                          ? '💔'
-                          : token === '中毒'
-                            ? '☠️'
-                            : '⏳';
+                        : token === '突击'
+                          ? '⚡'
+                          : token === '脆弱'
+                            ? '💔'
+                            : token === '中毒'
+                              ? '☠️'
+                              : '⏳';
             return (
               <span
                 key={i}

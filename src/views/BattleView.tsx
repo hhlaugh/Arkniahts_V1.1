@@ -31,11 +31,13 @@ import {
 } from '../components/battle/touchDrag';
 import {
   findDirectPlayAction,
+  getHealingRangeLabel,
   getInvalidCardReason,
   getInvalidDeployReason,
   getInvalidUnitActionReason,
   getPendingChoicePromptText,
   previewAttackTargets,
+  previewHealingRange,
 } from '../components/battle/tacticalSelectors';
 import {
   makeSlotKey,
@@ -587,6 +589,69 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
 
     return null;
   }, [activeHandCardId, activeHandIsOperator, actor, dragOverSlot, hoveredSlot, hoveredUnitId, selectedDeployActions, selection, state]);
+
+  // 治疗作用范围、可治疗单位与优先治疗目标预览
+  const healPreview = useMemo(() => {
+    const targetSlot = dragOverSlot ?? hoveredSlot;
+    if (
+      activeHandCardId &&
+      (activeHandIsOperator || activeHandIsFacility) &&
+      targetSlot &&
+      targetSlot.half === actor &&
+      (selectedDeployActions.some(
+        (a) => a.lane === targetSlot.lane && a.position === targetSlot.position && (a.slot_index ?? 1) === targetSlot.slotIndex,
+      ) ||
+        selectedFacilityActions.some(
+          (a) =>
+            a.target_lane === targetSlot.lane &&
+            a.target_position === targetSlot.position &&
+            (a.target_slot_index ?? 1) === targetSlot.slotIndex,
+        ))
+    ) {
+      return previewHealingRange(state, {
+        kind: 'draft',
+        cardInstanceId: activeHandCardId,
+        controllerId: actor,
+        lane: targetSlot.lane,
+        position: targetSlot.position,
+        slotIndex: targetSlot.slotIndex,
+      });
+    }
+
+    const focusUnitId = hoveredUnitId ?? (selection && state.card_instances[selection]?.zone === 'board' ? selection : null);
+    if (focusUnitId) {
+      const unit = state.card_instances[focusUnitId];
+      if (unit && unit.zone === 'board') {
+        return previewHealingRange(state, { kind: 'unit', instance: unit });
+      }
+    }
+
+    const focusHandCardId =
+      (hoveredCard && state.card_instances[hoveredCard.instanceId]?.zone === 'hand' ? hoveredCard.instanceId : null) ??
+      activeHandCardId;
+    if (focusHandCardId) {
+      return previewHealingRange(state, {
+        kind: 'card',
+        cardInstanceId: focusHandCardId,
+        controllerId: actor,
+      });
+    }
+
+    return null;
+  }, [
+    activeHandCardId,
+    activeHandIsFacility,
+    activeHandIsOperator,
+    actor,
+    dragOverSlot,
+    hoveredCard,
+    hoveredSlot,
+    hoveredUnitId,
+    selectedDeployActions,
+    selectedFacilityActions,
+    selection,
+    state,
+  ]);
 
   const flushSkippedBattleSfx = () => {
     const startIdx = Math.min(lastSfxLogLenRef.current, snapshot.logHistory.length);
@@ -1514,6 +1579,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         (slot) => slot.half === half && slot.lane === lane && slot.position === position,
       ),
     );
+    const isHealRangeCell = Boolean(
+      healPreview?.rangeCells.some(
+        (slot) => slot.half === half && slot.lane === lane && slot.position === position,
+      ),
+    );
 
     const slotPopups = activeBeat?.floatingPopups.filter((p) => p.slotKey === slotKey) ?? [];
     const slotGhost = activeBeat?.ghostCues.find((g) => g.slotKey === slotKey);
@@ -1650,9 +1720,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                   ? 'bg-rose-500/75'
                   : isAttackLaneCell
                     ? 'bg-rose-500/70'
-                    : isEnemy
-                      ? 'bg-[#353d4a] group-hover:bg-rose-400/70'
-                      : 'bg-[#334052] group-hover:bg-sky-400/75'
+                    : isHealRangeCell
+                      ? 'bg-emerald-500/65'
+                      : isEnemy
+                        ? 'bg-[#353d4a] group-hover:bg-rose-400/70'
+                        : 'bg-[#334052] group-hover:bg-sky-400/75'
             }`}
           >
             <div className="board-slot relative overflow-hidden flex items-center justify-center w-full h-full">
@@ -1666,7 +1738,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 className={`pointer-events-none select-none absolute inset-0 w-full h-full object-cover grayscale contrast-125 transition-opacity duration-150 ${
                   isDeployTarget
                     ? 'opacity-[0.16]'
-                    : isAttackLaneCell
+                    : isAttackLaneCell || isHealRangeCell
                       ? 'opacity-[0.12]'
                       : 'opacity-[0.06] group-hover:opacity-[0.12]'
                 }`}
@@ -1681,9 +1753,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                       ? 'bg-rose-500/70'
                       : isAttackLaneCell
                         ? 'bg-rose-400/75'
-                        : isEnemy
-                          ? 'bg-rose-400/45'
-                          : 'bg-sky-400/45'
+                        : isHealRangeCell
+                          ? 'bg-emerald-400/80'
+                          : isEnemy
+                            ? 'bg-rose-400/45'
+                            : 'bg-sky-400/45'
                 }`}
               />
               {isSlotTapped && (
@@ -1722,6 +1796,11 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 <div className="flex flex-col items-center gap-0.5 text-rose-300/90 font-mono text-[9px] sm:text-[10px]">
                   <span>⚔ 攻击航道</span>
                   <span className="text-[8px] text-rose-400/80">{posName}</span>
+                </div>
+              ) : isHealRangeCell ? (
+                <div className="flex flex-col items-center gap-0.5 text-emerald-300/95 font-mono text-[9px] sm:text-[10px]">
+                  <span>✚ 可治疗范围</span>
+                  <span className="text-[8px] text-emerald-400/80">{posName}</span>
                 </div>
               ) : (
                 <span className={`text-[9px] sm:text-[10px] font-mono tracking-[0.14em] ${isEnemy ? 'text-rose-200/60' : 'text-sky-200/60'}`}>
@@ -1784,6 +1863,12 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       attackPreview?.targetIds.includes(instance.card_instance_id)
     ) {
       highlight = 'attack_target';
+    } else if (attackPreview?.legalTargetIds.includes(instance.card_instance_id)) {
+      highlight = 'in_range';
+    } else if (healPreview?.woundedTargetIds.includes(instance.card_instance_id)) {
+      highlight = 'heal_target';
+    } else if (healPreview?.healableUnitIds.includes(instance.card_instance_id)) {
+      highlight = 'heal_range';
     }
 
     const unitAnimState: UnitAnimationState = {
@@ -1835,6 +1920,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           compact={useCompactBoard}
           canActivateSkill={canActivateUnitSkill}
           isFocusTarget={displayState.players[actor]?.focus_target_id === instance.card_instance_id}
+          isPriorityHealTarget={Boolean(healPreview?.priorityTargetIds.includes(instance.card_instance_id))}
           isDragLocked={isUnitDragLocked}
           animState={unitAnimState}
           tapCue={unitTapCue}
@@ -1890,8 +1976,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       ? selectedPlayActions.filter((a) => a.target_instance_id === pendingPlayDraft.firstTargetId && a.target_lane !== undefined)
       : [];
 
+  const selectedHealRangeLabel = selectedDefinition ? getHealingRangeLabel(selectedDefinition) : null;
   const selectionPromptContent =
-    selectedInstance || attackPreview ? (
+    selectedInstance || attackPreview || healPreview ? (
       <>
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-1.5 h-3.5 bg-[#e5a52b] shrink-0" />
@@ -1903,6 +1990,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                   <span className="text-slate-200">
                     {' '}· {isMobile ? (useSideRail ? '左拖或点黄格部署' : '上拖或点黄格部署') : '点黄格部署'}
                     {activeHandIsFacility ? '设施' : ''}（{selectedDefinition?.cost ?? 0} CP）
+                    {selectedHealRangeLabel && (
+                      <span className="text-emerald-300 ml-1.5">· ✚ 治疗范围：{selectedHealRangeLabel}</span>
+                    )}
                   </span>
                 ) : selectedPlayActions.length > 0 ? (
                   <span className="text-cyan-300">
@@ -1925,12 +2015,30 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                                 : isMobile
                                   ? ' · 拖向目标或点击青色高亮单位发动'
                                   : ' · 点击青色高亮目标发动'}
+                    {selectedHealRangeLabel && (
+                      <span className="text-emerald-300 ml-1.5">· ✚ {selectedHealRangeLabel}</span>
+                    )}
                   </span>
                 ) : (
                   <span className="text-rose-300">
                     {' '}· {getInvalidCardReason(state, actor, selectedInstance.card_instance_id) ?? '当前无法使用'}
                   </span>
                 )
+              ) : healPreview && (!attackPreview || attackPreview.laneSlots.length === 0) ? (
+                <span className="text-slate-200">
+                  {' '}· <span className="text-emerald-300">✚ 治疗范围：{healPreview.scopeLabel}</span>
+                  {healPreview.priorityTargetIds.length > 0 && (
+                    <span className="text-emerald-200 ml-1.5">
+                      （优先治疗：{healPreview.priorityTargetIds.map((id) => cardDefinitionOf(state, id)?.card_name_zh ?? id).join('、')}）
+                    </span>
+                  )}
+                  {canQuickActOnSelectedUnit && selectedUnitActions.canSkillDirect && (
+                    <span className="text-amber-300 ml-1.5">· ⚡双击可发动技能</span>
+                  )}
+                  {canQuickActOnSelectedUnit && selectedUnitActions.skillTargets.size > 0 && (
+                    <span className="text-cyan-300 ml-1.5">· ⚡点青格目标发动技能</span>
+                  )}
+                </span>
               ) : attackPreview ? (
                 <span className="text-slate-200">
                   {' '}· ⚔ 预计攻击：
@@ -1938,11 +2046,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                     <strong className="text-rose-300">
                       {attackPreview.tauntBlocked ? `【${attackPreviewTargetName}】(嘲讽)` : `【${attackPreviewTargetName}】`}
                     </strong>
-                  ) : (
+                  ) : attackPreview.attacksBase ? (
                     <strong className="text-rose-300">对方基地</strong>
+                  ) : (
+                    <strong className="text-amber-300">无合法目标</strong>
                   )}
                   {attackPreview.cannotAttackReason && (
                     <span className="text-slate-400 ml-1.5">({attackPreview.cannotAttackReason})</span>
+                  )}
+                  {healPreview && (
+                    <span className="text-emerald-300 ml-1.5">· ✚ 治疗：{healPreview.scopeLabel}</span>
                   )}
                   {canQuickActOnSelectedUnit && selectedUnitActions.canSkillDirect && (
                     <span className="text-amber-300 ml-1.5">· ⚡双击可发动技能</span>
@@ -1964,6 +2077,15 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 </span>
               )}
             </span>
+          ) : healPreview && (!attackPreview || attackPreview.laneSlots.length === 0) ? (
+            <span className="truncate text-[11px] sm:text-xs text-slate-200">
+              <span className="text-emerald-300">✚ 治疗范围：{healPreview.scopeLabel}</span>
+              {healPreview.priorityTargetIds.length > 0 && (
+                <span className="text-emerald-200 ml-1.5">
+                  · 优先治疗：{healPreview.priorityTargetIds.map((id) => cardDefinitionOf(state, id)?.card_name_zh ?? id).join('、')}
+                </span>
+              )}
+            </span>
           ) : (
             attackPreview && (
               <span className="truncate text-[11px] sm:text-xs text-slate-200">
@@ -1972,11 +2094,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                   <strong className="text-rose-300">
                     {attackPreview.tauntBlocked ? `【${attackPreviewTargetName}】(嘲讽拦截)` : `【${attackPreviewTargetName}】`}
                   </strong>
-                ) : (
+                ) : attackPreview.attacksBase ? (
                   <strong className="text-rose-300">对方基地</strong>
+                ) : (
+                  <strong className="text-amber-300">无合法目标</strong>
                 )}
                 {attackPreview.cannotAttackReason && (
                   <span className="text-slate-400 ml-1.5">· {attackPreview.cannotAttackReason}</span>
+                )}
+                {healPreview && (
+                  <span className="text-emerald-300 ml-1.5">· ✚ 治疗：{healPreview.scopeLabel}</span>
                 )}
               </span>
             )
@@ -2029,7 +2156,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 onClick={() => dispatch(selectedUnitActions.focusTargetAction!)}
                 className="px-2 py-0.5 text-[10px] min-h-[28px] sm:min-h-[26px] font-bold"
               >
-                🎯 集火锁定
+                🎯 标记锁定
               </Button>
             )}
             {selectedUnitActions.clearFocusAction && (
@@ -2039,7 +2166,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                 onClick={() => dispatch(selectedUnitActions.clearFocusAction!)}
                 className="px-2 py-0.5 text-[10px] min-h-[28px] sm:min-h-[26px]"
               >
-                取消集火
+                取消标记
               </Button>
             )}
             {canQuickActOnSelectedUnit && selectedDefinition?.effect_trigger === 'active' && selectedEntityKind === 'operator' && (

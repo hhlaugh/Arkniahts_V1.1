@@ -1084,7 +1084,7 @@
       "description": "结合先锋过牌、重装护航与多位召唤师，辅以直接解牌与过牌，稳定铺开多单位阵线。",
       "strengths": "前排掩护充足且不堵塞格子（6前排/7后排）；兼具手牌补给、定点解场及多点续航。",
       "weaknesses": "需要合理预留召唤物空位；部分高费召唤核心启动较慢。",
-      "gamePlan": "芬、桃金娘通过【补给】保障手牌运转，斑点、塞雷娅、砾与傀影稳固前排；后排梅尔、麦哲伦、赫默、夜莺与调香师展开召唤与群疗，战术分析过牌，定点爆破与破甲弹清障。",
+      "gamePlan": "芬、桃金娘通过【补给】保障手牌运转，斑点、塞雷娅、砾与傀影稳固前排；后排梅尔、麦哲伦、赫默、夜莺与调香师展开召唤与群疗，战术分析过牌，定点爆破、破甲弹与清障行动高效解场。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -1094,12 +1094,12 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 60,
-        "averageCardCost": 3,
+        "totalCardCostSum": 59,
+        "averageCardCost": 2.95,
         "byCardCost": {
           "1": 2,
-          "2": 3,
-          "3": 9,
+          "2": 4,
+          "3": 8,
           "4": 5,
           "5": 1,
           "6": 0,
@@ -1303,16 +1303,16 @@
           "abilityText": "【掩护】一名友军，并将其移至同路另一空位。"
         },
         {
-          "cardId": "DEMO-TAC-V2-003",
-          "name": "战线集结",
+          "cardId": "DEMO-TAC-V2-019",
+          "name": "清障行动",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 3,
+          "costCP": 2,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "增益;路线",
-          "abilityText": "选择一路；该路所有友军本回合攻击力+1。"
+          "synergyTags": "反护盾;反装备",
+          "abilityText": "移除一名敌人的【掩护】；若无【掩护】，改为移除1点护盾；两者皆无时，改为移除其装备。"
         },
         {
           "cardId": "DEMO-SUP-V2-004",
