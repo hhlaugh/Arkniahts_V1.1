@@ -280,7 +280,7 @@ export class BotPlayer {
     for (const block of definition.skill_effects ?? []) {
       if (block.trigger === 'on_deploy') {
         for (const op of block.effects) {
-          if (op.op === 'grant_supply') score += Number(op.amount ?? 1) * 0.5;
+          if (op.op === 'grant_supply') score += Number(op.amount ?? 1) * 0.65;
           if (op.op === 'grant_shield') score += Number(op.amount ?? 1) * 0.3;
           if (op.op === 'deal_damage' && enemyInLane > 0) score += 0.8;
         }

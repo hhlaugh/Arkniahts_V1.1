@@ -85,6 +85,62 @@ describe('loadOfficialPresetDecks', () => {
     }
   });
 
+  it('ensures every preset deck has balanced front/backline operators, card draw, and removal', () => {
+    const drawCardIds = new Set([
+      'OP-VAN-001',
+      'OP-VAN-002',
+      'OP-VAN-003',
+      'OP-VAN-006',
+      'OP-VAN-007',
+      'DEMO-TAC-V2-021',
+      'DEMO-SUP-V2-002',
+    ]);
+    const removalCardIds = new Set([
+      'DEMO-TAC-V2-005',
+      'DEMO-TAC-V2-006',
+      'DEMO-TAC-V2-007',
+      'DEMO-TAC-V2-008',
+      'DEMO-TAC-V2-016',
+      'DEMO-TAC-V2-017',
+      'DEMO-TAC-V2-018',
+      'DEMO-TAC-V2-019',
+      'DEMO-TAC-V2-020',
+    ]);
+
+    const result = loadOfficialPresetDecks(validCards);
+    for (const deck of result.decks) {
+      let frontCapable = 0;
+      let backCapable = 0;
+      let drawCount = 0;
+      let removalCount = 0;
+
+      for (const entry of deck.cards) {
+        const def = cardById.get(entry.card_id)!;
+        if (def.card_type === 'operator') {
+          if (def.deploy_rule === 'front_only' || def.deploy_rule === 'front_or_back') {
+            frontCapable += entry.quantity;
+          }
+          if (def.deploy_rule === 'back_only' || def.deploy_rule === 'front_or_back') {
+            backCapable += entry.quantity;
+          }
+        }
+        if (drawCardIds.has(entry.card_id)) drawCount += entry.quantity;
+        if (removalCardIds.has(entry.card_id)) removalCount += entry.quantity;
+      }
+
+      expect(frontCapable, `${deck.deck_id} frontCapable`).toBeGreaterThanOrEqual(5);
+      expect(backCapable, `${deck.deck_id} backCapable`).toBeGreaterThanOrEqual(5);
+      expect(drawCount, `${deck.deck_id} drawCount`).toBeGreaterThanOrEqual(1);
+      expect(removalCount, `${deck.deck_id} removalCount`).toBeGreaterThanOrEqual(1);
+
+      const meta = result.metadataById.get(deck.deck_id)!;
+      if (meta.difficulty === '进阶') {
+        expect(drawCount, `${deck.deck_id} advanced drawCount`).toBeGreaterThanOrEqual(2);
+        expect(removalCount, `${deck.deck_id} advanced removalCount`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
   it('rejects cost mismatches, unknown cardIds, wrong deck sizes, and copy limit violations', () => {
     const baseDeck = structuredClone(officialPresetJson.decks[0]!);
     baseDeck.cards[0]!.costCP = 99;

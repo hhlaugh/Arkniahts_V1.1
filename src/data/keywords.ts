@@ -20,7 +20,7 @@ interface RawKeywordJsonEntry {
  * 玩家侧词条简要说明映射表（统一对齐 V1.1 规则，精简无赘余）
  */
 const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: string; readonly brief: string }>> = {
-  补给: { category: '资源', brief: '立即获得 1 点 CP（【补给】N 获得 N 点），受当回合与全局 10 CP 上限约束。' },
+  补给: { category: '资源', brief: '立即抽 1 张牌（【补给】N 抽 N 张），满手牌时溢入弃牌堆，空库时承受疲劳伤害。' },
   掩护: { category: '防护', brief: '抵挡下一次受到的非【法伤】、非【中毒】伤害 -1，最多持有 1 层，触发后移除。' },
   集火: { category: '增益', brief: '仅本次攻击攻击力 +1（【集火】N 则 +N），多个来源取最高值。' },
   守护: { category: '防护', brief: '为目标提供 1 点护盾（【守护】N 提供 N 点），护盾可叠加并优先于生命吸收伤害。' },
@@ -45,7 +45,7 @@ const CURATED_KEYWORD_BRIEFS: Readonly<Record<string, { readonly category: strin
   推击: { category: '位移', brief: '将敌方前排单位推向同路后排；若后排已占则结算碰撞伤害或【压制】。' },
   群疗: { category: '治疗', brief: '一次治疗行动可同时恢复范围内多名受伤友方单位的生命值。' },
   伏击: { category: '特性', brief: '不具备拦截资格但可被攻击；未被【集火】时被攻击优先级等同基本分，仅有伏击单位时敌方可直接攻击基本分。' },
-  维护: { category: '限制', brief: '己方回合开始恢复 CP 并结算补给后支付指定费用，不足时视为被击倒并进入弃牌堆。' },
+  维护: { category: '限制', brief: '己方回合开始恢复 CP 并结算补给抽牌后支付指定费用，不足时视为被击倒并进入弃牌堆。' },
   快速再部署: { category: '特性', brief: '撤离或退场后的再部署冷却回合更短，可更快重新部署上场。' },
   不屈: { category: '保命', brief: '首次受到致命伤害时保留 1 点生命留在场上，不触发离场。' },
   反击: { category: '反应', brief: '受伤后对直接伤害来源单位造成指定的反击伤害。' },

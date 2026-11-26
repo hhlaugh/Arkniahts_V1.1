@@ -49,7 +49,7 @@ const KEYWORD_FILTERS: readonly { readonly id: KeywordFilterId; readonly label: 
 const TURN_START_STEPS: readonly { readonly step: string; readonly title: string; readonly detail: string }[] = [
   { step: '01', title: '重置 CP 与状态标记', detail: '恢复为当前回合基础 CP；清除上回合新入场限制，并刷新本回合触发次数。' },
   { step: '02', title: '回合初抽牌', detail: '从牌库顶抽 1 张牌；满 10 张时溢入弃牌堆，牌库耗尽改为承受递增疲劳伤害。' },
-  { step: '03', title: '补给先行结算', detail: '优先结算己方在场单位的【补给】回合初效果（早于维护执行）。' },
+  { step: '03', title: '补给先行结算', detail: '优先结算己方在场单位的【补给】回合初抽牌效果（早于维护执行）。' },
   { step: '04', title: '支付维护费用', detail: '按棋盘格位序支付【维护】CP；费用不足则该单位视为被击倒并进弃牌堆（不退款）。' },
   { step: '05', title: '中毒与到期清理', detail: '按【中毒】层数造成无视【掩护】的伤害并清空层数，随后清理【冻结】【寒冷】等到期状态。' },
   { step: '06', title: '其余回合初触发', detail: '结算前线掩体等其余回合开始效果，以及需要玩家确认的回合初抉择。' },
@@ -104,7 +104,7 @@ const KEYWORD_GLOSSARY_ENTRIES: readonly KeywordEntry[] = [
   { name: '不屈', group: 'combat', kind: '保命 · 免死留场', effect: '首次受到致命伤害时保留 1 点 HP 留在场上，不触发离场（关联召唤物保留）。' },
   { name: '禁疗', group: 'status', kind: '限制 · 拒收友疗', effect: '无法成为友方治疗效果的目标；不限制自身技能写出的自回效果。' },
   { name: '治疗 / 群疗', group: 'tactics', kind: '恢复 · 即时回血', effect: '立即恢复目标生命值（不超过最大生命，不恢复护盾）；【群疗】可同时治疗范围内多名友军。' },
-  { name: '补给 / 维护', group: 'tactics', kind: '资源 · CP 机制', effect: '【补给】立即获得 CP（受当回合上限约束）；【维护】在回合开始补给后支付指定 CP，不足则被击倒进弃牌堆。' },
+  { name: '补给 / 维护', group: 'tactics', kind: '资源 · 过牌与费用', effect: '【补给】立即抽 1 张牌（满手进弃牌堆，空库扣疲劳）；【维护】在回合开始补给后支付指定 CP，不足则被击倒进弃牌堆。' },
   { name: '鼓舞 / 反击', group: 'combat', kind: '成长 / 反应', effect: '【鼓舞】永久提升攻击力至离场；【反击】受到直接伤害后对伤害来源单位造成指定伤害。' },
   { name: '召唤 / 回收', group: 'tactics', kind: '战术 · 占格单位', effect: '在空格生成占位召唤物；控制者可于行动阶段 0 CP 主动【回收】（视作摧毁，不退费）。' },
   { name: '推击 / 牵引', group: 'positioning', kind: '位移 · 阵位调整', effect: '同路前/后排强制位移；若目标位置已占则依卡牌结算碰撞伤害、压制或交换位置（设施免疫位移）。' },
@@ -233,7 +233,7 @@ export function RulesSupplementModal({ isOpen, onClose }: RulesSupplementModalPr
               <div className="bg-[#11151b] p-3 space-y-1">
                 <div className="font-bold text-amber-300">费用成长与硬上限</div>
                 <p className="m-0">
-                  己方第 1–6 回合基础 CP 依次为 <span className="font-mono tabular-nums text-slate-100">3 / 4 / 5 / 6 / 7 / 8</span>（第 6 回合起稳定为 8）。当回合通过【补给】最多可将 CP 充能至{' '}
+                  己方第 1–6 回合基础 CP 依次为 <span className="font-mono tabular-nums text-slate-100">3 / 4 / 5 / 6 / 7 / 8</span>（第 6 回合起稳定为 8）。当回合可额外充能的 CP 上限为{' '}
                   <span className="font-mono tabular-nums text-slate-100">min(10, 基础 + 2)</span>，全局硬上限 <span className="font-mono tabular-nums text-slate-100">10</span>。
                 </p>
               </div>

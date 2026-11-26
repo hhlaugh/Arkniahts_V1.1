@@ -12,8 +12,8 @@ import {
   addCombatLog,
   applyStatusToInstance,
   defOf,
+  drawCards,
   entityName,
-  grantCpWithCap,
   grantShieldToEntity,
   healEntity,
   installEquipmentPackageOnEntity,
@@ -740,8 +740,25 @@ export function executeEffectOps(
       }
 
       case 'grant_supply': {
-        const amount = Number(op.amount ?? 1);
-        state = grantCpWithCap(state, ctx.actorId, amount, ctx.sourceName, ctx.sourceId);
+        const count = Math.max(1, Number(op.amount ?? 1));
+        const drawRes = drawCards(state, ctx.actorId, count);
+        state = drawRes.state;
+        const outcomeText =
+          drawRes.drawn.length > 0
+            ? `抽取 ${drawRes.drawn.length} 张牌`
+            : drawRes.discardedAtHandLimit.length > 0
+              ? `手牌已满，${drawRes.discardedAtHandLimit.length} 张牌置入弃牌堆`
+              : `牌库已空，受到 ${drawRes.fatigueDamage} 点疲劳伤害`;
+        state = addCombatLog(state, {
+          type: 'effect_triggered',
+          source_instance_id: ctx.sourceId,
+          source_player_id: ctx.actorId,
+          target_player_id: ctx.actorId,
+          source_name: ctx.sourceName,
+          amount: drawRes.drawn.length,
+          action_type: 'supply',
+          detail: `${playerLabel(ctx.actorId)}【${ctx.sourceName}】触发【补给】，${outcomeText}。`,
+        });
         break;
       }
 
@@ -1522,6 +1539,8 @@ export function executeEffectOps(
         const count = Number(op.count ?? 1);
         if (ctx.onDrawCards) {
           state = ctx.onDrawCards(state, ctx.actorId, count);
+        } else {
+          state = drawCards(state, ctx.actorId, count).state;
         }
         break;
       }

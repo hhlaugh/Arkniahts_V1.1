@@ -18,13 +18,13 @@
     {
       "deckId": "PRESET-01",
       "name": "先遣突击",
-      "archetype": "先锋经济 / 前期抢节奏",
+      "archetype": "先锋过牌 / 快攻抢节奏",
       "difficulty": "入门",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "以先锋的补给和击杀补给尽早建立场面，再以速射狙击、强攻近卫和低费特种完成节奏转换。",
-      "strengths": "前期展开能力强；补给来源多；低费牌比例高，能灵活利用每回合重置的CP。",
-      "weaknesses": "高强度持续治疗和厚重防线较少；先锋被压制或击倒后，经济优势会明显下降。",
-      "gamePlan": "优先部署芬、翎羽或红豆建立前线；桃金娘、极境和德克萨斯提供额外CP或控制。空降部署与后勤调度台用于降低后续部署成本，能天使与幽灵鲨承担中期输出。",
+      "description": "以先锋的【补给】抽牌尽早建立手牌与前排优势，配合后排速射、法术爆发及定点解牌完成前期压制。",
+      "strengths": "前期展开与过牌能力极强；前后排比例均衡（8前排/5后排）；低费牌比例高且兼具定向清除能力。",
+      "weaknesses": "缺少重型高血防线；若先锋推进过深被重装反制，后期单兵质量略逊于高费核。",
+      "gamePlan": "优先部署芬、翎羽与桃金娘触发【补给】补充手牌；克洛丝、梅、能天使与阿米娅在后排提供稳定火力，空降部署和后勤调度台降低部署成本，定点爆破处理敌方关键威胁。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -34,11 +34,11 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 47,
-        "averageCardCost": 2.35,
+        "totalCardCostSum": 48,
+        "averageCardCost": 2.4,
         "byCardCost": {
-          "1": 6,
-          "2": 5,
+          "1": 5,
+          "2": 6,
           "3": 5,
           "4": 4,
           "5": 0,
@@ -147,18 +147,6 @@
           "abilityText": "战斗开始，所有友方先锋本场首次攻击【集火】。"
         },
         {
-          "cardId": "OP-GUA-006",
-          "name": "幽灵鲨",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "gua",
-          "subclass": "强攻手",
-          "synergyTags": "近卫;免死",
-          "abilityText": "【强攻】；【不屈】（每场对局首次被击倒时保留1点生命，并自身【鼓舞】2）。"
-        },
-        {
           "cardId": "OP-SNI-001",
           "name": "克洛丝",
           "count": 1,
@@ -169,6 +157,18 @@
           "subclass": "速射手",
           "synergyTags": "狙击;后排猎杀",
           "abilityText": "【连击】2。"
+        },
+        {
+          "cardId": "OP-SNI-004",
+          "name": "梅",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "sni",
+          "subclass": "速射手",
+          "synergyTags": "狙击;开局",
+          "abilityText": "攻击后，若目标实际损失生命，【压制】目标。"
         },
         {
           "cardId": "OP-SNI-008",
@@ -183,16 +183,16 @@
           "abilityText": "【连击】2。"
         },
         {
-          "cardId": "OP-SPE-003",
-          "name": "砾",
+          "cardId": "OP-CAS-006",
+          "name": "阿米娅",
           "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
           "costCP": 2,
-          "operatorClass": "spe",
-          "subclass": "处决者",
-          "synergyTags": "特种;守护",
-          "abilityText": "【快速再部署】；部署时，【守护】自身2。"
+          "operatorClass": "cas",
+          "subclass": "中坚术师",
+          "synergyTags": "术士;满血",
+          "abilityText": "【法伤】；本场首次攻击，【集火】2。"
         },
         {
           "cardId": "OP-MED-001",
@@ -219,18 +219,6 @@
           "abilityText": "本回合下一名部署干员费用-2（最低为0）。"
         },
         {
-          "cardId": "DEMO-TAC-V2-023",
-          "name": "先发制人",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "先手;集火",
-          "abilityText": "指定一名友军立即普通攻击一次并【集火】2；其本回合不再参与常规攻击。"
-        },
-        {
           "cardId": "DEMO-TAC-V2-021",
           "name": "战术分析",
           "count": 1,
@@ -243,16 +231,28 @@
           "abilityText": "抽1张牌，再弃1张。"
         },
         {
-          "cardId": "DEMO-TAC-V2-022",
-          "name": "集火标记",
+          "cardId": "DEMO-TAC-V2-005",
+          "name": "定点爆破",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 1,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "集火",
-          "abilityText": "选择一名友军；其本回合首次攻击【集火】。"
+          "synergyTags": "伤害",
+          "abilityText": "对一名敌方干员造成4点伤害。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-023",
+          "name": "先发制人",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "先手;集火",
+          "abilityText": "指定一名友军立即普通攻击一次并【集火】2；其本回合不再参与常规攻击。"
         },
         {
           "cardId": "DEMO-SUP-V2-006",
@@ -283,13 +283,13 @@
     {
       "deckId": "PRESET-02",
       "name": "铁壁防线",
-      "archetype": "守护 / 治疗 / 阵地消耗",
+      "archetype": "守护 / 治疗 / 阵地反击",
       "difficulty": "入门",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "以铁卫和守护者稳定前位，通过治疗、掩护、护盾和设施维持阵地，再逐步建立反击优势。",
-      "strengths": "承伤和恢复能力突出；多个单位能保护同路友军；有设施与装备双重强化。",
-      "weaknesses": "主动击杀节奏较慢；面对绕过前位的后位攻击或高强度法术爆发时，需要依靠位置调整和战术卡应对。",
-      "gamePlan": "先用米格鲁、斑点或蛇屠箱稳住前位；古米、调香师和闪灵维持生命线；雷蛇、泡泡和星熊利用受伤反应惩罚敌方攻击。防线固守与前线掩体适合关键回合保护。",
+      "description": "以重装稳固前排防线，配合后排医疗与远程输出，辅以护盾、破甲与爆破战术稳健推进。",
+      "strengths": "前后排结构扎实（7前排/6后排）；续航与减伤手段丰富；配备定点解牌与过牌调整。",
+      "weaknesses": "平均费用略高，前期抢攻不如快攻构筑；依赖阵地站位配合。",
+      "gamePlan": "以米格鲁、蛇屠箱与古米构建前排阵线，雷蛇、塞雷娅和星熊提供反击与跨路守护；后排安赛尔、调香师、闪灵维持血线，杰西卡、梅与炎熔提供持续伤害，战术分析过滤手牌，破甲弹与定点爆破清除高护盾敌人。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -299,13 +299,13 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 56,
-        "averageCardCost": 2.8,
+        "totalCardCostSum": 54,
+        "averageCardCost": 2.7,
         "byCardCost": {
-          "1": 0,
-          "2": 8,
-          "3": 8,
-          "4": 4,
+          "1": 1,
+          "2": 7,
+          "3": 9,
+          "4": 3,
           "5": 0,
           "6": 0,
           "7": 0,
@@ -313,21 +313,11 @@
         }
       },
       "copyLimit": 2,
-      "uniqueCardCount": 17,
+      "uniqueCardCount": 19,
       "duplicates": [
         {
           "cardId": "OP-DEF-001",
           "name": "米格鲁",
-          "count": 2
-        },
-        {
-          "cardId": "OP-DEF-002",
-          "name": "斑点",
-          "count": 2
-        },
-        {
-          "cardId": "DEMO-TAC-V2-011",
-          "name": "防线固守",
           "count": 2
         }
       ],
@@ -343,18 +333,6 @@
           "subclass": "铁卫",
           "synergyTags": "重装;守护",
           "abilityText": "部署时，【守护】自身。"
-        },
-        {
-          "cardId": "OP-DEF-002",
-          "name": "斑点",
-          "count": 2,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗",
-          "abilityText": "战斗结束，【治疗】同路生命最低的受伤友军。"
         },
         {
           "cardId": "OP-DEF-003",
@@ -381,18 +359,6 @@
           "abilityText": "每回合一次，同路另一名友军受伤后，【治疗】该友军。"
         },
         {
-          "cardId": "OP-DEF-005",
-          "name": "泡泡",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "def",
-          "subclass": "铁卫",
-          "synergyTags": "重装;压制",
-          "abilityText": "受伤后，【压制】伤害来源。"
-        },
-        {
           "cardId": "OP-DEF-006",
           "name": "雷蛇",
           "count": 1,
@@ -403,18 +369,6 @@
           "subclass": "哨戒铁卫",
           "synergyTags": "重装;守护;压制",
           "abilityText": "【反击】：每回合一次，受伤后对伤害来源造成1点伤害。"
-        },
-        {
-          "cardId": "OP-DEF-007",
-          "name": "临光",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;掩护;守护",
-          "abilityText": "部署时，【掩护】同路另一名友军；【守护】自身。"
         },
         {
           "cardId": "OP-DEF-008",
@@ -441,6 +395,18 @@
           "abilityText": "战斗开始，【守护】自身2；受伤后，若仍有护盾，【压制】伤害来源。"
         },
         {
+          "cardId": "OP-MED-001",
+          "name": "安赛尔",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "med",
+          "subclass": "医师",
+          "synergyTags": "医疗;治疗",
+          "abilityText": "【治疗】同路生命比例最低的受伤友军。"
+        },
+        {
           "cardId": "OP-MED-003",
           "name": "调香师",
           "count": 1,
@@ -465,9 +431,45 @@
           "abilityText": "【治疗】；回合开始，【掩护】同路生命比例最低的友军。"
         },
         {
+          "cardId": "OP-SNI-002",
+          "name": "杰西卡",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "sni",
+          "subclass": "速射手",
+          "synergyTags": "狙击;自保",
+          "abilityText": "回合开始，若同路没有其他友方单位，【掩护】自身。"
+        },
+        {
+          "cardId": "OP-SNI-004",
+          "name": "梅",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "sni",
+          "subclass": "速射手",
+          "synergyTags": "狙击;开局",
+          "abilityText": "攻击后，若目标实际损失生命，【压制】目标。"
+        },
+        {
+          "cardId": "OP-CAS-002",
+          "name": "炎熔",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "cas",
+          "subclass": "扩散术师",
+          "synergyTags": "术士;击杀;跨路",
+          "abilityText": "【法伤】；命中主目标后，对同路另一名敌人造成1点【溅射】伤害。"
+        },
+        {
           "cardId": "DEMO-TAC-V2-011",
           "name": "防线固守",
-          "count": 2,
+          "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 3,
@@ -489,28 +491,40 @@
           "abilityText": "【守护】一名友方单位2。"
         },
         {
-          "cardId": "DEMO-TAC-V2-009",
-          "name": "急救包",
+          "cardId": "DEMO-TAC-V2-005",
+          "name": "定点爆破",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 2,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "治疗",
-          "abilityText": "【治疗】一名友方单位2。"
+          "synergyTags": "伤害",
+          "abilityText": "对一名敌方干员造成4点伤害。"
         },
         {
-          "cardId": "DEMO-TAC-V2-012",
-          "name": "掩护撤退",
+          "cardId": "DEMO-TAC-V2-017",
+          "name": "破甲弹",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 2,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "掩护;调度",
-          "abilityText": "【掩护】一名友军，并将其移至同路另一空位。"
+          "synergyTags": "伤害;反护盾",
+          "abilityText": "移除一名敌方干员全部护盾与【掩护】，再造成2点伤害。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
         },
         {
           "cardId": "DEMO-SUP-V2-001",
@@ -544,10 +558,10 @@
       "archetype": "寒冷 / 冻结 / 压制控制",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "围绕寒冷状态建立控制链：先施加寒冷，再利用真理等效果将寒冷目标转为冻结，并辅以压制和法术输出。",
-      "strengths": "能够减少敌方有效攻击与行动窗口；控制效果可为部署、索敌和集中击倒创造时间。",
-      "weaknesses": "控制链依赖攻击命中及状态触发；对状态清除、控制免疫或分散多路进攻的应对能力有限。",
-      "gamePlan": "梓兰负责持续制造寒冷，真理与初雪提供寒冷转冻结的关键窗口；地灵、波登可、铃兰和安洁莉娜补充压制。使用卡达或夜烟补足法术伤害与脆弱。",
+      "description": "以前排先锋与重装特种拖住节奏并【补给】过牌，配合后排凝滞师与削弱者打出寒冷冻结控制链。",
+      "strengths": "前排承伤与后排控场兼备（5前排+1灵活/7后排）；含电磁干扰、后排狙杀等高效解牌及充足过牌。",
+      "weaknesses": "控制链需要命中配合；面对高频率免控或瞬间爆发时需留意关键干员保护。",
+      "gamePlan": "德克萨斯、极境、泡泡、阿消与红稳定前线并提供【补给】与控制；后排梓兰、真理、初雪叠加寒冷转冻结，安洁莉娜与铃兰强化压制并附带法术输出，电磁干扰与后排狙杀精准清除威胁。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -557,13 +571,13 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 53,
-        "averageCardCost": 2.65,
+        "totalCardCostSum": 59,
+        "averageCardCost": 2.95,
         "byCardCost": {
-          "1": 3,
-          "2": 5,
-          "3": 8,
-          "4": 4,
+          "1": 2,
+          "2": 2,
+          "3": 11,
+          "4": 5,
           "5": 0,
           "6": 0,
           "7": 0,
@@ -584,12 +598,84 @@
           "count": 2
         },
         {
-          "cardId": "DEMO-TAC-V2-013",
-          "name": "压制射击",
+          "cardId": "DEMO-TAC-V2-018",
+          "name": "电磁干扰",
           "count": 2
         }
       ],
       "cards": [
+        {
+          "cardId": "OP-VAN-006",
+          "name": "德克萨斯",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "van",
+          "subclass": "尖兵",
+          "synergyTags": "先锋;压制;补给",
+          "abilityText": "部署时，对同路敌方前位造成1点伤害并【眩晕】；【补给】。"
+        },
+        {
+          "cardId": "OP-VAN-007",
+          "name": "极境",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "van",
+          "subclass": "执旗手",
+          "synergyTags": "先锋;补给;经济",
+          "abilityText": "回合开始，【补给】；若同路有敌方后位，【压制】该目标。"
+        },
+        {
+          "cardId": "OP-DEF-005",
+          "name": "泡泡",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "def",
+          "subclass": "铁卫",
+          "synergyTags": "重装;压制",
+          "abilityText": "受伤后，【压制】伤害来源。"
+        },
+        {
+          "cardId": "OP-SPE-002",
+          "name": "阿消",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "spe",
+          "subclass": "推击手",
+          "synergyTags": "特种;位移",
+          "abilityText": "部署时，【推击】同路敌方前位至后位；后位被占时，造成1点伤害并【压制】。"
+        },
+        {
+          "cardId": "OP-SPE-007",
+          "name": "红",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "spe",
+          "subclass": "处决者",
+          "synergyTags": "特种;部署伤害",
+          "abilityText": "【快速再部署】；部署时，对同路敌方前位造成1点伤害并【眩晕】。"
+        },
+        {
+          "cardId": "OP-GUA-005",
+          "name": "拉普兰德",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "gua",
+          "subclass": "领主",
+          "synergyTags": "近卫;反护盾",
+          "abilityText": "【领主】；攻击后，若目标实际损失生命，【沉默】目标至其下个回合结束。"
+        },
         {
           "cardId": "OP-SUP-001",
           "name": "梓兰",
@@ -601,30 +687,6 @@
           "subclass": "凝滞师",
           "synergyTags": "辅助;压制",
           "abilityText": "【法伤】；攻击后，若目标实际损失生命，【寒冷】目标。"
-        },
-        {
-          "cardId": "OP-SUP-002",
-          "name": "波登可",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "sup",
-          "subclass": "凝滞师",
-          "synergyTags": "辅助;鼓舞;跨路",
-          "abilityText": "【法伤】；部署时，【治疗】同路一名受伤友军，并【压制】同路敌方前位。"
-        },
-        {
-          "cardId": "OP-SUP-003",
-          "name": "地灵",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "sup",
-          "subclass": "凝滞师",
-          "synergyTags": "辅助;集火",
-          "abilityText": "【法伤】；战斗开始，【压制】同路所有敌人。"
         },
         {
           "cardId": "OP-SUP-004",
@@ -675,69 +737,21 @@
           "abilityText": "【法伤】；战斗开始，【压制】并【脆弱】同路及邻路所有敌人。"
         },
         {
-          "cardId": "OP-CAS-003",
-          "name": "夜烟",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "cas",
-          "subclass": "中坚术师",
-          "synergyTags": "术士;反护盾",
-          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【脆弱】目标。"
-        },
-        {
-          "cardId": "OP-CAS-004",
-          "name": "卡达",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "cas",
-          "subclass": "链术师",
-          "synergyTags": "术士;压制;跨路",
-          "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
-        },
-        {
-          "cardId": "OP-SNI-004",
-          "name": "梅",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "sni",
-          "subclass": "速射手",
-          "synergyTags": "狙击;开局",
-          "abilityText": "攻击后，若目标实际损失生命，【压制】目标。"
-        },
-        {
-          "cardId": "OP-SPE-002",
-          "name": "阿消",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "spe",
-          "subclass": "推击手",
-          "synergyTags": "特种;位移",
-          "abilityText": "部署时，【推击】同路敌方前位至后位；后位被占时，造成1点伤害并【压制】。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-014",
-          "name": "全线压制",
+          "cardId": "DEMO-TAC-V2-013",
+          "name": "压制射击",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 4,
+          "costCP": 1,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "压制;范围;跨路",
-          "abilityText": "选择相邻两路；两路敌方干员全部【压制】。"
+          "synergyTags": "压制",
+          "abilityText": "【压制】一名敌方干员。"
         },
         {
           "cardId": "DEMO-TAC-V2-018",
           "name": "电磁干扰",
-          "count": 1,
+          "count": 2,
           "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 3,
@@ -747,16 +761,16 @@
           "abilityText": "【压制】一名敌人并造成1点伤害；若其已被压制，改为造成3点伤害。"
         },
         {
-          "cardId": "DEMO-TAC-V2-013",
-          "name": "压制射击",
-          "count": 2,
+          "cardId": "DEMO-TAC-V2-007",
+          "name": "后排狙杀",
+          "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 1,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "压制",
-          "abilityText": "【压制】一名敌方干员。"
+          "synergyTags": "伤害;后排;跨路",
+          "abilityText": "对任意路一名敌方后位造成3点伤害并【压制】。"
         },
         {
           "cardId": "DEMO-TAC-V2-021",
@@ -802,10 +816,10 @@
       "archetype": "后位索敌 / 远程火力 / 重点猎杀",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "利用越位、后位优先和远程攻击处理敌方关键单位，以连击、剧毒、破盾和战术狙杀形成多层火力。",
-      "strengths": "针对后位和高价值单位的能力强；具备连击、脆弱/压制配合及一定的跨路射程支持。",
-      "weaknesses": "前排承伤与治疗不足；远程单位集中部署时容易被全线压制或位移战术打乱。",
-      "gamePlan": "以克洛丝、杰西卡、梅和能天使建立低费火力；白金、守林人和黑负责处理后位或高生命目标。流星对护盾目标有额外威胁，战术目镜为指定远程干员拓展普通攻击路线范围。",
+      "description": "以先锋和重装守护前线并兼顾过牌，为后排越位狙击群创造安全输出环境，实现多维度点杀。",
+      "strengths": "前后排结构稳固（6前排/7后排）；过牌顺畅且配备4张高效率解牌（后排狙杀/破甲弹/定点爆破）。",
+      "weaknesses": "高星狙击费用较集中，需依靠低费先锋与斑点、砾度过前期。",
+      "gamePlan": "芬、翎羽、极境负责前期站场与【补给】抽牌，斑点、临光、砾护航；后排克洛丝、白金、守林人、能天使与黑交叉索敌，配合后排狙杀与破甲弹撕开防线。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -815,12 +829,12 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 55,
-        "averageCardCost": 2.75,
+        "totalCardCostSum": 54,
+        "averageCardCost": 2.7,
         "byCardCost": {
-          "1": 0,
-          "2": 8,
-          "3": 9,
+          "1": 2,
+          "2": 5,
+          "3": 10,
           "4": 3,
           "5": 0,
           "6": 0,
@@ -844,6 +858,78 @@
       ],
       "cards": [
         {
+          "cardId": "OP-VAN-001",
+          "name": "芬",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "van",
+          "subclass": "尖兵",
+          "synergyTags": "先锋;补给;低费",
+          "abilityText": "部署时，【补给】。"
+        },
+        {
+          "cardId": "OP-VAN-002",
+          "name": "翎羽",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "van",
+          "subclass": "冲锋手",
+          "synergyTags": "先锋;补刀",
+          "abilityText": "击倒敌人后，【补给】。"
+        },
+        {
+          "cardId": "OP-VAN-007",
+          "name": "极境",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "van",
+          "subclass": "执旗手",
+          "synergyTags": "先锋;补给;经济",
+          "abilityText": "回合开始，【补给】；若同路有敌方后位，【压制】该目标。"
+        },
+        {
+          "cardId": "OP-DEF-002",
+          "name": "斑点",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "def",
+          "subclass": "守护者",
+          "synergyTags": "重装;治疗",
+          "abilityText": "战斗结束，【治疗】同路生命最低的受伤友军。"
+        },
+        {
+          "cardId": "OP-DEF-007",
+          "name": "临光",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "def",
+          "subclass": "守护者",
+          "synergyTags": "重装;掩护;守护",
+          "abilityText": "部署时，【掩护】同路另一名友军；【守护】自身。"
+        },
+        {
+          "cardId": "OP-SPE-003",
+          "name": "砾",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "spe",
+          "subclass": "处决者",
+          "synergyTags": "特种;守护",
+          "abilityText": "【快速再部署】；部署时，【守护】自身2。"
+        },
+        {
           "cardId": "OP-SNI-001",
           "name": "克洛丝",
           "count": 2,
@@ -854,42 +940,6 @@
           "subclass": "速射手",
           "synergyTags": "狙击;后排猎杀",
           "abilityText": "【连击】2。"
-        },
-        {
-          "cardId": "OP-SNI-002",
-          "name": "杰西卡",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "sni",
-          "subclass": "速射手",
-          "synergyTags": "狙击;自保",
-          "abilityText": "回合开始，若同路没有其他友方单位，【掩护】自身。"
-        },
-        {
-          "cardId": "OP-SNI-003",
-          "name": "流星",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "sni",
-          "subclass": "速射手",
-          "synergyTags": "狙击;反护盾",
-          "abilityText": "攻击前，若目标有护盾，【集火】。"
-        },
-        {
-          "cardId": "OP-SNI-004",
-          "name": "梅",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "sni",
-          "subclass": "速射手",
-          "synergyTags": "狙击;开局",
-          "abilityText": "攻击后，若目标实际损失生命，【压制】目标。"
         },
         {
           "cardId": "OP-SNI-005",
@@ -952,42 +1002,6 @@
           "abilityText": "优先攻击当前生命最高的敌人；若目标当前生命不低于4，【集火】2。"
         },
         {
-          "cardId": "OP-CAS-001",
-          "name": "史都华德",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "cas",
-          "subclass": "中坚术师",
-          "synergyTags": "术士;反护盾",
-          "abilityText": "【法伤】；【越位】，优先攻击有护盾的敌人。"
-        },
-        {
-          "cardId": "OP-CAS-004",
-          "name": "卡达",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "cas",
-          "subclass": "链术师",
-          "synergyTags": "术士;压制;跨路",
-          "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
-        },
-        {
-          "cardId": "OP-DEF-002",
-          "name": "斑点",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗",
-          "abilityText": "战斗结束，【治疗】同路生命最低的受伤友军。"
-        },
-        {
           "cardId": "DEMO-TAC-V2-007",
           "name": "后排狙杀",
           "count": 2,
@@ -1000,30 +1014,6 @@
           "abilityText": "对任意路一名敌方后位造成3点伤害并【压制】。"
         },
         {
-          "cardId": "DEMO-TAC-V2-006",
-          "name": "破片齐射",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "伤害;范围",
-          "abilityText": "全场敌方干员各受到1点伤害；攻击力最高者【压制】。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-024",
-          "name": "越线校准",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "跨路;远程",
-          "abilityText": "选择一名友方远程干员；本回合优先攻击全场生命最低的敌人。"
-        },
-        {
           "cardId": "DEMO-TAC-V2-017",
           "name": "破甲弹",
           "count": 1,
@@ -1034,6 +1024,30 @@
           "subclass": "",
           "synergyTags": "伤害;反护盾",
           "abilityText": "移除一名敌方干员全部护盾与【掩护】，再造成2点伤害。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-005",
+          "name": "定点爆破",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "伤害",
+          "abilityText": "对一名敌方干员造成4点伤害。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
         },
         {
           "cardId": "DEMO-SUP-V2-005",
@@ -1067,10 +1081,10 @@
       "archetype": "召唤 / 多点占位 / 友军支援",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "通过梅尔、麦哲伦、赫默、夜莺和傀影建立多种召唤物；召唤物作为正常场上单位参与占位、承伤、治疗、装备、目标选择及摧毁流程。",
-      "strengths": "可在不同路线补充单位和功能；召唤物能够填补空位、分担攻击或提供治疗/爆破效果；支援能力全面。",
-      "weaknesses": "部署顺序和空位管理要求较高；召唤物被摧毁或主动回收后会失去场上资源，且不返还卡牌或CP。",
-      "gamePlan": "先规划前后位与路线空位，再部署召唤师。赫默、夜莺和麦哲伦提供不同功能的召唤物；梅尔和傀影提供可触发摧毁效果的召唤物。急救组件可以安装在合适的召唤物或干员身上。",
+      "description": "结合先锋过牌、重装护航与多位召唤师，辅以直接解牌与过牌，稳定铺开多单位阵线。",
+      "strengths": "前排掩护充足且不堵塞格子（6前排/7后排）；兼具手牌补给、定点解场及多点续航。",
+      "weaknesses": "需要合理预留召唤物空位；部分高费召唤核心启动较慢。",
+      "gamePlan": "芬、桃金娘通过【补给】保障手牌运转，斑点、塞雷娅、砾与傀影稳固前排；后排梅尔、麦哲伦、赫默、夜莺与调香师展开召唤与群疗，战术分析过牌，定点爆破与破甲弹清障。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -1080,12 +1094,12 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 59,
-        "averageCardCost": 2.95,
+        "totalCardCostSum": 60,
+        "averageCardCost": 3,
         "byCardCost": {
-          "1": 1,
-          "2": 6,
-          "3": 7,
+          "1": 2,
+          "2": 3,
+          "3": 9,
           "4": 5,
           "5": 1,
           "6": 0,
@@ -1108,6 +1122,78 @@
         }
       ],
       "cards": [
+        {
+          "cardId": "OP-VAN-001",
+          "name": "芬",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "van",
+          "subclass": "尖兵",
+          "synergyTags": "先锋;补给;低费",
+          "abilityText": "部署时，【补给】。"
+        },
+        {
+          "cardId": "OP-VAN-003",
+          "name": "桃金娘",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "van",
+          "subclass": "执旗手",
+          "synergyTags": "先锋;连携;补给",
+          "abilityText": "回合开始，【补给】。"
+        },
+        {
+          "cardId": "OP-DEF-002",
+          "name": "斑点",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "def",
+          "subclass": "守护者",
+          "synergyTags": "重装;治疗",
+          "abilityText": "战斗结束，【治疗】同路生命最低的受伤友军。"
+        },
+        {
+          "cardId": "OP-DEF-008",
+          "name": "塞雷娅",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "def",
+          "subclass": "守护者",
+          "synergyTags": "重装;治疗;守护;跨路",
+          "abilityText": "回合开始，【治疗】同路及邻路生命最低的受伤友军，并【守护】该目标。"
+        },
+        {
+          "cardId": "OP-SPE-003",
+          "name": "砾",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "spe",
+          "subclass": "处决者",
+          "synergyTags": "特种;守护",
+          "abilityText": "【快速再部署】；部署时，【守护】自身2。"
+        },
+        {
+          "cardId": "OP-SPE-008",
+          "name": "傀影",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "spe",
+          "subclass": "处决者",
+          "synergyTags": "特种;召唤",
+          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；被摧毁时，对同路一名敌人造成1点伤害。"
+        },
         {
           "cardId": "OP-SUP-006",
           "name": "梅尔",
@@ -1157,42 +1243,6 @@
           "abilityText": "【群疗】；部署时，【召唤】同路鸟笼（生命2，【嘲讽】）。"
         },
         {
-          "cardId": "OP-SPE-008",
-          "name": "傀影",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "spe",
-          "subclass": "处决者",
-          "synergyTags": "特种;召唤",
-          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；被摧毁时，对同路一名敌人造成1点伤害。"
-        },
-        {
-          "cardId": "OP-DEF-002",
-          "name": "斑点",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗",
-          "abilityText": "战斗结束，【治疗】同路生命最低的受伤友军。"
-        },
-        {
-          "cardId": "OP-DEF-008",
-          "name": "塞雷娅",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗;守护;跨路",
-          "abilityText": "回合开始，【治疗】同路及邻路生命最低的受伤友军，并【守护】该目标。"
-        },
-        {
           "cardId": "OP-MED-003",
           "name": "调香师",
           "count": 1,
@@ -1205,64 +1255,40 @@
           "abilityText": "【群疗】2；回合结束，【治疗】全场受伤友军。"
         },
         {
-          "cardId": "OP-MED-001",
-          "name": "安赛尔",
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
           "count": 1,
-          "cardType": "operator",
+          "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "med",
-          "subclass": "医师",
-          "synergyTags": "医疗;治疗",
-          "abilityText": "【治疗】同路生命比例最低的受伤友军。"
+          "costCP": 1,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
         },
         {
-          "cardId": "OP-SUP-002",
-          "name": "波登可",
+          "cardId": "DEMO-TAC-V2-005",
+          "name": "定点爆破",
           "count": 1,
-          "cardType": "operator",
+          "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 3,
-          "operatorClass": "sup",
-          "subclass": "凝滞师",
-          "synergyTags": "辅助;鼓舞;跨路",
-          "abilityText": "【法伤】；部署时，【治疗】同路一名受伤友军，并【压制】同路敌方前位。"
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "伤害",
+          "abilityText": "对一名敌方干员造成4点伤害。"
         },
         {
-          "cardId": "OP-SPE-003",
-          "name": "砾",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "spe",
-          "subclass": "处决者",
-          "synergyTags": "特种;守护",
-          "abilityText": "【快速再部署】；部署时，【守护】自身2。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-009",
-          "name": "急救包",
+          "cardId": "DEMO-TAC-V2-017",
+          "name": "破甲弹",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 2,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "治疗",
-          "abilityText": "【治疗】一名友方单位2。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-010",
-          "name": "紧急护盾",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "守护",
-          "abilityText": "【守护】一名友方单位2。"
+          "synergyTags": "伤害;反护盾",
+          "abilityText": "移除一名敌方干员全部护盾与【掩护】，再造成2点伤害。"
         },
         {
           "cardId": "DEMO-TAC-V2-012",
@@ -1287,18 +1313,6 @@
           "subclass": "",
           "synergyTags": "增益;路线",
           "abilityText": "选择一路；该路所有友军本回合攻击力+1。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-021",
-          "name": "战术分析",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 1,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "过牌",
-          "abilityText": "抽1张牌，再弃1张。"
         },
         {
           "cardId": "DEMO-SUP-V2-004",
@@ -1332,10 +1346,10 @@
       "archetype": "牵引 / 推击 / 跨路调度",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "围绕牵引与推击打乱敌方站位，再用跨路调度、伏击和后位攻击惩罚敌方阵型失衡。",
-      "strengths": "位移手段齐全；能直接改变目标所在格；对依赖前后位保护的阵型有较强干扰。",
-      "weaknesses": "牵引、推击和跨路移动都需要合法目标位置；敌方格位占满或接收格不合法时，部分战术无法使用。",
-      "gamePlan": "先检查目标及目的格是否合法，再部署暗索、阿消或温蒂制造位置变化。伊桑、狮蝎负责压制，红与傀影提供部署爆发，拉普兰德和守林人处理被暴露的目标。",
+      "description": "利用暗索、阿消、温蒂与推进行动破坏敌方站位，同时配置后排射手、术师与过牌设施完成收割。",
+      "strengths": "立体作战能力强（7前排+2领主/4后排）；具备推拉打断、电磁干扰、后排狙杀与战术通讯终端过牌。",
+      "weaknesses": "对空位与位移顺序判断要求较高，操作上限决定上限。",
+      "gamePlan": "暗索、阿消、温蒂搭配伊桑与红掌控前排位移与控场；拉普兰德与银灰按战况灵活进驻前后排，白金、守林人、夜烟与安赛尔在后排提供远程补伤与治疗，战术通讯终端与战术分析维持手牌。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -1345,21 +1359,21 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 60,
-        "averageCardCost": 3,
+        "totalCardCostSum": 61,
+        "averageCardCost": 3.05,
         "byCardCost": {
-          "1": 0,
-          "2": 5,
-          "3": 10,
-          "4": 5,
-          "5": 0,
+          "1": 1,
+          "2": 3,
+          "3": 11,
+          "4": 4,
+          "5": 1,
           "6": 0,
           "7": 0,
           "8": 0
         }
       },
       "copyLimit": 2,
-      "uniqueCardCount": 17,
+      "uniqueCardCount": 18,
       "duplicates": [
         {
           "cardId": "OP-SPE-001",
@@ -1369,11 +1383,6 @@
         {
           "cardId": "OP-SPE-002",
           "name": "阿消",
-          "count": 2
-        },
-        {
-          "cardId": "DEMO-TAC-V2-001",
-          "name": "临机调度",
           "count": 2
         }
       ],
@@ -1427,18 +1436,6 @@
           "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；攻击后，【压制】受伤目标中攻击力最高的一名敌方单位。"
         },
         {
-          "cardId": "OP-SPE-006",
-          "name": "狮蝎",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "spe",
-          "subclass": "伏击客",
-          "synergyTags": "特种;突袭",
-          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；战斗开始，【压制】同路攻击力最高的一名敌方单位。"
-        },
-        {
           "cardId": "OP-SPE-007",
           "name": "红",
           "count": 1,
@@ -1449,30 +1446,6 @@
           "subclass": "处决者",
           "synergyTags": "特种;部署伤害",
           "abilityText": "【快速再部署】；部署时，对同路敌方前位造成1点伤害并【眩晕】。"
-        },
-        {
-          "cardId": "OP-SPE-008",
-          "name": "傀影",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "spe",
-          "subclass": "处决者",
-          "synergyTags": "特种;召唤",
-          "abilityText": "【快速再部署】；部署时，【召唤】同路影子（攻击1、生命2）；被摧毁时，对同路一名敌人造成1点伤害。"
-        },
-        {
-          "cardId": "OP-SPE-003",
-          "name": "砾",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "spe",
-          "subclass": "处决者",
-          "synergyTags": "特种;守护",
-          "abilityText": "【快速再部署】；部署时，【守护】自身2。"
         },
         {
           "cardId": "OP-GUA-005",
@@ -1487,6 +1460,30 @@
           "abilityText": "【领主】；攻击后，若目标实际损失生命，【沉默】目标至其下个回合结束。"
         },
         {
+          "cardId": "OP-GUA-007",
+          "name": "银灰",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 5,
+          "operatorClass": "gua",
+          "subclass": "领主",
+          "synergyTags": "近卫;越线",
+          "abilityText": "【领主】；战斗开始，本场可同时攻击同路最多2名敌人（副目标受1点伤害）。"
+        },
+        {
+          "cardId": "OP-SNI-005",
+          "name": "白金",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "sni",
+          "subclass": "速射手",
+          "synergyTags": "狙击;孤立",
+          "abilityText": "【越位】；攻击后位目标时，【集火】。"
+        },
+        {
           "cardId": "OP-SNI-007",
           "name": "守林人",
           "count": 1,
@@ -1499,21 +1496,33 @@
           "abilityText": "【越位】。"
         },
         {
-          "cardId": "OP-DEF-008",
-          "name": "塞雷娅",
+          "cardId": "OP-CAS-003",
+          "name": "夜烟",
           "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
-          "costCP": 4,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗;守护;跨路",
-          "abilityText": "回合开始，【治疗】同路及邻路生命最低的受伤友军，并【守护】该目标。"
+          "costCP": 2,
+          "operatorClass": "cas",
+          "subclass": "中坚术师",
+          "synergyTags": "术士;反护盾",
+          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【脆弱】目标。"
+        },
+        {
+          "cardId": "OP-MED-001",
+          "name": "安赛尔",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "med",
+          "subclass": "医师",
+          "synergyTags": "医疗;治疗",
+          "abilityText": "【治疗】同路生命比例最低的受伤友军。"
         },
         {
           "cardId": "DEMO-TAC-V2-001",
           "name": "临机调度",
-          "count": 2,
+          "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 2,
@@ -1535,40 +1544,52 @@
           "abilityText": "将一名敌方前位移至相邻路同位置空位；对其造成1点伤害并【压制】。"
         },
         {
-          "cardId": "DEMO-TAC-V2-015",
-          "name": "侧翼掩护",
+          "cardId": "DEMO-TAC-V2-018",
+          "name": "电磁干扰",
           "count": 1,
           "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "掩护;调度;跨路",
-          "abilityText": "将一名友军移至相邻路同位置空位，并【掩护】。"
-        },
-        {
-          "cardId": "DEMO-TAC-V2-012",
-          "name": "掩护撤退",
-          "count": 1,
-          "cardType": "tactic",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "",
-          "subclass": "",
-          "synergyTags": "掩护;调度",
-          "abilityText": "【掩护】一名友军，并将其移至同路另一空位。"
-        },
-        {
-          "cardId": "DEMO-SUP-V2-003",
-          "name": "观察哨",
-          "count": 1,
-          "cardType": "facility",
           "supportSubtype": "",
           "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "设施;压制",
-          "abilityText": "回合开始，【压制】全场攻击力最高的敌方干员。"
+          "synergyTags": "压制;伤害",
+          "abilityText": "【压制】一名敌人并造成1点伤害；若其已被压制，改为造成3点伤害。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-007",
+          "name": "后排狙杀",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "伤害;后排;跨路",
+          "abilityText": "对任意路一名敌方后位造成3点伤害并【压制】。"
+        },
+        {
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
+        },
+        {
+          "cardId": "DEMO-SUP-V2-002",
+          "name": "战术通讯终端",
+          "count": 1,
+          "cardType": "facility",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "设施;过牌",
+          "abilityText": "回合开始，若手牌少于4张，抽1张牌。"
         },
         {
           "cardId": "DEMO-SUP-V2-011",
@@ -1590,10 +1611,10 @@
       "archetype": "法伤 / 脆弱 / 护盾突破",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "利用法伤无视掩护但仍受护盾吸收的规则，配合破盾、脆弱和单体爆发处理高防护目标。",
-      "strengths": "对掩护依赖型防御有效；具备连锁、溅射、贯穿和法术爆发等多种攻击形式。",
-      "weaknesses": "法术伤害仍受护盾吸收；核心术师较依赖站位和前排保护；费用曲线中高费牌较多。",
-      "gamePlan": "先以史都华德、夜烟、卡达和阿米娅建立低费术法输出；远山、艾雅法拉与伊芙利特负责范围伤害，月见夜和史尔特尔提供近卫侧的法术输出。先用清障行动或破甲弹处理掩护与护盾，再集中攻击。",
+      "description": "由先锋【补给】与重装组成可靠前排，掩护后排高输出术师群倾泻无视掩护的法术火力并搭配解牌清场。",
+      "strengths": "前后排配置健康（5前排+1领主/7后排）；穿透、连锁、邻路溅射法伤齐全，并配4张精准解牌与3张过牌。",
+      "weaknesses": "前排整体血量偏中低，需及时用史尔特尔或战术解牌处理敌方高攻突击。",
+      "gamePlan": "芬、德克萨斯提供前期【补给】过牌，米格鲁与蛇屠箱护住前线，史尔特尔承担决战爆发；后排史都华德、夜烟、卡达、阿米娅、艾雅法拉与伊芙利特协同法伤输出，破甲弹与清障行动瓦解敌方防御。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -1603,13 +1624,13 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 57,
-        "averageCardCost": 2.85,
+        "totalCardCostSum": 55,
+        "averageCardCost": 2.75,
         "byCardCost": {
-          "1": 0,
-          "2": 8,
-          "3": 9,
-          "4": 2,
+          "1": 2,
+          "2": 7,
+          "3": 7,
+          "4": 3,
           "5": 0,
           "6": 1,
           "7": 0,
@@ -1617,29 +1638,91 @@
         }
       },
       "copyLimit": 2,
-      "uniqueCardCount": 17,
+      "uniqueCardCount": 19,
       "duplicates": [
-        {
-          "cardId": "OP-CAS-001",
-          "name": "史都华德",
-          "count": 2
-        },
         {
           "cardId": "OP-CAS-003",
           "name": "夜烟",
-          "count": 2
-        },
-        {
-          "cardId": "DEMO-TAC-V2-017",
-          "name": "破甲弹",
           "count": 2
         }
       ],
       "cards": [
         {
+          "cardId": "OP-VAN-001",
+          "name": "芬",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "van",
+          "subclass": "尖兵",
+          "synergyTags": "先锋;补给;低费",
+          "abilityText": "部署时，【补给】。"
+        },
+        {
+          "cardId": "OP-VAN-006",
+          "name": "德克萨斯",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 4,
+          "operatorClass": "van",
+          "subclass": "尖兵",
+          "synergyTags": "先锋;压制;补给",
+          "abilityText": "部署时，对同路敌方前位造成1点伤害并【眩晕】；【补给】。"
+        },
+        {
+          "cardId": "OP-DEF-001",
+          "name": "米格鲁",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "def",
+          "subclass": "铁卫",
+          "synergyTags": "重装;守护",
+          "abilityText": "部署时，【守护】自身。"
+        },
+        {
+          "cardId": "OP-DEF-003",
+          "name": "蛇屠箱",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "def",
+          "subclass": "铁卫",
+          "synergyTags": "重装;掩护",
+          "abilityText": "受伤后，【掩护】自身。"
+        },
+        {
+          "cardId": "OP-GUA-009",
+          "name": "史尔特尔",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 6,
+          "operatorClass": "gua",
+          "subclass": "术战者",
+          "synergyTags": "近卫;血线;终结",
+          "abilityText": "【法伤】；部署时，【鼓舞】3；战斗结束，失去2点生命。"
+        },
+        {
+          "cardId": "OP-GUA-002",
+          "name": "月见夜",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "gua",
+          "subclass": "领主",
+          "synergyTags": "近卫;击杀",
+          "abilityText": "【领主】；【法伤】。"
+        },
+        {
           "cardId": "OP-CAS-001",
           "name": "史都华德",
-          "count": 2,
+          "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
           "costCP": 2,
@@ -1647,18 +1730,6 @@
           "subclass": "中坚术师",
           "synergyTags": "术士;反护盾",
           "abilityText": "【法伤】；【越位】，优先攻击有护盾的敌人。"
-        },
-        {
-          "cardId": "OP-CAS-002",
-          "name": "炎熔",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "cas",
-          "subclass": "扩散术师",
-          "synergyTags": "术士;击杀;跨路",
-          "abilityText": "【法伤】；命中主目标后，对同路另一名敌人造成1点【溅射】伤害。"
         },
         {
           "cardId": "OP-CAS-003",
@@ -1685,18 +1756,6 @@
           "abilityText": "【法伤】；命中主目标后，对相邻路一名敌人【连锁】造成1点法术伤害。"
         },
         {
-          "cardId": "OP-CAS-005",
-          "name": "远山",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "cas",
-          "subclass": "扩散术师",
-          "synergyTags": "术士;压制;范围",
-          "abilityText": "【法伤】；本场首次攻击后，对同路所有敌人额外造成1点法术伤害。"
-        },
-        {
           "cardId": "OP-CAS-006",
           "name": "阿米娅",
           "count": 1,
@@ -1707,18 +1766,6 @@
           "subclass": "中坚术师",
           "synergyTags": "术士;满血",
           "abilityText": "【法伤】；本场首次攻击，【集火】2。"
-        },
-        {
-          "cardId": "OP-CAS-007",
-          "name": "夜魔",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "cas",
-          "subclass": "中坚术师",
-          "synergyTags": "术士;部署伤害",
-          "abilityText": "【法伤】；攻击后，若目标实际损失生命，【压制】目标；若目标已被压制，改为【集火】。"
         },
         {
           "cardId": "OP-CAS-008",
@@ -1745,30 +1792,6 @@
           "abilityText": "【法伤】；【贯穿】同路所有敌人；命中目标【脆弱】。"
         },
         {
-          "cardId": "OP-GUA-002",
-          "name": "月见夜",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "gua",
-          "subclass": "领主",
-          "synergyTags": "近卫;击杀",
-          "abilityText": "【领主】；【法伤】。"
-        },
-        {
-          "cardId": "OP-GUA-009",
-          "name": "史尔特尔",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 6,
-          "operatorClass": "gua",
-          "subclass": "术战者",
-          "synergyTags": "近卫;血线;终结",
-          "abilityText": "【法伤】；部署时，【鼓舞】3；战斗结束，失去2点生命。"
-        },
-        {
           "cardId": "DEMO-TAC-V2-005",
           "name": "定点爆破",
           "count": 1,
@@ -1783,7 +1806,7 @@
         {
           "cardId": "DEMO-TAC-V2-017",
           "name": "破甲弹",
-          "count": 2,
+          "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 3,
@@ -1817,6 +1840,18 @@
           "abilityText": "【压制】一名敌人并造成1点伤害；若其已被压制，改为造成3点伤害。"
         },
         {
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
+          "count": 1,
+          "cardType": "tactic",
+          "supportSubtype": "",
+          "costCP": 1,
+          "operatorClass": "",
+          "subclass": "",
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
+        },
+        {
           "cardId": "DEMO-SUP-V2-005",
           "name": "电子干扰塔",
           "count": 1,
@@ -1848,10 +1883,10 @@
       "archetype": "中毒 / 反击 / 持续消耗",
       "difficulty": "进阶",
       "recommendedMode": "经典3路（首选平衡环境）；自定义1–5路需另行测试",
-      "description": "通过剧毒和中毒持续损耗敌方生命，配合雷蛇、泡泡等受伤反应单位形成攻防交换，并用治疗与压制维持场面。",
-      "strengths": "持续伤害能迫使敌方处理状态；受伤反应可惩罚普通攻击；具有较好的反击与消耗能力。",
-      "weaknesses": "中毒伤害有结算时点，不能立即替代爆发；面对快速击倒或频繁清除状态的阵容时，需要额外直接伤害。",
-      "gamePlan": "蓝毒与棘刺负责施加中毒，雷蛇、泡泡通过受伤触发反制；调香师、古米和安赛尔维持友军。压制射击与电磁干扰争取中毒结算窗口，破甲弹处理护盾和掩护。",
+      "description": "以极境与战术通讯终端保证中后期过牌，配合重装反伤阵线及双领主、双蓝毒持续叠加剧毒磨血。",
+      "strengths": "三路均衡（5前排+3领主/5后排）；消耗与反击兼具，配有破甲弹、电磁干扰、定点爆破三套硬解与充足过牌。",
+      "weaknesses": "核心领主与中毒体系在中期发力，前期需稳守路线等待毒伤与反伤生效。",
+      "gamePlan": "极境【补给】过牌并压制后位，古米、泡泡、雷蛇与伊桑稳固前线反击；蓝毒、棘刺、拉普兰德与初雪构建毒伤和沉默封锁，调香师与安赛尔维持血量，战术通讯终端与战术分析保持手牌优势。",
       "deckSize": 20,
       "composition": {
         "operators": 13,
@@ -1861,13 +1896,13 @@
         "totalCopies": 20
       },
       "costSummary": {
-        "totalCardCostSum": 61,
-        "averageCardCost": 3.05,
+        "totalCardCostSum": 63,
+        "averageCardCost": 3.15,
         "byCardCost": {
           "1": 1,
-          "2": 2,
+          "2": 1,
           "3": 14,
-          "4": 1,
+          "4": 2,
           "5": 2,
           "6": 0,
           "7": 0,
@@ -1878,40 +1913,40 @@
       "uniqueCardCount": 18,
       "duplicates": [
         {
-          "cardId": "OP-SNI-006",
-          "name": "蓝毒",
+          "cardId": "OP-GUA-008",
+          "name": "棘刺",
           "count": 2
         },
         {
-          "cardId": "OP-GUA-008",
-          "name": "棘刺",
+          "cardId": "OP-SNI-006",
+          "name": "蓝毒",
           "count": 2
         }
       ],
       "cards": [
         {
-          "cardId": "OP-SNI-006",
-          "name": "蓝毒",
-          "count": 2,
+          "cardId": "OP-VAN-007",
+          "name": "极境",
+          "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
           "costCP": 3,
-          "operatorClass": "sni",
-          "subclass": "速射手",
-          "synergyTags": "狙击;补刀",
-          "abilityText": "【剧毒】。"
+          "operatorClass": "van",
+          "subclass": "执旗手",
+          "synergyTags": "先锋;补给;经济",
+          "abilityText": "回合开始，【补给】；若同路有敌方后位，【压制】该目标。"
         },
         {
-          "cardId": "OP-GUA-008",
-          "name": "棘刺",
-          "count": 2,
+          "cardId": "OP-DEF-004",
+          "name": "古米",
+          "count": 1,
           "cardType": "operator",
           "supportSubtype": "",
-          "costCP": 5,
-          "operatorClass": "gua",
-          "subclass": "领主",
-          "synergyTags": "近卫;反击",
-          "abilityText": "【领主】；攻击后，【中毒】实际受伤目标；回合开始，若自身上个己方回合未受伤，【治疗】自身。"
+          "costCP": 3,
+          "operatorClass": "def",
+          "subclass": "守护者",
+          "synergyTags": "重装;治疗",
+          "abilityText": "每回合一次，同路另一名友军受伤后，【治疗】该友军。"
         },
         {
           "cardId": "OP-DEF-005",
@@ -1938,42 +1973,6 @@
           "abilityText": "【反击】：每回合一次，受伤后对伤害来源造成1点伤害。"
         },
         {
-          "cardId": "OP-DEF-004",
-          "name": "古米",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "def",
-          "subclass": "守护者",
-          "synergyTags": "重装;治疗",
-          "abilityText": "每回合一次，同路另一名友军受伤后，【治疗】该友军。"
-        },
-        {
-          "cardId": "OP-MED-003",
-          "name": "调香师",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "med",
-          "subclass": "群愈师",
-          "synergyTags": "医疗;群疗",
-          "abilityText": "【群疗】2；回合结束，【治疗】全场受伤友军。"
-        },
-        {
-          "cardId": "OP-MED-001",
-          "name": "安赛尔",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 2,
-          "operatorClass": "med",
-          "subclass": "医师",
-          "synergyTags": "医疗;治疗",
-          "abilityText": "【治疗】同路生命比例最低的受伤友军。"
-        },
-        {
           "cardId": "OP-SPE-004",
           "name": "伊桑",
           "count": 1,
@@ -1984,18 +1983,6 @@
           "subclass": "伏击客",
           "synergyTags": "特种;压制",
           "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；攻击后，【压制】受伤目标中攻击力最高的一名敌方单位。"
-        },
-        {
-          "cardId": "OP-SPE-006",
-          "name": "狮蝎",
-          "count": 1,
-          "cardType": "operator",
-          "supportSubtype": "",
-          "costCP": 3,
-          "operatorClass": "spe",
-          "subclass": "伏击客",
-          "synergyTags": "特种;突袭",
-          "abilityText": "【伏击】；普通攻击可同时攻击同路最多2名敌人；战斗开始，【压制】同路攻击力最高的一名敌方单位。"
         },
         {
           "cardId": "OP-GUA-005",
@@ -2010,6 +1997,54 @@
           "abilityText": "【领主】；攻击后，若目标实际损失生命，【沉默】目标至其下个回合结束。"
         },
         {
+          "cardId": "OP-GUA-008",
+          "name": "棘刺",
+          "count": 2,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 5,
+          "operatorClass": "gua",
+          "subclass": "领主",
+          "synergyTags": "近卫;反击",
+          "abilityText": "【领主】；攻击后，【中毒】实际受伤目标；回合开始，若自身上个己方回合未受伤，【治疗】自身。"
+        },
+        {
+          "cardId": "OP-SNI-006",
+          "name": "蓝毒",
+          "count": 2,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "sni",
+          "subclass": "速射手",
+          "synergyTags": "狙击;补刀",
+          "abilityText": "【剧毒】。"
+        },
+        {
+          "cardId": "OP-MED-001",
+          "name": "安赛尔",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 2,
+          "operatorClass": "med",
+          "subclass": "医师",
+          "synergyTags": "医疗;治疗",
+          "abilityText": "【治疗】同路生命比例最低的受伤友军。"
+        },
+        {
+          "cardId": "OP-MED-003",
+          "name": "调香师",
+          "count": 1,
+          "cardType": "operator",
+          "supportSubtype": "",
+          "costCP": 3,
+          "operatorClass": "med",
+          "subclass": "群愈师",
+          "synergyTags": "医疗;群疗",
+          "abilityText": "【群疗】2；回合结束，【治疗】全场受伤友军。"
+        },
+        {
           "cardId": "OP-SUP-005",
           "name": "初雪",
           "count": 1,
@@ -2022,16 +2057,16 @@
           "abilityText": "【法伤】；战斗开始，【寒冷】同路生命最高的敌人。"
         },
         {
-          "cardId": "DEMO-TAC-V2-013",
-          "name": "压制射击",
+          "cardId": "DEMO-TAC-V2-021",
+          "name": "战术分析",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
           "costCP": 1,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "压制",
-          "abilityText": "【压制】一名敌方干员。"
+          "synergyTags": "过牌",
+          "abilityText": "抽1张牌，再弃1张。"
         },
         {
           "cardId": "DEMO-TAC-V2-018",
@@ -2058,16 +2093,16 @@
           "abilityText": "移除一名敌方干员全部护盾与【掩护】，再造成2点伤害。"
         },
         {
-          "cardId": "DEMO-TAC-V2-009",
-          "name": "急救包",
+          "cardId": "DEMO-TAC-V2-005",
+          "name": "定点爆破",
           "count": 1,
           "cardType": "tactic",
           "supportSubtype": "",
-          "costCP": 2,
+          "costCP": 3,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "治疗",
-          "abilityText": "【治疗】一名友方单位2。"
+          "synergyTags": "伤害",
+          "abilityText": "对一名敌方干员造成4点伤害。"
         },
         {
           "cardId": "DEMO-TAC-V2-011",
@@ -2082,16 +2117,16 @@
           "abilityText": "选择一路；该路所有友军获得【掩护】并【守护】。"
         },
         {
-          "cardId": "DEMO-SUP-V2-003",
-          "name": "观察哨",
+          "cardId": "DEMO-SUP-V2-002",
+          "name": "战术通讯终端",
           "count": 1,
           "cardType": "facility",
           "supportSubtype": "",
-          "costCP": 3,
+          "costCP": 4,
           "operatorClass": "",
           "subclass": "",
-          "synergyTags": "设施;压制",
-          "abilityText": "回合开始，【压制】全场攻击力最高的敌方干员。"
+          "synergyTags": "设施;过牌",
+          "abilityText": "回合开始，若手牌少于4张，抽1张牌。"
         },
         {
           "cardId": "DEMO-SUP-V2-010",

@@ -8,6 +8,7 @@ import {
   normalizeStatusKind,
 } from './range';
 import type {
+  BasePoints,
   CardDefinition,
   CardInstance,
   CardInstanceId,
@@ -22,6 +23,71 @@ import type {
   StatusEffect,
   StatusKind,
 } from './types';
+
+export const HAND_LIMIT = 10;
+
+export interface DrawResult {
+  readonly state: GameState;
+  readonly drawn: readonly CardInstanceId[];
+  readonly discardedAtHandLimit: readonly CardInstanceId[];
+  readonly fatigueDamage: number;
+}
+
+export function evaluateWinner(state: GameState): GameState {
+  const aLost = state.players.player_a.base_points <= 0;
+  const bLost = state.players.player_b.base_points <= 0;
+  if (!aLost && !bLost) return state;
+  const winner: GameState['winner'] = aLost && bLost ? 'draw' : aLost ? 'player_b' : 'player_a';
+  return { ...state, phase: 'finished', winner, state_version: state.state_version + 1 };
+}
+
+export function drawCards(state: GameState, playerId: PlayerId, count: number): DrawResult {
+  if (!Number.isInteger(count) || count < 0) throw new RangeError('抽牌数量必须是非负整数。');
+  const initialPlayer = state.players[playerId];
+  if (!initialPlayer) throw new Error(`找不到玩家 ${playerId}。`);
+  let player = initialPlayer;
+  let nextState = state;
+  const drawn: CardInstanceId[] = [];
+  const discardedAtHandLimit: CardInstanceId[] = [];
+  let fatigueDamage = 0;
+  const instanceUpdates: Record<CardInstanceId, CardInstance> = {};
+
+  for (let drawIndex = 0; drawIndex < count; drawIndex += 1) {
+    if (player.deck.length === 0) {
+      const nextFatigue = player.fatigue_count + 1;
+      fatigueDamage += nextFatigue;
+      player = {
+        ...player,
+        base_points: (player.base_points - nextFatigue) as BasePoints,
+        fatigue_count: nextFatigue,
+      };
+      continue;
+    }
+
+    const [cardInstanceId, ...remainingDeck] = player.deck;
+    if (player.hand.length >= HAND_LIMIT) {
+      player = { ...player, deck: remainingDeck, discard: [...player.discard, cardInstanceId] };
+      discardedAtHandLimit.push(cardInstanceId);
+      const instance = state.card_instances[cardInstanceId];
+      if (instance) instanceUpdates[cardInstanceId] = { ...instance, zone: 'discard' };
+    } else {
+      player = { ...player, deck: remainingDeck, hand: [...player.hand, cardInstanceId] };
+      drawn.push(cardInstanceId);
+      const instance = state.card_instances[cardInstanceId];
+      if (instance) instanceUpdates[cardInstanceId] = { ...instance, zone: 'hand' };
+    }
+  }
+
+  nextState = updatePlayer(nextState, playerId, () => player);
+  if (Object.keys(instanceUpdates).length > 0) {
+    nextState = {
+      ...nextState,
+      card_instances: { ...nextState.card_instances, ...instanceUpdates },
+    };
+  }
+  nextState = evaluateWinner(nextState);
+  return { state: nextState, drawn, discardedAtHandLimit, fatigueDamage };
+}
 
 export function addCombatLog(state: GameState, event: Omit<CombatLogEvent, 'sequence'>): GameState {
   return {
@@ -120,8 +186,8 @@ export function grantCpWithCap(
     target_player_id: playerId,
     source_name: sourceName,
     amount: gained,
-    action_type: 'supply',
-    detail: `${playerLabel(playerId)}【${sourceName}】触发补给（当前回合上限 ${cap} CP），实际获得 ${gained} CP（${player.cost} → ${after}）。`,
+    action_type: 'cp_recovery',
+    detail: `${playerLabel(playerId)}【${sourceName}】恢复费用（当前回合上限 ${cap} CP），实际获得 ${gained} CP（${player.cost} → ${after}）。`,
   });
   return next;
 }

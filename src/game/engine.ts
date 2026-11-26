@@ -10,12 +10,16 @@ import {
 import {
   addCombatLog,
   defOf,
+  drawCards,
   entityName,
+  evaluateWinner,
   grantCpWithCap,
+  HAND_LIMIT,
   playerLabel,
   removeEntityByDefeatOrDestroy,
   updateInstance,
   updatePlayer,
+  type DrawResult,
 } from './combat-primitives';
 import {
   executeImmediateAttackForUnit,
@@ -66,7 +70,7 @@ import type {
 import { CLASSIC_BOARD_PROFILE } from './board';
 
 export const OPENING_HAND_SIZE = 5;
-export const HAND_LIMIT = 10;
+export { HAND_LIMIT, drawCards, type DrawResult };
 export const STARTING_BASE_POINTS = 20;
 export const STARTING_COST = 0;
 export const COST_PER_TURN = 3;
@@ -89,13 +93,6 @@ export type EngineResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly value: T; readonly reason: string };
 
-export interface DrawResult {
-  readonly state: GameState;
-  readonly drawn: readonly CardInstanceId[];
-  readonly discardedAtHandLimit: readonly CardInstanceId[];
-  readonly fatigueDamage: number;
-}
-
 export interface InitialGameOptions {
   readonly decks: Readonly<Record<PlayerId, DeckDefinition>>;
   readonly cards: readonly CardDefinition[];
@@ -116,14 +113,6 @@ function setPlayer(state: GameState, playerId: PlayerId, player: GameState['play
 
 function setInstances(state: GameState, updates: Readonly<Record<CardInstanceId, CardInstance>>): GameState {
   return { ...state, card_instances: { ...state.card_instances, ...updates } };
-}
-
-function evaluateWinner(state: GameState): GameState {
-  const aLost = state.players.player_a.base_points <= 0;
-  const bLost = state.players.player_b.base_points <= 0;
-  if (!aLost && !bLost) return state;
-  const winner: GameState['winner'] = aLost && bLost ? 'draw' : aLost ? 'player_b' : 'player_a';
-  return { ...state, phase: 'finished', winner, state_version: state.state_version + 1 };
 }
 
 function makePlayer(playerId: PlayerId, deck: readonly CardInstanceId[]): GameState['players'][PlayerId] {
@@ -185,49 +174,6 @@ function expandDeck(playerId: PlayerId, deck: DeckDefinition, cardsById: Readonl
     throw new RangeError(`牌组 ${deck.deck_id} 至少需要 ${OPENING_HAND_SIZE} 张才能发起手牌。`);
   }
   return instances;
-}
-
-export function drawCards(state: GameState, playerId: PlayerId, count: number): DrawResult {
-  if (!Number.isInteger(count) || count < 0) throw new RangeError('抽牌数量必须是非负整数。');
-  const initialPlayer = state.players[playerId];
-  if (!initialPlayer) throw new Error(`找不到玩家 ${playerId}。`);
-  let player = initialPlayer;
-  let nextState = state;
-  const drawn: CardInstanceId[] = [];
-  const discardedAtHandLimit: CardInstanceId[] = [];
-  let fatigueDamage = 0;
-  const instanceUpdates: Record<CardInstanceId, CardInstance> = {};
-
-  for (let drawIndex = 0; drawIndex < count; drawIndex += 1) {
-    if (player.deck.length === 0) {
-      const nextFatigue = player.fatigue_count + 1;
-      fatigueDamage += nextFatigue;
-      player = {
-        ...player,
-        base_points: (player.base_points - nextFatigue) as BasePoints,
-        fatigue_count: nextFatigue,
-      };
-      continue;
-    }
-
-    const [cardInstanceId, ...remainingDeck] = player.deck;
-    if (player.hand.length >= HAND_LIMIT) {
-      player = { ...player, deck: remainingDeck, discard: [...player.discard, cardInstanceId] };
-      discardedAtHandLimit.push(cardInstanceId);
-      const instance = state.card_instances[cardInstanceId];
-      if (instance) instanceUpdates[cardInstanceId] = { ...instance, zone: 'discard' };
-    } else {
-      player = { ...player, deck: remainingDeck, hand: [...player.hand, cardInstanceId] };
-      drawn.push(cardInstanceId);
-      const instance = state.card_instances[cardInstanceId];
-      if (instance) instanceUpdates[cardInstanceId] = { ...instance, zone: 'hand' };
-    }
-  }
-
-  nextState = setPlayer(nextState, playerId, player);
-  if (Object.keys(instanceUpdates).length > 0) nextState = setInstances(nextState, instanceUpdates);
-  nextState = evaluateWinner(nextState);
-  return { state: nextState, drawn, discardedAtHandLimit, fatigueDamage };
 }
 
 export function createInitialGameState(options: InitialGameOptions): GameState {
@@ -958,7 +904,11 @@ function resolveTurnStart(state: GameState): GameState {
           actorId: playerId,
           sourceLane: live.lane,
           triggerName: 'turn_start',
+          onDrawCards: (s, pid, count) => drawCards(s, pid, count).state,
         }).state;
+        if (next.winner) {
+          return { ...next, phase: 'finished', turn_start_prepared: false };
+        }
       }
     }
   }

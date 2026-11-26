@@ -3,8 +3,8 @@
     "keyword_id": "supply",
     "keyword_name_zh": "补给",
     "category": "资源效果",
-    "card_short_text": "【补给】获得1点CP（【补给】N获得N点CP）。",
-    "detail_rules_text": "立即获得指定点数的CP；实际CP不超过当回合上限min(10,基础CP+2)与全局上限10。",
+    "card_short_text": "【补给】抽1张牌（【补给】N抽N张牌）。",
+    "detail_rules_text": "立即从牌库顶抽取指定数量的卡牌；手牌达10张上限时溢出置入弃牌堆，牌库耗尽则改为承受递增疲劳伤害。",
     "usage_status": "V1.1"
   },
   {
@@ -203,7 +203,7 @@
     "keyword_id": "upkeep",
     "keyword_name_zh": "维护",
     "category": "资源限制",
-    "card_short_text": "【维护】N：己方回合开始恢复CP并结算补给后支付N点CP。",
+    "card_short_text": "【维护】N：己方回合开始恢复CP并结算补给抽牌后支付N点CP。",
     "detail_rules_text": "若CP不足以足额支付，则该单位视为被击倒并进入弃牌堆，不回手、不退款、不计入再部署冷却。",
     "usage_status": "V1.1"
   },

@@ -249,15 +249,20 @@ describe('deployment validation and atomicity', () => {
     expect(occupied.value.players[actor].hand).toContain(second.cardInstanceId);
   });
 
-  it('allows separate same-name instances in separate slots and fires on_deploy supply for each instance', () => {
+  it('allows separate same-name instances in separate slots and fires on_deploy supply (draw 1 card) for each instance', () => {
     const state = freshActionState();
     const actor = state.active_player_id;
     const first = giveCard(state, actor, cardIds['OP-VAN-001']);
     const second = giveCard(first.state, actor, cardIds['OP-VAN-001']);
     const withFunds = setCost(second.state, actor, 5);
-    // OP-VAN-001 cost 1, on_deploy grant_supply +1 => net 0 per deploy within cap (5)
+    const handBefore = withFunds.players[actor].hand.length;
+    const deckBefore = withFunds.players[actor].deck.length;
+    // OP-VAN-001 cost 1, on_deploy grant_supply draws 1 card
     const deployed = deploy(withFunds, actor, first.cardInstanceId, 'L1', 'front');
-    expect(deployed.players[actor].cost).toBe(5);
+    expect(deployed.players[actor].cost).toBe(4);
+    expect(deployed.players[actor].hand.length).toBe(handBefore); // -1 played + 1 drawn
+    expect(deployed.players[actor].deck.length).toBe(deckBefore - 1);
+
     const deployedAgain = deploy(deployed, actor, second.cardInstanceId, 'L3', 'front');
     const firstState = deployedAgain.card_instances[first.cardInstanceId].operator_lifecycle;
     const secondState = deployedAgain.card_instances[second.cardInstanceId].operator_lifecycle;
@@ -265,7 +270,53 @@ describe('deployment validation and atomicity', () => {
     expect(firstState?.paid_deploy_cost).toBe(1);
     expect(secondState?.has_deployed_before).toBe(true);
     expect(secondState?.paid_deploy_cost).toBe(1);
-    expect(deployedAgain.players[actor].cost).toBe(5);
+    expect(deployedAgain.players[actor].cost).toBe(3);
+    expect(deployedAgain.players[actor].hand.length).toBe(handBefore); // -1 played + 1 drawn
+    expect(deployedAgain.players[actor].deck.length).toBe(deckBefore - 2);
+  });
+
+  it('triggers turn_start supply draw for OP-VAN-003 and OP-VAN-007', () => {
+    const state = freshActionState();
+    const actor = state.active_player_id;
+    const myrtle = giveCard(state, actor, cardIds['OP-VAN-003']);
+    const withFunds = setCost(myrtle.state, actor, 10);
+    const deployed = deploy(withFunds, actor, myrtle.cardInstanceId, 'L1', 'front');
+    const handBeforeTurnStart = deployed.players[actor].hand.length;
+    const deckBeforeTurnStart = deployed.players[actor].deck.length;
+
+    const nextTurnStart = advancePhase({
+      ...deployed,
+      phase: 'turn_start',
+      active_player_id: actor,
+      turn_start_prepared: false,
+    });
+    if (!nextTurnStart.ok) throw new Error(nextTurnStart.reason);
+    // +1 normal turn_start draw + 1 OP-VAN-003 supply draw = +2 cards
+    expect(nextTurnStart.value.players[actor].hand.length).toBe(handBeforeTurnStart + 2);
+    expect(nextTurnStart.value.players[actor].deck.length).toBe(deckBeforeTurnStart - 2);
+    expect(nextTurnStart.value.combat_log.some((e) => e.action_type === 'supply' && e.source_name === '桃金娘')).toBe(true);
+  });
+
+  it('triggers on_kill supply draw for OP-VAN-002 when defeating an enemy operator', () => {
+    let state = freshActionState();
+    const actor = state.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+    const plume = giveCard(state, actor, cardIds['OP-VAN-002']);
+    const enemyUnit = giveCard(plume.state, enemy, cardIds['OP-VAN-001']);
+    state = setCost(enemyUnit.state, actor, 10);
+    state = setCost(state, enemy, 10);
+    state = deploy(state, actor, plume.cardInstanceId, 'L1', 'front');
+    state = deploy(state, enemy, enemyUnit.cardInstanceId, 'L1', 'front');
+    state = dispatch(state, actor, { type: 'end_action_phase' });
+
+    const handBefore = state.players[actor].hand.length;
+    const deckBefore = state.players[actor].deck.length;
+    const postCombat = advancePhase(state); // combat -> turn_end
+    if (!postCombat.ok) throw new Error(postCombat.reason);
+    expect(postCombat.value.card_instances[enemyUnit.cardInstanceId].zone).toBe('discard');
+    expect(postCombat.value.players[actor].hand.length).toBe(handBefore + 1);
+    expect(postCombat.value.players[actor].deck.length).toBe(deckBefore - 1);
+    expect(postCombat.value.combat_log.some((e) => e.action_type === 'supply' && e.source_name === '翎羽')).toBe(true);
   });
 });
 
