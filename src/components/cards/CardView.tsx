@@ -51,6 +51,7 @@ interface CardViewProps {
   readonly interactive?: boolean;
   readonly selectable?: boolean;
   readonly checked?: boolean;
+  readonly discardCandidate?: boolean;
   readonly draggable?: boolean;
   readonly touchActionMode?: 'pan-x' | 'pan-y';
   readonly isTouchDragging?: boolean;
@@ -72,6 +73,7 @@ export function CardView({
   interactive = false,
   selectable = false,
   checked = false,
+  discardCandidate = false,
   draggable = false,
   touchActionMode = 'pan-x',
   isTouchDragging = false,
@@ -104,7 +106,7 @@ export function CardView({
   const cd = instance.operator_lifecycle?.redeploy_cd_remaining ?? 0;
   const ownerCost = state.players[instance.owner_id]?.cost ?? 0;
   const affordable = ownerCost >= definition.cost;
-  const isUnplayable = instance.zone === 'hand' && !selectable && interactive && !affordable && cd === 0;
+  const isUnplayable = instance.zone === 'hand' && !selectable && !discardCandidate && interactive && !affordable && cd === 0;
   const touchPanClass = isTouchDragging ? 'touch-none' : touchActionMode === 'pan-y' ? 'touch-pan-y' : 'touch-pan-x';
 
   return (
@@ -117,6 +119,7 @@ export function CardView({
       interactive={interactive}
       unplayable={isUnplayable}
       checked={checked}
+      discardCandidate={discardCandidate}
       redeployCd={cd}
       draggable={draggable}
       onDragStart={(e) => {

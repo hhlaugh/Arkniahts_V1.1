@@ -20,6 +20,7 @@ export interface CardFrameProps {
   readonly unplayable?: boolean;
   readonly redeployCd?: number;
   readonly checked?: boolean;
+  readonly discardCandidate?: boolean;
   readonly interactive?: boolean;
   readonly inDeckCount?: number;
   readonly maxInDeckCount?: number;
@@ -200,6 +201,7 @@ export function CardFrame({
   unplayable = false,
   redeployCd = 0,
   checked = false,
+  discardCandidate = false,
   interactive = true,
   inDeckCount,
   maxInDeckCount = 2,
@@ -293,6 +295,7 @@ export function CardFrame({
       data-rarity={String(rarity)}
       data-state={visualState}
       data-support-subtype={supportSubtype || undefined}
+      data-discard-candidate={discardCandidate ? 'true' : undefined}
       data-interactive={isClickable ? 'true' : 'false'}
       draggable={draggable && !disabled}
       onDragStart={onDragStart}
@@ -316,7 +319,7 @@ export function CardFrame({
           : variant === 'hand' || variant === 'compact'
             ? 'hover:-translate-y-1 hover:border-sky-400/60 hover:shadow-[0_8px_18px_rgba(0,0,0,0.55)] hover:z-20'
             : ''
-      } ${holding ? 'ring-2 ring-amber-400/80 border-amber-400' : ''} ${sizeClasses} ${className}`}
+      } ${discardCandidate ? 'ring-2 ring-cyan-400 border-cyan-300 shadow-[0_0_16px_rgba(34,211,238,0.38)]' : ''} ${holding ? 'ring-2 ring-amber-400/80 border-amber-400' : ''} ${sizeClasses} ${className}`}
       style={{
         clipPath: CORNER_CUTS.md,
       }}
@@ -608,6 +611,16 @@ export function CardFrame({
       {checked && (
         <div className="absolute top-1.5 right-1.5 z-30 w-5 h-5 bg-[#e5a52b] text-slate-950 flex items-center justify-center font-black text-xs shadow-md border border-slate-950">
           ✓
+        </div>
+      )}
+
+      {/* 弃牌抉择待选高亮标记（如「战术分析」抽1弃1） */}
+      {discardCandidate && !checked && (
+        <div
+          data-testid="discard-candidate-badge"
+          className="absolute top-1 right-1 z-30 px-1.5 py-0.5 bg-cyan-400 text-slate-950 font-mono font-black text-[9px] leading-none shadow-md border border-slate-950"
+        >
+          点击弃置
         </div>
       )}
     </div>

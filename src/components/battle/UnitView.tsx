@@ -374,8 +374,8 @@ export function UnitView({
           ) : null}
         </div>
 
-        {/* 中部：生命条与护盾 */}
-        <div className={`w-full ${compact ? 'my-0' : 'my-0 sm:my-0.5'}`}>
+        {/* 中部：生命条、护盾与技力充能进度条 */}
+        <div className={`w-full ${compact ? 'my-0' : 'my-0 sm:my-0.5'} space-y-[2px]`}>
           <HealthBar
             currentHp={combat.current_hp}
             maxHp={maxHp}
@@ -394,6 +394,63 @@ export function UnitView({
                 : undefined
             }
           />
+          {entityKind !== 'facility' && typeof definition.active_skill_sp_cost === 'number' && definition.active_skill_sp_cost > 0 && (() => {
+            const spCost = definition.active_skill_sp_cost;
+            const currentSp = Math.max(0, combat.current_sp);
+            const spPct = Math.min(100, Math.max(0, Math.round((currentSp / spCost) * 100)));
+            const spMilestone: 'complete' | 'half' | 'charging' =
+              spPct >= 100 ? 'complete' : spPct >= 50 ? 'half' : 'charging';
+            const spPulseCls = motionOff
+              ? ''
+              : spMilestone === 'complete'
+                ? 'anim-unit-bar-complete'
+                : spMilestone === 'half'
+                  ? 'anim-unit-bar-half'
+                  : '';
+            return (
+              <div className="flex items-center gap-1 leading-none">
+                <div
+                  role="progressbar"
+                  aria-label="技力充能进度"
+                  aria-valuemin={0}
+                  aria-valuemax={spCost}
+                  aria-valuenow={Math.min(currentSp, spCost)}
+                  aria-valuetext={`${spPct}%`}
+                  data-testid="unit-sp-bar"
+                  data-sp-milestone={spMilestone}
+                  className="relative flex-1 h-[3px] bg-slate-900 border border-slate-700/75 overflow-hidden"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-1/2 top-0 bottom-0 w-[1px] bg-white/25 z-20"
+                  />
+                  <div
+                    className={`relative z-10 h-full ${spPulseCls} ${
+                      motionOff ? '' : 'transition-[width] duration-300 ease-out'
+                    } ${
+                      spMilestone === 'complete'
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-200'
+                        : spMilestone === 'half'
+                          ? 'bg-gradient-to-r from-sky-500 to-cyan-300'
+                          : 'bg-sky-700'
+                    }`}
+                    style={{ width: `${spPct}%` }}
+                  />
+                </div>
+                <span
+                  className={`font-mono tabular-nums text-[8px] font-bold leading-none shrink-0 ${
+                    spMilestone === 'complete'
+                      ? 'text-amber-300'
+                      : spMilestone === 'half'
+                        ? 'text-cyan-300'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  ⚡{Math.min(currentSp, spCost)}/{spCost}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 底部：数值或设施生命周期条 */}

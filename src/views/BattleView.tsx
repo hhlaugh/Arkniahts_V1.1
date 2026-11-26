@@ -30,9 +30,11 @@ import {
   type TouchDropResolution,
 } from '../components/battle/touchDrag';
 import {
+  findDirectPlayAction,
   getInvalidCardReason,
   getInvalidDeployReason,
   getInvalidUnitActionReason,
+  getPendingChoicePromptText,
   previewAttackTargets,
 } from '../components/battle/tacticalSelectors';
 import {
@@ -169,6 +171,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const [showMissions, setShowMissions] = useState(false);
   const [missionAutoHidden, setMissionAutoHidden] = useState(false);
   const [claimedMissionBonus, setClaimedMissionBonus] = useState<number | null>(null);
+  const [isEndingTurn, setIsEndingTurn] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<'surrender' | 'exit' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -183,6 +186,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const justFinishedTouchDragAtRef = useRef(0);
   const lastSnappedSlotKeyRef = useRef<SlotKey | null>(null);
   const claimedMatchKeyRef = useRef<string | null>(null);
+  const endTurnStateVersionRef = useRef<number | null>(null);
   const recentActionSfxRef = useRef<{ category: BattleSfxCategory; at: number } | null>(null);
   const lastSfxLogLenRef = useRef<number>(snapshot.logHistory.length);
 
@@ -245,6 +249,25 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const activeBeat = combatAnim.activeBeat;
   // 演出进行期间使用 activeBeat.visualState 展示血量/护盾/退场，保证“先轨迹攻击、后扣血结算”
   const displayState = activeBeat?.visualState ?? state;
+  const displayActor = displayState.active_player_id;
+  const displayIsActionPhase = displayState.phase === 'action';
+
+  useEffect(() => {
+    if (!isEndingTurn) return;
+    if (state.phase === 'finished') {
+      endTurnStateVersionRef.current = null;
+      setIsEndingTurn(false);
+      return;
+    }
+    if (
+      endTurnStateVersionRef.current !== null &&
+      state.state_version !== endTurnStateVersionRef.current &&
+      !combatAnim.isPlaying
+    ) {
+      endTurnStateVersionRef.current = null;
+      setIsEndingTurn(false);
+    }
+  }, [isEndingTurn, state.phase, state.state_version, combatAnim.isPlaying]);
 
   const boardGridRef = useRef<HTMLDivElement>(null);
   const slotElRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -512,6 +535,10 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     () => new Set(pendingResolves.map((action) => action.target_instance_id).filter((id): id is CardInstanceId => id !== undefined)),
     [pendingResolves],
   );
+  const pendingChoicePromptText = useMemo(
+    () => (hasPending ? getPendingChoicePromptText(state, activePendingChoice) : ''),
+    [hasPending, state, activePendingChoice],
+  );
   const canSkipPending = pendingResolves.some(
     (action) => action.target_instance_id === undefined && action.choice_id === undefined,
   );
@@ -577,7 +604,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     combatAnim.skipAll();
   };
 
-  const dispatch = async (action: GameAction, actorOverride: PlayerId = actor) => {
+  const dispatch = async (action: GameAction, actorOverride: PlayerId = actor): Promise<boolean> => {
     if (combatAnim.isPlaying) {
       handleSkipAnimations();
     } else {
@@ -588,24 +615,37 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       if (result && !result.ok) {
         playTacticalSfx('alert');
         setError(result.reason ?? '操作不合法');
-      } else {
-        const actionCategory = triggerBattleActionSfx(action, state);
-        if (actionCategory) {
-          recentActionSfxRef.current = { category: actionCategory, at: Date.now() };
-        } else if (action.type === 'end_action_phase') {
-          playTacticalSfx('confirm');
-        }
-        setSelection(null);
-        setPendingPlayDraft(null);
-        setHoveredCard(null);
-        setPinnedPreview(null);
-        setHoveredSlot(null);
-        setDragOverSlot(null);
-        setDraggingCardId(null);
+        return false;
       }
+      const actionCategory = triggerBattleActionSfx(action, state);
+      if (actionCategory) {
+        recentActionSfxRef.current = { category: actionCategory, at: Date.now() };
+      } else if (action.type === 'end_action_phase') {
+        playTacticalSfx('confirm');
+      }
+      setSelection(null);
+      setPendingPlayDraft(null);
+      setHoveredCard(null);
+      setPinnedPreview(null);
+      setHoveredSlot(null);
+      setDragOverSlot(null);
+      setDraggingCardId(null);
+      return true;
     } catch (err) {
       playTacticalSfx('alert');
       setError(err instanceof Error ? err.message : '执行操作异常');
+      return false;
+    }
+  };
+
+  const handleEndActionPhase = async () => {
+    if (isEndingTurn || combatAnim.isPlaying || !canAct || !isActionPhase || hasPending) return;
+    endTurnStateVersionRef.current = state.state_version;
+    setIsEndingTurn(true);
+    const ok = await dispatch({ type: 'end_action_phase' });
+    if (!ok) {
+      endTurnStateVersionRef.current = null;
+      setIsEndingTurn(false);
     }
   };
 
@@ -675,7 +715,15 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       return;
     }
 
-    if (pendingPlayDraft && selection === pendingPlayDraft.cardId && isUnitAndLaneMovePlay && half === actor) {
+    const moveDraftTargetHalf = pendingPlayDraft
+      ? state.card_instances[pendingPlayDraft.firstTargetId]?.board_half
+      : undefined;
+    if (
+      pendingPlayDraft &&
+      selection === pendingPlayDraft.cardId &&
+      isUnitAndLaneMovePlay &&
+      half === moveDraftTargetHalf
+    ) {
       const moveAction = selectedPlayActions.find(
         (candidate) => candidate.target_instance_id === pendingPlayDraft.firstTargetId && candidate.target_lane === lane,
       );
@@ -685,6 +733,16 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         dispatch(moveAction);
         return;
       }
+    }
+
+    const singleLanePlayAction = laneOnlyPlayActions.find(
+      (candidate) => candidate.target_lane === lane && (!candidate.target_lanes || candidate.target_lanes.length === 0),
+    );
+    if (singleLanePlayAction) {
+      triggerSlotCue(slotKey, 'skill');
+      triggerHaptic(12);
+      dispatch(singleLanePlayAction);
+      return;
     }
 
     const deployAction = selectedDeployActions.find(
@@ -790,7 +848,8 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           return;
         }
       }
-      if (isUnitAndLaneMovePlay && instance.board_half === actor && instance.lane) {
+      const moveDraftTargetHalf = state.card_instances[pendingPlayDraft.firstTargetId]?.board_half;
+      if (isUnitAndLaneMovePlay && instance.board_half === moveDraftTargetHalf && instance.lane) {
         const targetLane = normalizeLaneId(state.board_profile, instance.lane);
         const moveAction = selectedPlayActions.find(
           (candidate) =>
@@ -885,6 +944,50 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
       return;
     }
 
+    setSelection(id);
+    const reason = getInvalidCardReason(state, actor, id);
+    if (reason) {
+      playTacticalSfx('alert');
+      setError(reason);
+    } else {
+      playCombatSfx('select');
+    }
+  };
+
+  const handleHandCardDoubleClick = (id: CardInstanceId) => {
+    setHoveredCard(null);
+    if (!canAct) {
+      playTacticalSfx('alert');
+      setError('当前不是你的行动回合。');
+      return;
+    }
+    if (hasPending) {
+      if (activePendingChoice?.effect === 'choose_discard') {
+        const discardAction = pendingResolves.find((candidate) => candidate.target_instance_id === id);
+        if (discardAction) {
+          triggerHaptic(10);
+          void dispatch(discardAction);
+          return;
+        }
+      }
+      playTacticalSfx('alert');
+      setError(pendingChoicePromptText || '请先完成当前的支援选择。');
+      return;
+    }
+    if (!isActionPhase) {
+      playTacticalSfx('alert');
+      setError('当前不在行动阶段，无法使用手牌。');
+      return;
+    }
+
+    const directAction = findDirectPlayAction(legal, id);
+    if (directAction) {
+      triggerHaptic(14);
+      void dispatch(directAction);
+      return;
+    }
+
+    setPendingPlayDraft(null);
     setSelection(id);
     const reason = getInvalidCardReason(state, actor, id);
     if (reason) {
@@ -1361,20 +1464,35 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
     const slotKey = makeSlotKey(half, lane, position, slotIndex);
     const key = slotKey;
     const instance = boardMap.get(key);
+    const moveDraftInst = pendingPlayDraft ? state.card_instances[pendingPlayDraft.firstTargetId] : undefined;
+    const isMoveDestSlot = Boolean(
+      pendingPlayDraft &&
+        selection === pendingPlayDraft.cardId &&
+        isUnitAndLaneMovePlay &&
+        !instance &&
+        moveDraftInst &&
+        half === moveDraftInst.board_half &&
+        position === moveDraftInst.position &&
+        slotIndex === (moveDraftInst.slot_index ?? 1) &&
+        selectedPlayActions.some(
+          (a) => a.target_instance_id === pendingPlayDraft.firstTargetId && a.target_lane === lane,
+        ),
+    );
     const isDeployTarget =
-      half === actor &&
-      isActionPhase &&
-      canAct &&
-      !hasPending &&
-      (selectedDeployActions.some(
-        (action) => action.lane === lane && action.position === position && (action.slot_index ?? 1) === slotIndex,
-      ) ||
-        selectedFacilityActions.some(
-          (action) =>
-            action.target_lane === lane &&
-            action.target_position === position &&
-            (action.target_slot_index ?? 1) === slotIndex,
-        ));
+      isMoveDestSlot ||
+      (half === actor &&
+        isActionPhase &&
+        canAct &&
+        !hasPending &&
+        (selectedDeployActions.some(
+          (action) => action.lane === lane && action.position === position && (action.slot_index ?? 1) === slotIndex,
+        ) ||
+          selectedFacilityActions.some(
+            (action) =>
+              action.target_lane === lane &&
+              action.target_position === position &&
+              (action.target_slot_index ?? 1) === slotIndex,
+          )));
     const isEnemy = half === topPlayer;
     const localTag = rowSlotCount > 1 ? getDisplaySlotLabel(position, slotIndex) : '';
     const basePosName = isEnemy ? (position === 'front' ? '敌前锋' : '敌后排') : position === 'front' ? '我前锋' : '我后卫';
@@ -1577,18 +1695,22 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               )}
               <div className="relative z-10 flex flex-col items-center justify-center w-full px-1">
               {isDeployTarget ? (
-                <div className="flex flex-col items-center gap-0.5 text-[#e5a52b] font-bold text-[10px] sm:text-xs tracking-wider text-center px-1">
+                <div className={`flex flex-col items-center gap-0.5 font-bold text-[10px] sm:text-xs tracking-wider text-center px-1 ${isMoveDestSlot ? 'text-cyan-300' : 'text-[#e5a52b]'}`}>
                   <span className="truncate max-w-full">
-                    {isTouchLockedSlot
-                      ? '✓ 释放部署'
-                      : isSlotHovered && activeHandDef
-                        ? `✓ 部署 ${activeHandDef.card_name_zh}`
-                        : '+ 部署'}
+                    {isMoveDestSlot
+                      ? '→ 移至此格'
+                      : isTouchLockedSlot
+                        ? '✓ 释放部署'
+                        : isSlotHovered && activeHandDef
+                          ? `✓ 部署 ${activeHandDef.card_name_zh}`
+                          : '+ 部署'}
                   </span>
                   <span className="text-[8px] sm:text-[10px] font-mono">
-                    {(isTouchLockedSlot || isSlotHovered) && activeHandDef
-                      ? `-${activeHandDef.cost} CP · ${posName}`
-                      : posName}
+                    {isMoveDestSlot
+                      ? posName
+                      : (isTouchLockedSlot || isSlotHovered) && activeHandDef
+                        ? `-${activeHandDef.cost} CP · ${posName}`
+                        : posName}
                   </span>
                 </div>
               ) : slotInvalidReason ? (
@@ -1760,13 +1882,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
   const selectedEntityKind = selectedInstance ? getEntityKind(state, selectedInstance) : null;
   const directPlayAction =
     selectedInstance?.zone === 'hand' && canAct && isActionPhase && !hasPending
-      ? selectedPlayActions.find(
-          (a) =>
-            a.target_instance_id === undefined &&
-            a.target_lane === undefined &&
-            (!a.target_lanes || a.target_lanes.length === 0) &&
-            a.target_position === undefined,
-        )
+      ? findDirectPlayAction(legal, selectedInstance.card_instance_id)
       : undefined;
 
   const moveDraftLaneActions =
@@ -1793,17 +1909,19 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
                     {pendingPlayDraft && isTwoUnitSwapPlay
                       ? ' · 请点击第二名友方干员完成位置交换'
                       : pendingPlayDraft && isUnitAndLaneMovePlay
-                        ? ' · 请选择目标相邻路线完成移位'
+                        ? ' · 请点击相邻路线高亮空位或按钮完成移位'
                         : isTwoUnitSwapPlay
                           ? ' · 点击首位友方干员（两步换位）'
                           : isUnitAndLaneMovePlay
-                            ? ' · 点击要移动的友方干员'
+                            ? selectedDefinition?.card_id === 'DEMO-TAC-V2-016'
+                              ? ' · 点击青色高亮的敌方前位干员'
+                              : ' · 点击青色高亮的友方干员'
                             : laneOnlyPlayActions.length > 0
-                              ? ' · 请选择目标路线生效'
+                              ? ' · 请点击棋盘路线或按钮生效'
                               : directPlayAction
                                 ? isMobile
-                                  ? ' · 拖入棋盘或点下方直接使用'
-                                  : ' · 可直接使用此卡牌'
+                                  ? ' · 双击手牌、拖入棋盘或点下方直接使用'
+                                  : ' · 双击手牌或点上方直接使用'
                                 : isMobile
                                   ? ' · 拖向目标或点击青色高亮单位发动'
                                   : ' · 点击青色高亮目标发动'}
@@ -2043,19 +2161,14 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
         )}
 
         {hasPending && activePendingChoice && (
-          <div className="px-3 sm:px-4 py-1.5 bg-[#1a2332] border-b border-[#3b4c66] flex flex-wrap items-center justify-between gap-2 text-xs text-slate-200">
+          <div
+            data-testid="battle-pending-banner"
+            className="px-3 sm:px-4 py-1.5 bg-[#1a2332] border-b border-cyan-400/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-100"
+          >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-cyan-400" />
-              <span className="text-[11px] sm:text-xs">
-                {activePendingChoice.effect === 'choose_summon'
-                  ? '待决抉择：请选择麦哲伦召唤的无人机型号'
-                  : activePendingChoice.effect === 'choose_discard'
-                    ? `待决抉择：请从下方手牌点击选择要弃置的卡牌（需弃 ${activePendingChoice.amount} 张）`
-                    : activePendingChoice.effect === 'grant_front_shield'
-                      ? `回合支援：点击青色高亮前排友方干员获得 +${activePendingChoice.amount} 护盾`
-                      : activePendingChoice.effect === 'grant_front_cover'
-                        ? '回合支援：点击青色高亮前排友方干员获得 掩护'
-                        : `回合支援：点击青色高亮友方干员充能 +${activePendingChoice.amount} SP`}
+              <span className="w-2 h-2 bg-cyan-400 shrink-0" />
+              <span className="text-[11px] sm:text-xs font-medium text-cyan-100">
+                {pendingChoicePromptText}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -2326,10 +2439,15 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           <PlayerHandDock
             state={displayState}
             bottomPlayer={bottomPlayer}
-            actor={actor}
+            actor={displayActor}
             canAct={canAct}
-            isActionPhase={isActionPhase}
+            isActionPhase={displayIsActionPhase}
             hasPending={hasPending}
+            pendingChoice={activePendingChoice}
+            pendingPromptText={pendingChoicePromptText}
+            discardCandidateIds={pendingTargets}
+            isAnimationPlaying={combatAnim.isPlaying}
+            isEndingTurn={isEndingTurn}
             isHotseat={isHotseat}
             isMobile={isMobile}
             isLandscape={isLandscape}
@@ -2340,6 +2458,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
             disableMotion={combatAnim.effectiveDisabled}
             selectionPrompt={selectionPromptContent}
             onHandCardClick={onHandCardClick}
+            onHandCardDoubleClick={handleHandCardDoubleClick}
             onLongPressCard={(id, rect) => {
               cancelPendingTouchCandidate();
               openPinnedPreview(id, rect);
@@ -2364,7 +2483,9 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
               setDragOverSlot(null);
             }}
             onTouchStartCardCandidate={handleTouchStartCardCandidate}
-            onEndActionPhase={() => dispatch({ type: 'end_action_phase' })}
+            onEndActionPhase={() => {
+              void handleEndActionPhase();
+            }}
           />
         </main>
 
@@ -2512,6 +2633,7 @@ export function BattleView({ snapshot, controller, onDispatch, humanPlayer = nul
           report={missionReport}
           isMatchFinished={state.phase === 'finished'}
           claimedAmount={claimedMissionBonus}
+          disableMotion={combatAnim.effectiveDisabled}
           onClose={() => {
             playTacticalSfx('click');
             if (state.phase === 'finished') {

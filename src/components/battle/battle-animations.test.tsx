@@ -21,6 +21,7 @@ import {
   triggerBattleEventsSfx,
 } from '../../audio/battleSfxTrigger';
 import { evaluateBattleMissions } from './battleMissions';
+import { MissionPanel } from './MissionPanel';
 import { TacticalBattleHud } from './TacticalBattleHud';
 import { TurnTransitionBanner } from './TurnTransitionBanner';
 import { PlayerHandDock } from './PlayerHandDock';
@@ -900,5 +901,163 @@ describe('Phase 6: 战斗轻量动画与视觉反馈测试', () => {
     expect(report.missions[1]!.completed).toBe(true);
     expect(report.completedCount).toBeGreaterThanOrEqual(2);
     expect(report.totalEarnedOriginite).toBeGreaterThan(0);
+  });
+
+  it('MissionPanel 进度条与单位血量/技力条在 50% 与 100% 时展示高亮脉冲，且结束行动仅在回到玩家回合且演出结束时点亮', () => {
+    const ctrl = createStartedController(515151);
+    const state = ctrl.getSnapshot().state;
+    const actor = state.active_player_id;
+    const enemy: PlayerId = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    const missionHtml = renderToString(
+      <MissionPanel
+        isMatchFinished={false}
+        variant="embedded"
+        report={{
+          matchKey: 'test-mission-pulse',
+          totalCount: 3,
+          completedCount: 1,
+          totalEarnedOriginite: 120,
+          missions: [
+            {
+              id: 'm1',
+              kind: 'deploy_operators',
+              title: '低进度',
+              description: '测试',
+              current: 1,
+              target: 5,
+              completed: false,
+              rewardOriginite: 100,
+            },
+            {
+              id: 'm2',
+              kind: 'deal_damage',
+              title: '半程达成',
+              description: '测试',
+              current: 6,
+              target: 12,
+              completed: false,
+              rewardOriginite: 100,
+            },
+            {
+              id: 'm3',
+              kind: 'defeat_enemies',
+              title: '全额完成',
+              description: '测试',
+              current: 3,
+              target: 3,
+              completed: true,
+              rewardOriginite: 120,
+            },
+          ],
+        }}
+      />,
+    ).replace(/<!-- -->/g, '');
+
+    expect(missionHtml).not.toContain('animate-pulse');
+    expect(missionHtml).toContain('data-testid="mission-progress-deploy_operators" data-progress-milestone="normal"');
+    expect(missionHtml).toContain('data-testid="mission-progress-deal_damage" data-progress-milestone="half"');
+    expect(missionHtml).toContain('data-testid="mission-progress-defeat_enemies" data-progress-milestone="complete"');
+    expect(missionHtml).toContain('anim-progress-half');
+    expect(missionHtml).toContain('anim-progress-complete');
+    expect(missionHtml).toContain('anim-progress-shimmer');
+    expect(missionHtml).toContain('50%');
+    expect(missionHtml).toContain('100%');
+
+    // HealthBar 50% / 100% 里程碑脉冲
+    const fullHpHtml = renderToString(<HealthBar currentHp={4} maxHp={4} />);
+    const halfHpHtml = renderToString(<HealthBar currentHp={2} maxHp={4} />);
+    expect(fullHpHtml).toContain('data-hp-milestone="full"');
+    expect(fullHpHtml).toContain('anim-unit-bar-complete');
+    expect(halfHpHtml).toContain('data-hp-milestone="half"');
+    expect(halfHpHtml).toContain('anim-unit-bar-half');
+
+    // UnitView 生命条与技力进度条 50% / 100% 里程碑脉冲
+    const baseOpDef = DEMO_CARDS.find((c) => c.card_type === 'operator')!;
+    const spCost = 4;
+    const skillDef = { ...baseOpDef, active_skill_sp_cost: spCost as NonNullable<typeof baseOpDef.active_skill_sp_cost> };
+    const unitInst = {
+      ...Object.values(state.card_instances)[0]!,
+      card_id: skillDef.card_id,
+      zone: 'board' as const,
+      board_half: actor,
+      lane: 'center' as const,
+      position: 'front' as const,
+      slot_index: 1,
+      operator_combat: {
+        current_hp: Math.ceil((skillDef.hp ?? 4) / 2) as HpValue,
+        current_atk_modifiers: [],
+        current_sp: Math.ceil(spCost / 2) as SpValue,
+        shield: 0,
+        statuses: [],
+        equipment_ids: [],
+      },
+    };
+    const spState: GameState = {
+      ...state,
+      card_definitions: { ...state.card_definitions, [skillDef.card_id]: skillDef },
+      card_instances: { ...state.card_instances, [unitInst.card_instance_id]: unitInst },
+    };
+    const unitHalfSpHtml = renderToString(
+      <UnitView state={spState} instance={unitInst} highlight="none" />,
+    );
+    expect(unitHalfSpHtml).toContain('data-hp-milestone="half"');
+    expect(unitHalfSpHtml).toContain('data-testid="unit-sp-bar"');
+    expect(unitHalfSpHtml).toContain('data-sp-milestone="half"');
+    expect(unitHalfSpHtml).toContain('anim-unit-bar-half');
+
+    const unitFullSpInst = {
+      ...unitInst,
+      operator_combat: {
+        ...unitInst.operator_combat,
+        current_hp: (skillDef.hp ?? 4) as HpValue,
+        current_sp: Number(spCost) as SpValue,
+      },
+    };
+    const unitFullSpHtml = renderToString(
+      <UnitView state={spState} instance={unitFullSpInst} highlight="none" canActivateSkill />,
+    );
+    expect(unitFullSpHtml).toContain('data-hp-milestone="full"');
+    expect(unitFullSpHtml).toContain('data-sp-milestone="complete"');
+    expect(unitFullSpHtml).toContain('anim-unit-bar-complete');
+
+    // 结束行动按钮在演出播放中/提交结束中/敌方回合保持熄灭禁用，仅在回到己方回合且无演出时点亮
+    const commonDockProps = {
+      state,
+      bottomPlayer: actor,
+      canAct: true,
+      isActionPhase: true,
+      hasPending: false,
+      isHotseat: false,
+      isMobile: false,
+      layoutMode: 'bottom' as const,
+      selection: null,
+      draggingCardId: null,
+      onHandCardClick: () => {},
+      onLongPressCard: () => {},
+      onHoverCard: () => {},
+      onDragStartCard: () => {},
+      onDragEndCard: () => {},
+      onEndActionPhase: () => {},
+    };
+    const animPlayingDock = renderToString(
+      <PlayerHandDock {...commonDockProps} actor={actor} isAnimationPlaying />,
+    );
+    expect(animPlayingDock).toContain('data-end-turn-ready="false"');
+
+    const endingTurnDock = renderToString(
+      <PlayerHandDock {...commonDockProps} actor={actor} isEndingTurn />,
+    );
+    expect(endingTurnDock).toContain('data-end-turn-ready="false"');
+
+    const enemyTurnDock = renderToString(
+      <PlayerHandDock {...commonDockProps} actor={enemy} />,
+    );
+    expect(enemyTurnDock).toContain('data-end-turn-ready="false"');
+
+    const readyDock = renderToString(
+      <PlayerHandDock {...commonDockProps} actor={actor} />,
+    );
+    expect(readyDock).toContain('data-end-turn-ready="true"');
   });
 });

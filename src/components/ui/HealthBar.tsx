@@ -53,13 +53,26 @@ export function HealthBar({
     return () => window.clearTimeout(timer);
   }, [hpPercent, disableMotion]);
 
-  // Health color status
+  // Health color status & 50%/100% milestone feedback
   let hpColor = '#34d399'; // Emerald
+  let hpMilestone: 'full' | 'healthy' | 'half' | 'critical' = 'healthy';
   if (hpPercent <= 25) {
     hpColor = '#f87171'; // Red / critical
+    hpMilestone = 'critical';
   } else if (hpPercent <= 50) {
     hpColor = '#fbbf24'; // Yellow / warning
+    hpMilestone = 'half';
+  } else if (hpPercent >= 100) {
+    hpMilestone = 'full';
   }
+
+  const barPulseClass = disableMotion
+    ? ''
+    : hpMilestone === 'critical' || hpMilestone === 'full'
+      ? 'anim-unit-bar-complete'
+      : hpMilestone === 'half'
+        ? 'anim-unit-bar-half'
+        : '';
 
   const heightClasses = {
     sm: compact ? 'h-1' : 'h-1 sm:h-1.5',
@@ -86,7 +99,16 @@ export function HealthBar({
       )}
 
       {/* Progress Track */}
-      <div className={`relative w-full ${heightClasses} bg-slate-900 border border-slate-700/80 overflow-hidden`}>
+      <div
+        data-hp-milestone={hpMilestone}
+        className={`relative w-full ${heightClasses} bg-slate-900 border border-slate-700/80 overflow-hidden`}
+      >
+        {/* 50% Midpoint Tick */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-0 bottom-0 w-[1px] bg-white/25 z-20"
+        />
+
         {/* Base Grid / Tick marks */}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none z-20"
@@ -107,7 +129,7 @@ export function HealthBar({
 
         {/* Current HP Fill */}
         <div
-          className={`relative z-10 h-full ${disableMotion ? '' : 'transition-all duration-300 ease-out'}`}
+          className={`relative z-10 h-full ${barPulseClass} ${disableMotion ? '' : 'transition-all duration-300 ease-out'}`}
           style={{
             width: `${hpPercent}%`,
             backgroundColor: hpColor,

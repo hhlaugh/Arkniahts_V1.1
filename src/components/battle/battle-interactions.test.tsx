@@ -31,9 +31,11 @@ import {
   type TouchDragSlotCandidate,
 } from './touchDrag';
 import {
+  findDirectPlayAction,
   getInvalidCardReason,
   getInvalidDeployReason,
   getInvalidUnitActionReason,
+  getPendingChoicePromptText,
   previewAttackTargets,
 } from './tacticalSelectors';
 import { UnitView } from './UnitView';
@@ -41,7 +43,8 @@ import { DynamicBattlefieldBackdrop } from './DynamicBattlefieldBackdrop';
 import { DEMO_CARDS, PRESET_DECKS, type UiCardDefinition } from '../../client/gameData';
 import { isOperatorDeployPositionAllowed } from '../../game/effects';
 import { advancePhase, createInitialGameState, mulligan, reduceGameAction } from '../../game/engine';
-import type { CardId, CardInstanceId, Cost, GameState } from '../../game/types';
+import { enumerateLegalActions } from '../../game/legal-actions';
+import type { CardId, CardInstanceId, Cost, GameState, HpValue, SpValue } from '../../game/types';
 
 function createActionPhaseState(seed = 2026): GameState {
   let state = createInitialGameState({
@@ -1025,5 +1028,154 @@ describe('Phase 5: 桌面与移动端交互体验测试', () => {
     if (typeof handOpDef.redeploy_cd_base === 'number' && handOpDef.redeploy_cd_base > 0) {
       expect(handPopoverHtml).toContain(`再部署${handOpDef.redeploy_cd_base}回`);
     }
+  });
+
+  it('无目标手牌双击直发 + 战术分析抽一弃一明确提示与手牌高亮 + 推进行动敌方半区跨路目标', () => {
+    const baseState = createActionPhaseState(909);
+    const actor = baseState.active_player_id;
+    const enemy = actor === 'player_a' ? 'player_b' : 'player_a';
+
+    // 1. 构造手牌包含「战术分析」(DEMO-TAC-V2-021)、「紧急治疗」(需指定目标) 与 1 名干员
+    const tacDef = DEMO_CARDS.find((c) => c.card_id === ('DEMO-TAC-V2-021' as CardId))!;
+    const tacInstId = 'tac-analysis-1' as CardInstanceId;
+    const extraOpId = baseState.players[actor].hand[0]!;
+    const stagedState: GameState = {
+      ...baseState,
+      card_definitions: { ...baseState.card_definitions, [tacDef.card_id]: tacDef },
+      card_instances: {
+        ...baseState.card_instances,
+        [tacInstId]: {
+          card_instance_id: tacInstId,
+          card_id: tacDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          zone: 'hand',
+          board_half: null,
+          lane: null,
+          position: null,
+          slot_index: null,
+        },
+      },
+      players: {
+        ...baseState.players,
+        [actor]: {
+          ...baseState.players[actor],
+          cost: 5 as Cost,
+          hand: [tacInstId, extraOpId],
+        },
+      },
+    };
+
+    const legal = enumerateLegalActions(stagedState, actor);
+    const directTac = findDirectPlayAction(legal, tacInstId);
+    expect(directTac).toEqual({ type: 'play_card', card_instance_id: tacInstId });
+    // 需要指定目标的干员/卡牌不应误触发双击直发
+    expect(findDirectPlayAction(legal, extraOpId)).toBeUndefined();
+
+    // 2. 打出「战术分析」后产生 choose_discard 待决选择，PlayerHandDock 必须显式提示且手牌保持可点击高亮
+    const afterPlay = reduceGameAction(stagedState, actor, directTac!);
+    expect(afterPlay.ok).toBe(true);
+    const pendingState = afterPlay.value;
+    expect(pendingState.pending_effect_choices[0]?.effect).toBe('choose_discard');
+
+    const promptText = getPendingChoicePromptText(pendingState, pendingState.pending_effect_choices[0]);
+    expect(promptText).toContain('战术分析');
+    expect(promptText).toContain('弃置');
+
+    const pendingLegal = enumerateLegalActions(pendingState, actor);
+    const discardCandidates = new Set(
+      pendingLegal
+        .filter((a): a is Extract<typeof a, { type: 'resolve_pending_choice' }> => a.type === 'resolve_pending_choice')
+        .map((a) => a.target_instance_id)
+        .filter((id): id is CardInstanceId => id !== undefined),
+    );
+    expect(discardCandidates.size).toBe(pendingState.players[actor].hand.length);
+
+    for (const layoutMode of ['bottom', 'side-rail'] as const) {
+      const dockHtml = renderToString(
+        <PlayerHandDock
+          state={pendingState}
+          bottomPlayer={actor}
+          actor={actor}
+          canAct
+          isActionPhase
+          hasPending
+          pendingChoice={pendingState.pending_effect_choices[0]}
+          pendingPromptText={promptText}
+          discardCandidateIds={discardCandidates}
+          isHotseat={false}
+          isMobile={false}
+          layoutMode={layoutMode}
+          selection={null}
+          draggingCardId={null}
+          onHandCardClick={() => {}}
+          onLongPressCard={() => {}}
+          onHoverCard={() => {}}
+          onDragStartCard={() => {}}
+          onDragEndCard={() => {}}
+          onEndActionPhase={() => {}}
+        />,
+      ).replace(/<!-- -->/g, '');
+      expect(dockHtml).toContain('data-testid="hand-dock-pending-prompt"');
+      expect(dockHtml).toContain(promptText);
+      expect(dockHtml).toContain('data-discard-candidate="true"');
+      expect(dockHtml).toContain('点击弃置');
+      expect(dockHtml).toContain('data-interactive="true"');
+    }
+
+    // 3. 推进行动 (DEMO-TAC-V2-016): 目标在敌方前排时必须能选到敌方相邻路线
+    const pushDef = DEMO_CARDS.find((c) => c.card_id === ('DEMO-TAC-V2-016' as CardId))!;
+    const pushId = 'tac-push-1' as CardInstanceId;
+    const enemyOpInst = Object.values(stagedState.card_instances).find(
+      (i) => i.owner_id === enemy && stagedState.card_definitions[i.card_id]?.card_type === 'operator',
+    )!;
+    const pushState: GameState = {
+      ...stagedState,
+      card_definitions: { ...stagedState.card_definitions, [pushDef.card_id]: pushDef },
+      card_instances: {
+        ...stagedState.card_instances,
+        [pushId]: {
+          card_instance_id: pushId,
+          card_id: pushDef.card_id,
+          owner_id: actor,
+          controller_id: actor,
+          zone: 'hand',
+          board_half: null,
+          lane: null,
+          position: null,
+          slot_index: null,
+        },
+        [enemyOpInst.card_instance_id]: {
+          ...enemyOpInst,
+          zone: 'board',
+          board_half: enemy,
+          lane: 'L1',
+          position: 'front',
+          slot_index: 1,
+          operator_combat: {
+            current_hp: 4 as HpValue,
+            current_atk_modifiers: [],
+            current_sp: 0 as SpValue,
+            shield: 0,
+            statuses: [],
+            equipment_ids: [],
+          },
+        },
+      },
+      players: {
+        ...stagedState.players,
+        [actor]: { ...stagedState.players[actor], cost: 5 as Cost, hand: [pushId] },
+      },
+    };
+    const pushLegal = enumerateLegalActions(pushState, actor);
+    expect(
+      pushLegal.some(
+        (a) =>
+          a.type === 'play_card' &&
+          a.card_instance_id === pushId &&
+          a.target_instance_id === enemyOpInst.card_instance_id &&
+          a.target_lane === 'L2',
+      ),
+    ).toBe(true);
   });
 });

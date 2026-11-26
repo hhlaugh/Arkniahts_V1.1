@@ -514,6 +514,81 @@ b { color: #fff; }
 }
 .anim-attack-glow { animation: attackGlow calc(0.36s * var(--combat-anim-scale, 2)) ease-out both; }
 
+/* ---------- 任务进度条与单位状态条 50% / 100% 里程碑高亮脉冲 ---------- */
+@keyframes progressHalfPulse {
+  0%, 100% {
+    opacity: 0.88;
+    filter: brightness(1);
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.35);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.26);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
+  }
+}
+
+@keyframes progressCompletePulse {
+  0%, 100% {
+    opacity: 0.94;
+    filter: brightness(1.04);
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.32);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.65), 0 0 8px rgba(52, 211, 153, 0.7);
+  }
+}
+
+@keyframes progressShimmerSweep {
+  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  30% { opacity: 0.68; }
+  100% { transform: translateX(320%) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes unitBarHalfPulse {
+  0%, 100% {
+    opacity: 0.86;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.28);
+  }
+}
+
+@keyframes unitBarCompletePulse {
+  0%, 100% {
+    opacity: 0.9;
+    filter: brightness(1.05);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.35);
+  }
+}
+
+.anim-progress-half {
+  animation: progressHalfPulse 1.8s ease-in-out infinite;
+}
+
+.anim-progress-complete {
+  animation: progressCompletePulse 1.5s ease-in-out infinite;
+}
+
+.anim-progress-shimmer {
+  animation: progressShimmerSweep 2.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.anim-unit-bar-half {
+  animation: unitBarHalfPulse 1.75s ease-in-out infinite;
+}
+
+.anim-unit-bar-complete {
+  animation: unitBarCompletePulse 1.35s ease-in-out infinite;
+}
+
 /* ---------- 移动端手势与触控精准反馈 ---------- */
 .touch-gesture-surface {
   -webkit-touch-callout: none;
@@ -1046,6 +1121,11 @@ b { color: #fff; }
   .anim-spotlight-secondary,
   .anim-weather-haze,
   .anim-weather-shimmer,
+  .anim-progress-half,
+  .anim-progress-complete,
+  .anim-progress-shimmer,
+  .anim-unit-bar-half,
+  .anim-unit-bar-complete,
   .holo-btn,
   .holo-btn::before {
     transition: none !important;
@@ -1075,11 +1155,19 @@ b { color: #fff; }
 [data-combat-vfx="off"] .anim-facility-pip-shatter,
 [data-combat-vfx="off"] .anim-deploy-rarity-5,
 [data-combat-vfx="off"] .anim-deploy-rarity-6,
+[data-combat-vfx="off"] .anim-progress-shimmer,
 [data-combat-vfx="off"] .gacha-burst-5,
 [data-combat-vfx="off"] .gacha-burst-6,
 [data-combat-vfx="off"] .gacha-beam-6,
 [data-combat-vfx="off"] .gacha-sweep {
   display: none !important;
+  animation: none !important;
+}
+
+[data-combat-vfx="off"] .anim-progress-half,
+[data-combat-vfx="off"] .anim-progress-complete,
+[data-combat-vfx="off"] .anim-unit-bar-half,
+[data-combat-vfx="off"] .anim-unit-bar-complete {
   animation: none !important;
 }
 

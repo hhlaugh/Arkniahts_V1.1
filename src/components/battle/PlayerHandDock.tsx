@@ -1,10 +1,11 @@
 import React from 'react';
-import type { CardInstanceId, GameState, PlayerId } from '../../game/types';
+import type { CardInstanceId, GameState, PendingEffectChoice, PlayerId } from '../../game/types';
 import { CardView, cardDefinitionOf } from '../cards/CardView';
 import { Button } from '../ui/Button';
 import { ScenicBannerLayer } from '../ui/ScenicBackdrop';
 import { BaseHpBar } from './BaseHpBar';
 import type { HoveredCardPreview } from './CardPreviewPopover';
+import { getPendingChoicePromptText } from './tacticalSelectors';
 import titaniumHudSurface from '../../assets/images/titanium_hud_surface_1795070730280.jpg';
 
 interface PlayerHandDockProps {
@@ -14,6 +15,11 @@ interface PlayerHandDockProps {
   readonly canAct: boolean;
   readonly isActionPhase: boolean;
   readonly hasPending: boolean;
+  readonly pendingChoice?: PendingEffectChoice | null;
+  readonly pendingPromptText?: string | null;
+  readonly discardCandidateIds?: ReadonlySet<CardInstanceId>;
+  readonly isAnimationPlaying?: boolean;
+  readonly isEndingTurn?: boolean;
   readonly isHotseat: boolean;
   readonly isMobile: boolean;
   readonly isLandscape?: boolean;
@@ -25,6 +31,7 @@ interface PlayerHandDockProps {
   readonly selectionPrompt?: React.ReactNode;
   readonly idlePrompt?: React.ReactNode;
   readonly onHandCardClick: (id: CardInstanceId) => void;
+  readonly onHandCardDoubleClick?: (id: CardInstanceId) => void;
   readonly onLongPressCard: (id: CardInstanceId, rect?: DOMRect) => void;
   readonly onHoverCard: (preview: HoveredCardPreview | null) => void;
   readonly onDragStartCard: (id: CardInstanceId, e: React.DragEvent) => void;
@@ -53,6 +60,11 @@ export function PlayerHandDock({
   canAct,
   isActionPhase,
   hasPending,
+  pendingChoice = null,
+  pendingPromptText = null,
+  discardCandidateIds,
+  isAnimationPlaying = false,
+  isEndingTurn = false,
   isHotseat,
   isMobile,
   layoutMode = 'bottom',
@@ -63,6 +75,7 @@ export function PlayerHandDock({
   selectionPrompt,
   idlePrompt,
   onHandCardClick,
+  onHandCardDoubleClick,
   onLongPressCard,
   onHoverCard,
   onDragStartCard,
@@ -72,11 +85,18 @@ export function PlayerHandDock({
 }: PlayerHandDockProps) {
   const playerAlly = state.players[bottomPlayer];
   const isAllyTurn = actor === bottomPlayer;
-  const canEndTurn = canAct && isActionPhase && !hasPending && isAllyTurn;
+  const canEndTurn =
+    canAct && isActionPhase && !hasPending && isAllyTurn && !isAnimationPlaying && !isEndingTurn;
   const allyHit = allyBaseDamageDelta !== null && allyBaseDamageDelta > 0;
   const turnCpCap = playerAlly.turn_cp_cap || 3;
   const litPips = Math.min(CP_CAP_GAUGE, Math.max(0, playerAlly.cost));
   const canInteractHand = isActionPhase && !hasPending && isAllyTurn && canAct;
+  const effectivePendingChoice = pendingChoice ?? (hasPending ? state.pending_effect_choices[0] ?? null : null);
+  const isDiscardChoiceActive =
+    hasPending && effectivePendingChoice?.effect === 'choose_discard' && isAllyTurn && canAct;
+  const resolvedPendingPrompt =
+    pendingPromptText ??
+    (hasPending ? getPendingChoicePromptText(state, effectivePendingChoice) : '');
   const handTrayRef = React.useRef<HTMLDivElement>(null);
 
   const handleTrayWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -194,6 +214,8 @@ export function PlayerHandDock({
             cornerCut
             disabled={!canEndTurn}
             onClick={onEndActionPhase}
+            data-testid="end-action-phase-btn"
+            data-end-turn-ready={canEndTurn ? 'true' : 'false'}
             className={`w-full text-xs min-h-[34px] font-bold whitespace-nowrap transition-all ${
               canEndTurn
                 ? 'ring-1 ring-amber-400/50 shadow-[0_0_12px_rgba(229,165,43,0.35)]'
@@ -204,11 +226,21 @@ export function PlayerHandDock({
           </Button>
         </div>
 
-        {/* 选中提示条 */}
-        {selectionPrompt && (
-          <div className="relative z-10 px-2 py-1.5 bg-[#16202e]/95 border-b border-[#29384d] flex flex-col gap-1 text-[11px] text-amber-300 shrink-0">
-            {selectionPrompt}
+        {/* 待决或选中提示条 */}
+        {hasPending && resolvedPendingPrompt ? (
+          <div
+            data-testid="hand-dock-pending-prompt"
+            className="relative z-10 px-2 py-1.5 bg-cyan-950/65 border-b border-cyan-400/55 flex items-center gap-1.5 text-[11px] text-cyan-200 font-semibold shrink-0"
+          >
+            <span className="w-1.5 h-3.5 bg-cyan-400 shrink-0" />
+            <span className="leading-snug">{resolvedPendingPrompt}</span>
           </div>
+        ) : (
+          selectionPrompt && (
+            <div className="relative z-10 px-2 py-1.5 bg-[#16202e]/95 border-b border-[#29384d] flex flex-col gap-1 text-[11px] text-amber-300 shrink-0">
+              {selectionPrompt}
+            </div>
+          )
         )}
 
         {/* 手牌双列纵向滚动网格 */}
@@ -225,6 +257,10 @@ export function PlayerHandDock({
             <div className="grid grid-cols-2 gap-1.5 content-start">
               {playerAlly.hand.map((id) => {
                 const def = cardDefinitionOf(state, id);
+                const isDiscardCandidate = Boolean(
+                  isDiscardChoiceActive &&
+                    (!discardCandidateIds || discardCandidateIds.size === 0 || discardCandidateIds.has(id)),
+                );
                 const canDragCard =
                   !isMobile &&
                   canInteractHand &&
@@ -236,11 +272,14 @@ export function PlayerHandDock({
                     instanceId={id}
                     variant="compact"
                     selected={selection === id}
-                    interactive={canInteractHand}
+                    interactive={canInteractHand || isDiscardCandidate}
+                    selectable={isDiscardCandidate}
+                    discardCandidate={isDiscardCandidate}
                     draggable={canDragCard}
                     touchActionMode="pan-y"
                     isTouchDragging={draggingCardId === id}
                     onClick={() => onHandCardClick(id)}
+                    onDoubleTap={() => onHandCardDoubleClick?.(id)}
                     onLongPress={(rect) => {
                       onHoverCard(null);
                       onLongPressCard(id, rect);
@@ -287,20 +326,36 @@ export function PlayerHandDock({
         className="pointer-events-none absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-cyan-400/20 via-cyan-300/70 to-amber-400/50 z-20"
       />
       {/* 0. 固定高度的整合式战术引导/选中指令条（彻底杜绝悬停或选中时棋盘上下跳动） */}
-      <div className="relative z-10 min-h-[34px] px-2 sm:px-3.5 py-1 bg-[#131b27]/95 border-b border-[#253245] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 text-xs">
-        {selectionPrompt ?? (
-          <div className="flex items-center justify-between gap-2 w-full text-[11px] text-slate-400 min-w-0">
-            <span className="truncate">
-              {idlePrompt ??
-                (canInteractHand
-                  ? isMobile
-                    ? '轻点选牌 / 上拉拖牌部署；长按任意卡牌或单位查看详情与词条。'
-                    : '单击或拖放手牌部署；鼠标悬停卡牌或单位片刻预览详情与词条。'
-                  : hasPending
-                    ? '请先完成上方待决战术选择。'
-                    : '等待对手行动中…')}
-            </span>
+      <div
+        className={`relative z-10 min-h-[34px] px-2 sm:px-3.5 py-1 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 text-xs transition-colors ${
+          hasPending && resolvedPendingPrompt
+            ? 'bg-cyan-950/60 border-cyan-400/55 text-cyan-200'
+            : 'bg-[#131b27]/95 border-[#253245]'
+        }`}
+      >
+        {hasPending && resolvedPendingPrompt ? (
+          <div
+            data-testid="hand-dock-pending-prompt"
+            className="flex items-center gap-2 w-full text-[11px] sm:text-xs font-semibold text-cyan-200 min-w-0"
+          >
+            <span className="w-1.5 h-3.5 bg-cyan-400 shrink-0" />
+            <span className="truncate">{resolvedPendingPrompt}</span>
           </div>
+        ) : (
+          selectionPrompt ?? (
+            <div className="flex items-center justify-between gap-2 w-full text-[11px] text-slate-400 min-w-0">
+              <span className="truncate">
+                {idlePrompt ??
+                  (canInteractHand
+                    ? isMobile
+                      ? '轻点选牌 / 上拉拖牌部署，无需目标卡牌可双击直接释放；长按查看详情与词条。'
+                      : '单击或拖放手牌部署，无需目标卡牌可双击直接释放；鼠标悬停卡牌或单位预览详情。'
+                    : hasPending
+                      ? '请先完成待决战术选择。'
+                      : '等待对手行动或战斗演出结算…')}
+              </span>
+            </div>
+          )
         )}
       </div>
 
@@ -429,6 +484,8 @@ export function PlayerHandDock({
             cornerCut
             disabled={!canEndTurn}
             onClick={onEndActionPhase}
+            data-testid="end-action-phase-btn"
+            data-end-turn-ready={canEndTurn ? 'true' : 'false'}
             className={`text-[11px] sm:text-xs px-2 sm:px-4 min-h-[32px] sm:min-h-[38px] font-bold whitespace-nowrap transition-all shrink-0 ${
               canEndTurn
                 ? 'ring-1 ring-amber-400/50 shadow-[0_0_12px_rgba(229,165,43,0.35)]'
@@ -456,6 +513,10 @@ export function PlayerHandDock({
         ) : (
           playerAlly.hand.map((id) => {
             const def = cardDefinitionOf(state, id);
+            const isDiscardCandidate = Boolean(
+              isDiscardChoiceActive &&
+                (!discardCandidateIds || discardCandidateIds.size === 0 || discardCandidateIds.has(id)),
+            );
             const canDragCard =
               !isMobile &&
               canInteractHand &&
@@ -466,11 +527,14 @@ export function PlayerHandDock({
                   state={state}
                   instanceId={id}
                   selected={selection === id}
-                  interactive={canInteractHand}
+                  interactive={canInteractHand || isDiscardCandidate}
+                  selectable={isDiscardCandidate}
+                  discardCandidate={isDiscardCandidate}
                   draggable={canDragCard}
                   touchActionMode="pan-x"
                   isTouchDragging={draggingCardId === id}
                   onClick={() => onHandCardClick(id)}
+                  onDoubleTap={() => onHandCardDoubleClick?.(id)}
                   onLongPress={(rect) => {
                     onHoverCard(null);
                     onLongPressCard(id, rect);

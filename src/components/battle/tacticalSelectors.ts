@@ -16,8 +16,10 @@ import {
 import type {
   CardInstance,
   CardInstanceId,
+  GameAction,
   GameState,
   LaneId,
+  PendingEffectChoice,
   PlayerId,
   Position,
 } from '../../game/types';
@@ -305,3 +307,51 @@ export function getInvalidUnitActionReason(
   });
   return res.ok ? null : res.reason;
 }
+
+/**
+ * 查找无需指定目标、路线或阵位的手牌直发动作（如「战术分析」「空降部署」「紧急后勤」）。
+ */
+export function findDirectPlayAction(
+  legalActions: readonly GameAction[],
+  cardInstanceId: CardInstanceId,
+): Extract<GameAction, { type: 'play_card' }> | undefined {
+  return legalActions.find(
+    (a): a is Extract<GameAction, { type: 'play_card' }> =>
+      a.type === 'play_card' &&
+      a.card_instance_id === cardInstanceId &&
+      a.target_instance_id === undefined &&
+      a.target_lane === undefined &&
+      (!a.target_lanes || a.target_lanes.length === 0) &&
+      a.target_position === undefined,
+  );
+}
+
+/**
+ * 生成待决效应选择的明确中文操作提示（覆盖弃牌、召唤抉择、前排护盾/掩护及充能等所有待决类型）。
+ */
+export function getPendingChoicePromptText(
+  state: GameState,
+  choice: PendingEffectChoice | null | undefined,
+): string {
+  if (!choice) return '';
+  const sourceInst = state.card_instances[choice.source_instance_id];
+  const sourceName = sourceInst
+    ? state.card_definitions[sourceInst.card_id]?.card_name_zh ?? '战术效果'
+    : '战术效果';
+
+  switch (choice.effect) {
+    case 'choose_discard':
+      return `【${sourceName}】待决弃牌：请点击下方青色高亮手牌，选择 ${choice.amount} 张弃置`;
+    case 'choose_summon':
+      return `【${sourceName}】待决抉择：请在上方提示栏选择要部署的无人机型号`;
+    case 'grant_front_shield':
+      return `【${sourceName}】回合支援：请点击棋盘青色高亮前排友方干员获得 +${choice.amount} 护盾`;
+    case 'grant_front_cover':
+      return `【${sourceName}】回合支援：请点击棋盘青色高亮前排友方干员获得 掩护`;
+    case 'gain_sp':
+      return `【${sourceName}】回合支援：请点击棋盘青色高亮友方干员充能 +${choice.amount} SP`;
+    default:
+      return `【${sourceName}】请先完成当前待决战术选择`;
+  }
+}
+

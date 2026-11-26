@@ -9,13 +9,14 @@ interface MissionPanelProps {
   readonly isMatchFinished: boolean;
   readonly variant?: 'overlay' | 'embedded';
   readonly claimedAmount?: number | null;
+  readonly disableMotion?: boolean;
   readonly onClose?: () => void;
   readonly onExitMatch?: () => void;
 }
 
 /**
  * 罗德岛演习动态任务面板 (MissionPanel)
- * - 展示本局动态生成的 3 项演习任务及实时/终局完成进度
+ * - 展示本局动态生成的 3 项演习任务及实时/终局进度条（50% 与 100% 达成触发高亮脉冲）
  * - 对局结束时汇总已完成任务并展示额外发放的合成玉奖励
  */
 export function MissionPanel({
@@ -23,6 +24,7 @@ export function MissionPanel({
   isMatchFinished,
   variant = 'overlay',
   claimedAmount = null,
+  disableMotion = false,
   onClose,
   onExitMatch,
 }: MissionPanelProps) {
@@ -57,15 +59,30 @@ export function MissionPanel({
       {/* 动态任务列表 */}
       <div className="space-y-2.5">
         {report.missions.map((mission) => {
-          const pct = Math.max(0, Math.min(100, Math.round((mission.current / Math.max(1, mission.target)) * 100)));
+          const safeTarget = Math.max(1, mission.target);
+          const clampedCurrent = Math.min(mission.current, mission.target);
+          const pct = Math.max(0, Math.min(100, Math.round((mission.current / safeTarget) * 100)));
+          const milestone: 'complete' | 'half' | 'normal' =
+            pct >= 100 || mission.completed ? 'complete' : pct >= 50 ? 'half' : 'normal';
+          const barPulseClass = disableMotion
+            ? ''
+            : milestone === 'complete'
+              ? 'anim-progress-complete'
+              : milestone === 'half'
+                ? 'anim-progress-half'
+                : '';
+
           return (
             <div
               key={mission.id}
               data-testid={`mission-item-${mission.kind}`}
+              data-progress-milestone={milestone}
               className={`p-3 border transition-colors ${
-                mission.completed
-                  ? 'bg-[#101c1a]/90 border-emerald-500/55'
-                  : 'bg-[#10151c]/90 border-[#283342]'
+                milestone === 'complete'
+                  ? 'bg-[#101c1a]/90 border-emerald-400/65'
+                  : milestone === 'half'
+                    ? 'bg-[#101924]/90 border-cyan-400/50'
+                    : 'bg-[#10151c]/90 border-[#283342]'
               }`}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -75,22 +92,30 @@ export function MissionPanel({
                     <span aria-hidden="true" className="text-slate-600">·</span>
                     <span
                       className={`text-[11px] font-mono ${
-                        mission.completed
+                        milestone === 'complete'
                           ? 'text-emerald-300'
                           : isMatchFinished
                             ? 'text-slate-400'
-                            : 'text-sky-300'
+                            : milestone === 'half'
+                              ? 'text-cyan-300'
+                              : 'text-sky-300'
                       }`}
                     >
-                      {mission.completed ? '已完成' : isMatchFinished ? '未达成' : '进行中'}
+                      {milestone === 'complete'
+                        ? '已完成'
+                        : isMatchFinished
+                          ? '未达成'
+                          : milestone === 'half'
+                            ? '突破 50%'
+                            : '进行中'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-300 m-0">{mission.description}</p>
                 </div>
 
                 <div className="flex items-center gap-2 font-mono text-xs tabular-nums shrink-0">
-                  <span className={mission.completed ? 'text-emerald-300 font-bold' : 'text-slate-200'}>
-                    {Math.min(mission.current, mission.target)}/{mission.target}
+                  <span className={milestone === 'complete' ? 'text-emerald-300 font-bold' : 'text-slate-200'}>
+                    {clampedCurrent}/{mission.target}
                   </span>
                   <span aria-hidden="true" className="text-slate-600">·</span>
                   <span className="inline-flex items-center gap-1 text-amber-300 font-bold">
@@ -100,22 +125,63 @@ export function MissionPanel({
                 </div>
               </div>
 
-              <div
-                role="progressbar"
-                aria-label={mission.title}
-                aria-valuemin={0}
-                aria-valuemax={mission.target}
-                aria-valuenow={Math.min(mission.current, mission.target)}
-                className="mt-2 h-1.5 w-full bg-[#0a0e14] border border-[#222d3b] overflow-hidden"
-              >
+              <div className="mt-2.5 flex items-center gap-2">
                 <div
-                  className={`h-full transition-[width] duration-300 ${
-                    mission.completed
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-300'
-                      : 'bg-gradient-to-r from-sky-600 to-cyan-400'
+                  role="progressbar"
+                  aria-label={mission.title}
+                  aria-valuemin={0}
+                  aria-valuemax={mission.target}
+                  aria-valuenow={clampedCurrent}
+                  aria-valuetext={`${pct}%`}
+                  data-testid={`mission-progress-${mission.kind}`}
+                  data-progress-milestone={milestone}
+                  data-mission-pct={pct}
+                  className={`relative h-2.5 flex-1 bg-[#0a0e14] border overflow-hidden ${
+                    milestone === 'complete'
+                      ? 'border-emerald-400/70'
+                      : milestone === 'half'
+                        ? 'border-cyan-400/60'
+                        : 'border-[#222d3b]'
                   }`}
-                  style={{ width: `${pct}%` }}
-                />
+                >
+                  {/* 50% 里程碑刻度线 */}
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute left-1/2 top-0 bottom-0 w-px z-20 ${
+                      milestone !== 'normal' ? 'bg-cyan-200/75' : 'bg-slate-600/70'
+                    }`}
+                  />
+                  <div
+                    className={`relative z-10 h-full transition-[width] duration-300 ${barPulseClass} ${
+                      milestone === 'complete'
+                        ? 'bg-gradient-to-r from-emerald-500 via-teal-300 to-amber-300'
+                        : milestone === 'half'
+                          ? 'bg-gradient-to-r from-sky-500 via-cyan-300 to-sky-200'
+                          : 'bg-gradient-to-r from-sky-700 to-sky-500'
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  >
+                    {!disableMotion && milestone === 'complete' && (
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/65 to-transparent pointer-events-none anim-progress-shimmer"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <span
+                  data-testid={`mission-pct-${mission.kind}`}
+                  className={`text-[11px] font-mono font-bold tabular-nums w-10 text-right shrink-0 ${
+                    milestone === 'complete'
+                      ? 'text-emerald-300'
+                      : milestone === 'half'
+                        ? 'text-cyan-300'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  {pct}%
+                </span>
               </div>
             </div>
           );
