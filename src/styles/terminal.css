@@ -1139,6 +1139,86 @@ b { color: #fff; }
   transform: translate3d(0, 0.5px, 0);
 }
 
+/* ---------- 亮 → 淡 → 亮 渐变边框与终端分隔线 ---------- */
+.prts-grad-frame {
+  position: relative;
+  --grad-edge-bright: rgba(103, 232, 249, 0.78);
+  --grad-edge-dim: rgba(74, 85, 91, 0.24);
+}
+
+.prts-grad-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  pointer-events: none;
+  z-index: 25;
+  background:
+    radial-gradient(circle at 0% 0%, var(--grad-edge-bright) 0%, transparent 44%),
+    radial-gradient(circle at 100% 0%, var(--grad-edge-bright) 0%, transparent 44%),
+    radial-gradient(circle at 0% 100%, var(--grad-edge-bright) 0%, transparent 44%),
+    radial-gradient(circle at 100% 100%, var(--grad-edge-bright) 0%, transparent 44%),
+    var(--grad-edge-dim);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.prts-grad-cyan {
+  --grad-edge-bright: rgba(103, 232, 249, 0.82);
+  --grad-edge-dim: rgba(56, 189, 248, 0.18);
+  box-shadow:
+    inset 0 0 28px rgba(56, 189, 248, 0.06),
+    0 18px 44px rgba(0, 0, 0, 0.65);
+}
+
+.prts-grad-amber {
+  --grad-edge-bright: rgba(251, 191, 36, 0.88);
+  --grad-edge-dim: rgba(229, 165, 43, 0.2);
+  box-shadow:
+    inset 0 0 24px rgba(229, 165, 43, 0.08),
+    0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.prts-grad-rose {
+  --grad-edge-bright: rgba(251, 113, 133, 0.82);
+  --grad-edge-dim: rgba(244, 63, 94, 0.18);
+  box-shadow:
+    inset 0 0 24px rgba(244, 63, 94, 0.06),
+    0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.prts-grad-slate {
+  --grad-edge-bright: rgba(203, 213, 225, 0.64);
+  --grad-edge-dim: rgba(74, 85, 91, 0.2);
+  box-shadow:
+    inset 0 0 20px rgba(148, 163, 184, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+.prts-grad-interactive:hover::after,
+.prts-grad-interactive:focus-within::after {
+  filter: brightness(1.22);
+}
+
+.prts-grad-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--grad-divider-bright, rgba(103, 232, 249, 0.72)) 0%,
+    rgba(56, 189, 248, 0.16) 32%,
+    rgba(74, 85, 91, 0.12) 50%,
+    rgba(56, 189, 248, 0.16) 68%,
+    var(--grad-divider-bright, rgba(103, 232, 249, 0.72)) 100%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card,
   .card-frame,
@@ -1208,6 +1288,7 @@ b { color: #fff; }
   .prts-status-breath,
   .prts-ambient-glow,
   .prts-module-tile,
+  .prts-grad-frame::after,
   .holo-btn,
   .holo-btn::before {
     transition: none !important;
